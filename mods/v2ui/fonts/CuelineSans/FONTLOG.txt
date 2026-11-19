@@ -1,0 +1,30 @@
+FONTLOG for Cueline Sans
+========================
+
+Cueline Sans is the UI typeface of the CDJ-2000NXS2 custom firmware (V2/V3 UI,
+CDJ-3000 style on the 800x480 screen, and the stock GUI's latin font via the
+font3000 mod). It is a Modified Version of Outfit, released under the SIL Open
+Font License 1.1 (OFL.txt). "Cueline Sans" is not a Reserved Font Name.
+
+Original: Outfit, Copyright 2021 The Outfit Project Authors
+          (https://github.com/Outfitio/Outfit-Fonts), file source-Outfit-wght.ttf
+          as distributed by Google Fonts (ofl/outfit/Outfit[wght].ttf).
+
+Changes (all made by build_font.py, numerically, on Outfit's own outlines):
+  - static instances of the weight axis: Regular = wght 460 (text sizes),
+    Display = wght 420 (large counters);
+  - condensed horizontally to 92 % (outlines, advances, kerning, anchors),
+    capitals (Unicode Lu) a further 90 % (narrow caps for all-caps UI labels);
+  - tabular figures by default (0-9 mapped to Outfit's own .tf figures);
+  - U+00AD and U+2212 mapped to the hyphen;
+  - renamed; name table states the original copyright and the OFL.
+
+Provenance: no outline, bitmap, metric or other data of any Pioneer /
+AlphaTheta typeface (or any other font) was used. The only external numbers
+are the UI's own layout grid in mods/v2ui/fontgen.py (cell height, baseline
+row and cap height of each UI text size, in pixels).
+
+Build:  python3 build_font.py         (needs fontTools >= 4.40)
+        -> CuelineSans-Regular.ttf, CuelineSans-Display.ttf (committed)
+
+2026-11-16  1.000  first release.

@@ -1,0 +1,31 @@
+# site(mov #9) form  (player 0x938 record sites; raw = multiplier is the device number, idx = device-1)
+082567fa raw
+0825e082 raw
+08264324 raw
+0826519a raw
+08266ae8 raw
+08267e6c raw
+08271830 raw
+082738c6 raw
+08273c2c raw
+08277d34 raw
+0827a0e8 raw
+0827a172 raw
+0827a3d2 raw
+0827a524 raw
+0827dd1a raw
+0827ea28 raw
+0827f7d8 raw
+082801ea raw
+082865b4 raw
+0826c2d8 raw
+0826038c idx
+08260bf8 idx
+08261402 idx
+08263a5e idx
+082642e8 idx
+082659ca idx
+08265f78 idx
+08278534 idx
+0827909c idx
+0826433a raw r7

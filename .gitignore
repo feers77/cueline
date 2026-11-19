@@ -1,0 +1,22 @@
+# firmware files never belong in this repository
+*.UPD
+*.upd
+*.bin
+*.BIN
+# build outputs
+out-*/
+work/
+*.o
+*.elf
+__pycache__/
+*.pyc
+# generated at build time from your own copies
+mods/v2ui/font.c
+mods/v2ui_assets/v2ui_atlas.c
+mods/v2ui_assets/v2ui_atlas.h
+mods/player56/p56sites.S
+mods/player56/p56sess.S
+mods/player56/p56ui_entries.S
+mods/player56/sites*.json
+mods/player56/ui_entries.json
+!mods/ownks/dsp/ownks_dsp.bin

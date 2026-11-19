@@ -1,0 +1,60 @@
+# KEY SYNC on the real rig, both directions. v34 lesson: the first run tapped K.SYNC on the sync deck while
+# IT was the tempo master (expect was soft) -> correct refusal. Now: force master = ${m} first (hard).
+# Loads: master gets rbid ${mrb} (2A), sync deck rbid ${srb} (11A) -> expected shift +2 (GUI word low byte 0x8E).
+# Toggles are normalised from deck memory first (panel KSB+4, KEY SYNC KSB+48).
+# All tracks come from player ${usb}'s USB (the deck without ${usb} loads over LINK).
+KSB = 0x08123000
+PLAN = {'name': 'KEY SYNC real rig v2 (master forced, both directions)',
+ 'vars': {'m': 3, 's': 2, 'usb': 3, 'mrb': 2, 'srb': 3},
+ 'virtual': {'kind': 'cdj', 'name': 'rig', 'number': 5},
+ 'steps': [
+  {'do': 'wait_device', 'player': '${m}', 'timeout': 60},
+  {'do': 'wait_device', 'player': '${s}', 'timeout': 60},
+  {'do': 'load', 'target': '${m}', 'src_player': '${usb}', 'slot': 'usb', 'rbid': '${mrb}'},
+  {'do': 'load', 'target': '${s}', 'src_player': '${usb}', 'slot': 'usb', 'rbid': '${srb}'},
+  {'do': 'wait', 's': 8},
+  {'do': 'expect', 'name': 'M loaded', 'player': '${m}', 'loaded': True, 'rbid': '${mrb}', 'timeout': 15},
+  {'do': 'expect', 'name': 'S loaded', 'player': '${s}', 'loaded': True, 'rbid': '${srb}', 'timeout': 15},
+  {'do': 'master', 'target': '${m}'},
+  {'do': 'expect', 'name': 'M is tempo master', 'player': '${m}', 'master': True, 'timeout': 10},
+  {'do': 'expect', 'name': 'S not master', 'player': '${s}', 'master': False, 'timeout': 10},
+  {'do': 'wait', 's': 3},
+  {'name': 'M: KSB+100..119', 'do': 'deck_mem', 'player': '${m}', 'addr': KSB + 100, 'len': 20},
+  {'name': 'S: KC 0..3', 'do': 'deck_mem', 'player': '${s}', 'addr': 0x081FE0C0, 'len': 64},
+  {'name': 'S: KC 4..7', 'do': 'deck_mem', 'player': '${s}', 'addr': 0x081FE100, 'len': 64},
+  {'name': 'S: K3 p1..6', 'do': 'deck_mem', 'player': '${s}', 'addr': 0x081FE808, 'len': 48},
+  {'name': 'S: KSB+28 KY word valid, shift +2 (low byte 0x8E)', 'do': 'deck_mem', 'player': '${s}',
+   'addr': KSB + 28, 'len': 4, 'want': [[0, 0xFFFF00FF, 0x4B59008E]]},
+  # normalise (v35 lesson: the panel toggle and K.SYNC are toggles; a run that starts with the panel open or
+  # KEY SYNC still on from the last run inverts every tap): panel open, KEY SYNC off
+  {'name': 'S: open the KEY SHIFT panel if closed', 'do': 'deck', 'player': '${s}', 'timeout': 30,
+   'when': [KSB + 4, 0xFF, 0], 'ops': ['TOUCH 679 30', 'WAIT 1500']},
+  {'name': 'S: K.SYNC off if left on', 'do': 'deck', 'player': '${s}', 'timeout': 30,
+   'when': [KSB + 48, 0xFF, 1], 'ops': ['TOUCH 704 280', 'WAIT 2000']},
+  {'name': 'S: panel open, KEY SYNC off', 'do': 'deck_mem', 'player': '${s}', 'addr': KSB, 'len': 52,
+   'want': [[4, 0xFF, 1], [48, 0xFF, 0]]},
+  {'name': 'S: KSB+28 KY word still valid +2', 'do': 'deck_mem', 'player': '${s}',
+   'addr': KSB + 28, 'len': 4, 'want': [[0, 0xFFFF00FF, 0x4B59008E]]},
+  {'name': 'S: K.SYNC tap', 'do': 'deck', 'player': '${s}', 'timeout': 30, 'ops': ['TOUCH 704 280', 'WAIT 2500']},
+  {'name': 'S: KSB+48 = 1 (engaged)', 'do': 'deck_mem', 'player': '${s}', 'addr': KSB + 48, 'len': 20,
+   'want': [[0, 0xFF, 1]]},
+  {'name': 'S: engine on, shift +2', 'do': 'deck_mem', 'player': '${s}', 'addr': 0x08122800, 'len': 8,
+   'want': [[0, 0xFF, 1], [4, 0xFF, 2]]},
+  {'name': 'S: MASTER TEMPO on', 'do': 'deck_mem', 'player': '${s}', 'addr': 0x0B568C9C + 0x20, 'len': 4,
+   'want': [[0, 0xFF, 1]]},
+  {'name': 'S: K.SYNC off', 'do': 'deck', 'player': '${s}', 'timeout': 30, 'ops': ['TOUCH 704 280', 'WAIT 2000']},
+  {'name': 'S: MASTER TEMPO back off', 'do': 'deck_mem', 'player': '${s}', 'addr': 0x0B568C9C + 0x20, 'len': 4,
+   'want': [[0, 0xFF, 0]]},
+  {'name': 'S: close the panel', 'do': 'deck', 'player': '${s}', 'timeout': 30,
+   'when': [KSB + 4, 0xFF, 1], 'ops': ['TOUCH 679 30', 'WAIT 1000']},
+  {'name': 'S: KSB+48 = 0', 'do': 'deck_mem', 'player': '${s}', 'addr': KSB + 48, 'len': 20, 'want': [[0, 0xFF, 0]]},
+  {'name': 'S: engine shift back 0', 'do': 'deck_mem', 'player': '${s}', 'addr': 0x08122800, 'len': 8,
+   'want': [[4, 0xFF, 0]]},
+  # control: the sync deck as master refuses (the v34 case)
+  {'do': 'master', 'target': '${s}'},
+  {'do': 'expect', 'name': 'S is master', 'player': '${s}', 'master': True, 'timeout': 10},
+  {'do': 'wait', 's': 2},
+  {'name': 'S as master: KY word invalid', 'do': 'deck_mem', 'player': '${s}', 'addr': KSB + 28, 'len': 4,
+   'want': [[0, 0x80, 0]]},
+  {'do': 'master', 'target': '${m}'},
+ ]}

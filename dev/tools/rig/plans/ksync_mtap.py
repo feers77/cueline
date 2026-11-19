@@ -1,0 +1,32 @@
+# KEY SYNC tapped on the tempo master itself: must be refused (KSB+64 refusal tick set, KSB+48 stays 0).
+KSB = 0x08123000
+RX = 0xA9072B38 + 0xFF0
+PLAN = {'name': 'KEY SYNC tap on the master (refusal)',
+ 'vars': {'m': 2, 's': 3},
+ 'virtual': {'kind': 'cdj', 'name': 'rig', 'number': 5},
+ 'steps': [
+  {'do': 'wait_device', 'player': '${m}', 'timeout': 60},
+  {'do': 'wait_device', 'player': '${s}', 'timeout': 60},
+  {'do': 'master', 'target': '${s}'},
+  {'do': 'expect', 'name': 'S is master', 'player': '${s}', 'master': True, 'timeout': 10},
+  {'do': 'wait', 's': 3},
+  {'name': 'S: heartbeat this deck / master', 'do': 'deck_mem', 'player': '${s}', 'addr': 0x0B568C9C + 0x5C, 'len': 4},
+  {'name': 'S: heartbeat master', 'do': 'deck_mem', 'player': '${s}', 'addr': 0x0B568C9C + 0xA4, 'len': 4},
+  {'name': 'S: RX slot 0 GUI word', 'do': 'deck_mem', 'player': '${s}', 'addr': RX, 'len': 4},
+  {'name': 'S: RX slot 1 GUI word', 'do': 'deck_mem', 'player': '${s}', 'addr': RX + 0x4000, 'len': 4},
+  {'name': 'S: RX slot 2 GUI word', 'do': 'deck_mem', 'player': '${s}', 'addr': RX + 0x8000, 'len': 4},
+  {'name': 'S: KSB+28 KY word (as master: not valid)', 'do': 'deck_mem', 'player': '${s}', 'addr': KSB + 28, 'len': 4,
+   'want': [[0, 0x80, 0]]},
+  {'name': 'S: open the panel if closed', 'do': 'deck', 'player': '${s}', 'timeout': 30,
+   'when': [KSB + 4, 0xFF, 0], 'ops': ['TOUCH 679 30', 'WAIT 1500']},
+  {'name': 'S: K.SYNC off if left on', 'do': 'deck', 'player': '${s}', 'timeout': 30,
+   'when': [KSB + 48, 0xFF, 1], 'ops': ['TOUCH 704 280', 'WAIT 2000']},
+  {'name': 'S: KSB+48..+67 before', 'do': 'deck_mem', 'player': '${s}', 'addr': KSB + 48, 'len': 20, 'as': 'before'},
+  {'name': 'S: K.SYNC tap (as master)', 'do': 'deck', 'player': '${s}', 'timeout': 30, 'ops': ['TOUCH 704 280', 'WAIT 300']},
+  {'name': 'S: refused: KSB+48 0', 'do': 'deck_mem', 'player': '${s}', 'addr': KSB + 48, 'len': 20, 'want': [[0, 0xFF, 0]]},
+  {'name': 'S: K.SYNC off if it engaged', 'do': 'deck', 'player': '${s}', 'timeout': 30,
+   'when': [KSB + 48, 0xFF, 1], 'ops': ['TOUCH 704 280', 'WAIT 2000']},
+  {'name': 'S: close the panel', 'do': 'deck', 'player': '${s}', 'timeout': 30,
+   'when': [KSB + 4, 0xFF, 1], 'ops': ['TOUCH 679 30', 'WAIT 1000']},
+  {'do': 'master', 'target': '${m}'},
+ ]}

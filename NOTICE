@@ -1,0 +1,12 @@
+Cueline -- (c) 2026 Cristian Feres and contributors
+Custom firmware UI for the Pioneer CDJ-2000NXS2, inspired by the CDJ-3000.
+
+Our code is licensed under the Apache License 2.0 (LICENSE); the documentation under CC BY 4.0
+(https://creativecommons.org/licenses/by/4.0/). Files from the upstream emulator project
+(github.com/Stijn-Jacobs/cdj-nxs2-qemu) and other third-party parts keep their own licences (upstream: GPL-2.0-or-later): see THIRD_PARTY.md.
+The build tooling as a whole is GPL-3.0-or-later (combined work); our own files are Apache-2.0.
+
+Not affiliated with or endorsed by Pioneer DJ or AlphaTheta. "CDJ" is their trademark, used only as a descriptive
+reference. No Pioneer/AlphaTheta firmware, code, fonts or artwork are included.
+
+Credit: parts of the KEY SHIFT engine interface, the boot-screen text line and early display-performance findings were learned from LNNRT Mods by Lennart.

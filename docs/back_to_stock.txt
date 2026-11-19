@@ -1,0 +1,49 @@
+BACK TO STOCK -- returning a CDJ-2000NXS2 running Cueline to the official firmware 1.87
+=======================================================================================
+
+Not affiliated with, endorsed by or supported by Pioneer DJ / AlphaTheta. Updating firmware is always at
+your own risk. Read the whole procedure before you start.
+
+Why a plain official update is not enough
+-----------------------------------------
+The deck's updater writes a firmware section only when the version LABEL in the .UPD is newer than the
+label recorded as installed, and that installed label is kept in the deck's SETTINGS. Our builds carry
+higher labels so they install over stock: V4n60j192 (DEV) = MAIN 1.92 / GUI 1.86, V4r60j192 (RELEASE) = MAIN 1.92 /
+GUI 1.86 (UTILITY > VERSION No.). As a result the official 1.87
+update is SKIPPED (nothing is written) until the settings have been reset. A factory reset clears the
+stored label; after it, the official 1.87 update installs normally.
+(Verified on real hardware, and in the emulator.)
+
+Procedure
+---------
+1. Back up anything you need. The factory reset erases all deck settings. If you use MY SETTINGS, save
+   them to a USB device with rekordbox first, so you can load them again afterwards.
+
+2. Disconnect the Pro DJ Link (LAN) cable first: while LINK is active the player does not allow
+   DUPLICATION -> DEFAULT. Then, on the deck: MENU/UTILITY -> DUPLICATION -> DEFAULT (factory reset).
+   Confirm.
+
+3. Prepare a FAT32 USB stick: copy the OFFICIAL C2KNXS2.UPD version 1.87, downloaded from
+   alphatheta.com and unchanged, to the ROOT of the stick. Remove any other .UPD files from the stick.
+   The official file's sha256 is the one build.sh checks on its input:
+       f211191a573b7a5c0e694936871f76011a58d5861dd061301cdb0d8b83a8b3e5
+
+4. Power the deck off, insert the stick, and start the update exactly as the official CDJ-2000NXS2
+   firmware update guide from AlphaTheta describes. Wait until the update screen reaches 100 % and shows
+   that the update is complete, then power-cycle as instructed.
+   DO NOT switch the power off while the update is running.
+
+5. Check UTILITY > VERSION No.: it must show 1.87, and the screens must be the stock Pioneer UI.
+   From now on, future official updates install normally.
+
+Notes
+-----
+- The restore is byte-identical to stock for MAIN and GUI (verified in the emulator). The only residue may
+  be an entry in the settings log; doing DEFAULT (step 2) a second time clears it.
+- If the update is interrupted or fails, the deck's emergency updater starts from USB at the next power-on
+  and recovers from the official .UPD on the stick: leave the stick in and let it finish.
+- In update mode our mods do nothing: every MAIN mod that allocates, spawns or hooks checks the normal-boot
+  state first and otherwise falls through to stock, so the update is performed by the stock updater.
+- The same DEFAULT step is needed to go from one of our builds to any OLDER label (e.g. RELEASE V4r60j192 back to
+  DEV V4n60j192, or back to an earlier build); a NEWER label installs directly.
+- Questions / bug reports: see README.md > Reporting bugs.

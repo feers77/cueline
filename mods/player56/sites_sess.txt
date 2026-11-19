@@ -1,0 +1,11 @@
+# session table (ctx+0xA638, 4 x 0x1218 = USB 0x90C + SD 0x90C per player); players 5/6 -> index 27/28
+# (ctx+0x28EC0 / ctx+0x2A0D8); idx = device-1 (bases 0xA638/0xAF44), raw = device (bases 0x9420/0x9D2C)
+0825a8e6 idx c=18
+0825a8fc idx c=18
+0825bb6c idx c=18
+0825bb86 idx c=18
+082652c6 raw c=18
+08265328 raw c=18
+08265fe4 idx c=18 nobt
+08266010 idx c=18
+# 08265fe4: 0x08266044 'bf.s 0x08265ff0' is literal-pool data (between bra/word 0x0000), not code
