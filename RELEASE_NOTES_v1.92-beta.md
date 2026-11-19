@@ -58,7 +58,7 @@ CHANGELOG.md.
 ## Assets
 | File | sha256 |
 |---|---|
-| `CuelineBuilder.exe` (Windows, unsigned; SmartScreen may warn) | `8f1d5c96a8c5d1365c97346e6e687321cfeb675acfb0ca8ed7602f6a7db87c70` |
+| `CuelineBuilder.exe` (Windows, unsigned; SmartScreen may warn) | `b043ffbf4f98337b3c9adeb6742bf7d0cccb7bc0e51a068a30d1699766112f4e` |
 | `cueline.delta` (patch data, also in `builder/`) | `a4ed8c974ae7b5015d888208f2432874d0a8e0e4bcd88f16409b6930168da992` |
 | `SHA256SUMS.txt` | the checksums above, plus input and expected output |
 

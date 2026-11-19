@@ -283,7 +283,7 @@ The emulator we use for development is not part of this repository.
 | File | sha256 |
 |---|---|
 | Official `C2KNXS2.UPD` 1.87 (your input) | `f211191a573b7a5c0e694936871f76011a58d5861dd061301cdb0d8b83a8b3e5` |
-| `CuelineBuilder.exe` (Release asset) | `8f1d5c96a8c5d1365c97346e6e687321cfeb675acfb0ca8ed7602f6a7db87c70` |
+| `CuelineBuilder.exe` (Release asset) | `b043ffbf4f98337b3c9adeb6742bf7d0cccb7bc0e51a068a30d1699766112f4e` |
 | `builder/cueline.delta` (our patch data) | `a4ed8c974ae7b5015d888208f2432874d0a8e0e4bcd88f16409b6930168da992` |
 | Your built `C2KNXS2.UPD` (Builder or `build.sh`) | `91eca696ff991006aed81dfdb30a9d2fec16c045fd56fb8922b720aebeb78223` |
 

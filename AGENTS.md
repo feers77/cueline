@@ -38,7 +38,7 @@ python3 builder/cueline_patch.py /path/to/C2KNXS2.UPD          # writes Cueline/
 ```
 It verifies the input sha256, applies `builder/cueline.delta` (our prebuilt patch data; `builder/cueline.delta`
 sha256 `a4ed8c974ae7b5015d888208f2432874d0a8e0e4bcd88f16409b6930168da992`), repacks, and checks the output sha256 equals `91eca696ff991006aed81dfdb30a9d2fec16c045fd56fb8922b720aebeb78223`. On Windows the same tool is
-`CuelineBuilder.exe` (release asset, sha256 `8f1d5c96a8c5d1365c97346e6e687321cfeb675acfb0ca8ed7602f6a7db87c70`; unsigned: SmartScreen may warn).
+`CuelineBuilder.exe` (release asset, sha256 `b043ffbf4f98337b3c9adeb6742bf7d0cccb7bc0e51a068a30d1699766112f4e`; unsigned: SmartScreen may warn).
 
 ## 3. Build from source (paranoid path)
 From the repository root:
