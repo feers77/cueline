@@ -267,7 +267,7 @@ def main():
                 (lang8.check_main(c_main, patch_main.layout_for(main_names), prof) if prof + 'main' in names
                  else []):
             check(ok, what)
-    if 'keyshift' in main_names:     # V4k: Key Shift engine + our front end (mods/keyshift)
+    if 'keyshift' in main_names:     # V4k: the Key Shift engine + our front end (mods/keyshift)
         print('keyshift (KEY SHIFT engine + front end, ks layout)')
         sys.path.insert(0, os.path.join(MODS_DIR, 'keyshift'))
         import keyshift

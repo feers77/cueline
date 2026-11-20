@@ -72,6 +72,8 @@
 	.equ	D_GAIN, 284		! Link Cue ramp gain, 0..512 (10.7 ms at 48 kHz)
 	.equ	D_LDKEY, 288		! the deck's loaded track (status +0x28 ^ +0x2C)
 	.equ	D_LATCH, 292		! a load stopped the preview: no new press
+	.equ	D_ROWK, 296		! R21 (option A): the row (1-8) the row preview's press started on, 0 none
+	.equ	D_ROWT, 300		!   tick of row_touch's last pass (a latch older than 100 ms is a new press)
 					! until the finger leaves the row
 
 	.equ	STACK, 4096
@@ -3230,7 +3232,20 @@ row_touch:
 	mov.l	@(8,r3),r1
 	cmp/hs	r1,r0
 	bt	rt_off
-	mov.l	rt_kbd,r1		! the SEARCH keyboard is up (MAIN 0x084D0024's
+	mov.w	rt_rk,r0		! R21 (owner's option A, 3000): the PRESSED row rules the whole gesture --
+	mov.l	@(r0,r8),r2		! a vertical drift never switches the previewed track (the lift selects
+	add	#4,r0			! that same row: modsmenu va_rows0); the finger's x still seeks in it.
+	mov.l	@(r0,r8),r4		! r2 = the latched row, r4 its tick; refresh the tick
+	mov.l	rt_tk,r1
+	mov.l	@r1,r5
+	mov.l	r5,@(r0,r8)
+	tst	r2,r2
+	bt	9f
+	sub	r4,r5			! a latch not refreshed for 100 ms+ (row_touch left by another
+	mov	#100,r1			! path, e.g. off the list) belongs to an older press
+	cmp/hs	r1,r5
+	bf	8f			! latched: no y -> row mapping
+9:	mov.l	rt_kbd,r1		! the SEARCH keyboard is up (MAIN 0x084D0024's
 	mov	#0x54,r0		! test): its rows' own geometry, and never below
 	mov.l	@(r0,r1),r0
 	mov.l	rt_kbd2,r1		! the keys' top
@@ -3260,7 +3275,9 @@ row_touch:
 	mov	#9,r1
 	cmp/hs	r1,r2
 	bt	rt_off
-	mov	r2,r0
+	mov.w	rt_rk,r0		! R21: latch the pressed row (cleared at rt_off: lift / off the column)
+	mov.l	r2,@(r0,r8)
+8:	mov	r2,r0
 	shll2	r0
 	add	r12,r0
 	mov.l	@(0x10,r0),r10		! r10 = the row's track id
@@ -3375,6 +3392,8 @@ rt_yes:	ld	r0,D_PREVIEW
 rt_off:	mov.w	rt_lat,r0		! off the row: a load's latch ends
 	mov	#0,r1
 	mov.l	r1,@(r0,r8)
+	mov.w	rt_rk,r0		! R21: and the pressed row's
+	mov.l	r1,@(r0,r8)
 	mov.l	rt_med,r1		! (no row preview for the display)
 	mov.l	rt_pvm,r0
 	mov.l	r0,@r1
@@ -3393,6 +3412,7 @@ rt_no:	mov	#0,r0
 	nop
 rt_600:		.word 600
 rt_lat:		.word D_LATCH
+rt_rk:		.word D_ROWK		! R21
 	.p2align 2
 rt_tab:		.long RAMB+0x10000	! the rowwave hook's table
 rt_med:		.long MED + 64		! V3e2: the row preview word for the display
@@ -3407,6 +3427,11 @@ rt_pvk:		.long KILLB + 24	! TOUCH: modsmenu kill_v +24 PREVIEW (1 ON)
 rt_geo:		.long 0x5254474F, 33, 747, 47, 30, 28, 47, 30, 28, 294
 rt_magic:	.long 0x52575633	! "RWV3"
 rt_tx:		.long 0x0B06C774	! calibrated touch x, y (pixels; 0 when up)
+rt_tk:		.long 0x0B0C5258	! R21: 1 ms tick
+! R21: row_touch's latch code put the BPM column's tr_rd32 call (rm_* row text) out of bsr range: a trampoline
+tr_rd32_t:
+	bra	tr_rd32
+	nop
 
 ! ---------------------------------------------------------------------------
 ! row_waves (rowwave, TchAud side). The UI hook (mods/rowwave) publishes the
@@ -5032,7 +5057,7 @@ rw_meta:
 	nop
 	mov	r14,r1			! BPM: tempo x 100 at +0x38 -> "120.0"
 	add	#0x38,r1
-	bsr	tr_rd32
+	bsr	tr_rd32_t		! (R21: via the trampoline, see rt_tk)
 	nop
 	mov.l	r0,@-r15
 	mov	r0,r4
@@ -7671,3 +7696,5 @@ d_due:	.long	0			! D_DUE
 	.long	0			! D_GAIN
 	.long	0			! D_LDKEY
 	.long	0			! D_LATCH
+	.long	0			! D_ROWK
+	.long	0			! D_ROWT

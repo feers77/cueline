@@ -98,6 +98,14 @@ reloc_done:
 	jsr	@r1
 	mov.l	r14,@(20,r15)
 
+	! R20 update safety (defense in depth): nothing of ours past the stock
+	! PWV5 fetch unless MAIN booted normally (*0x0A35DF3C == 1; 2 = USB/SD
+	! update). Same exit as a missing tag: stock waveform untouched.
+	mov.l	p_bootst,r1
+	mov.l	@r1,r0
+	cmp/eq	#1,r0
+	bf	restorepr
+
 	! Drop the buffer the previous track left behind, so a load that fails
 	! partway sends no 3-band words rather than the last track's. The cell
 	! is cleared first: its reader runs in another task.
@@ -267,6 +275,7 @@ p_close:	.long 0x0827A34E	! the ANLZ close-handle call the resumed code makes
 p_malloc:	.long 0x08344A9C
 p_free:		.long 0x08344B42
 p_detail:	.long 0x081FFFF4
+p_bootst:	.long 0x0A35DF3C	! MAIN boot state: 1 normal, 2 update (R20 gate)
 p_scratch:	.long scratch
 p_savedpr:	.long savedpr
 p_curve5:	.long curve5

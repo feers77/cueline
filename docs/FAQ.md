@@ -24,7 +24,7 @@ See also: `USER_GUIDE.md` (every feature) and `KNOWN_LIMITS.md` (what does not w
 3. Switch the deck off. Insert the stick.
 4. Start the update exactly as Pioneer DJ's official CDJ-2000NXS2 update guide describes.
 5. Wait until the update reaches 100 % and says it is complete. Then switch the deck off and on.
-6. Check UTILITY > INFO > **BUILD**. It must show `Cueline-1.92 c5e8e0f3`.
+6. Check UTILITY > INFO > **BUILD**. It must show `Cueline-2.1 e2a70b09`.
 
 **Never switch the deck off, and never pull the stick, while the update runs.**
 
@@ -153,7 +153,7 @@ Pioneer files, and never flash anything itself.
 
 ### Where do I see which version I run?
 
-UTILITY > INFO > **BUILD** shows the build, for example `Cueline-1.92 c5e8e0f3`. UTILITY > VERSION No. shows the version
+UTILITY > INFO > **BUILD** shows the build, for example `Cueline-2.1 e2a70b09`. UTILITY > VERSION No. shows the version
 number.
 
 ### Some of my settings go back to default after power-off.
@@ -210,7 +210,7 @@ If the problem stays, go back to stock (see above) and play your gig on the offi
 
 ### How do I report a bug?
 
-1. Note UTILITY > INFO > **BUILD** (for example `Cueline-1.92 c5e8e0f3`).
+1. Note UTILITY > INFO > **BUILD** (for example `Cueline-2.1 e2a70b09`).
 2. If you run the DEV build, try the matching kill switch. If the problem goes away, say which one.
 3. Open an issue on the project's GitHub page. Include:
    - the BUILD id;

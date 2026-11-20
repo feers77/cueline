@@ -1,6 +1,6 @@
 ! SPDX-License-Identifier: Apache-2.0
 !
-! ownks, MAIN side of our own KEY SHIFT engine (replaces the Key Shift engine behind the same
+! ownks, MAIN side of our own KEY SHIFT engine (behind a fixed
 ! interface; the front end in mods/keyshift/main_keyshift.s and modsmenu is unchanged):
 !   0x08122000  oks_dj(r4 = DJcont context): the DJcont loop's DSP-output step through here
 !               (main_keyshift.s ks_dj calls it only when *0x0A35DF3C == 1)

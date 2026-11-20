@@ -91,7 +91,13 @@ w8cap:
 	add	#0x78,r1
 	mov.l	r2,@(4,r1)		! the rbid first, then the key word
 	mov.l	r0,@r1
-2:
+2:	bsr	dg_beg			! 2.02 (#34): the DB diagnostic word W8D, a new reply
+	nop
+	.ifdef	W8NOPWV5		! TEST ONLY (2.02 bench): the PWV5 block dropped, as a CDJ-3000's empty
+	bsr	free0			! answer, so w7fb's PWV7 fallback runs (0x2D04, then 0x2C04)
+	mov	r10,r4
+	mov	#0,r10
+	.endif
 	.ifdef	W8EMPTY			! TEST ONLY (V4n31 bench): every DB answer treated as empty, as a CDJ-3000's
 	bsr	free0
 	mov	r10,r4
@@ -208,12 +214,40 @@ c_rel:	.long	0x08404772		! rel_mpf(pool, block)
 c_gkey:	.long	0x08253934		! dbcl_GetNewKeyID(handle, rbid) -> key id
 c_mk:	.long	0x4D4B0000		! "MK"
 
-! getblk: the tag fetch of the PQT2 code above, as a call. In: r9 = handle, r5 = rbid, r6 = tag
-! ("TAG\0" long 0 "EXT\0"-like pair, ext at +8). Out: r0 = the heap block [u32][tag as in the file], 0 = none.
-getblk:	sts.l	pr,@-r15
+! dg_beg (2.02, #34): W8D (W8N + 52, w8.inc) for a reply of ours: byte 3 = a reply counter + 1, byte 2 =
+! bit 0 the 0x433 reply had a PWV5 block (r10); bytes 0 / 1 cleared (byte 1: w7fb's PWV7 status).
+dg_beg:	mov.l	k_w8d,r1
+	mov.l	@r1,r0
+	shlr16	r0
+	shlr8	r0
+	add	#1,r0
+	shll16	r0
+	shll8	r0
+	tst	r10,r10
+	bt	1f
+	mov	#1,r2
+	shll16	r2
+	or	r2,r0
+1:	rts
+	mov.l	r0,@r1
+
+! w7get (2.02, #34): PWV7/.2EX of the request's track (r14, handle r9) through stock's tag primitive
+! 0x082545F8 (dbserver 0x2C04 GET_SPECIFIED_ATOM_INFO). W8D: byte 1 = its status (1 ok, 0xFF error, 0xFE
+! unsupported), byte 2 bit 2 = a block came; W8D + 4 = the block's first word. Out: r0 = the heap block
+! ([u32][tag], or the bare tag: see w7fb), 0 = none. Keeps r8-r14.
+! Not 0x2D04 GET_SPECIFIED_ATOM_INFO2 (what the CDJ-3000's own client sends for PWV6 / PWV7, 
+! /): the 3000's server hands 0x2C04 and 0x2D04 to one handler (/
+! 0x14D4BC0 -> 0x14D90B0), and stock's client never puts a 0x2D04 on the wire (tried in the emu, R21L2t:
+! status -1, nothing sent; an NXS2 server answers 0x2D04 with 0x4003).
+w7get:	sts.l	pr,@-r15
+	mov.l	@(40,r14),r5
+	mova	k_tag7,r0
+	mov	r0,r6
 	add	#-12,r15
 	mov	#0,r1
+	mov.l	r1,@r15
 	mov.l	r1,@(4,r15)
+	mov.l	r1,@(8,r15)
 	mov	r15,r1
 	mov.l	r1,@-r15
 	mov	r15,r1
@@ -225,15 +259,31 @@ getblk:	sts.l	pr,@-r15
 	mov	r6,r7
 	add	#8,r7
 	mov	r9,r4
-	mov.l	k_atom,r0
+	mov.l	g_atom,r0
 	jsr	@r0
 	nop
 	add	#12,r15
-	mov.l	@(4,r15),r0
+	mov.l	k_w8d,r1
+	mov	r0,r2			! the status, byte 1
+	mov	#1,r0
+	mov.b	r2,@(r0,r1)
+	mov.l	@(4,r15),r3		! the block
 	add	#12,r15
+	tst	r3,r3
+	bt	1f
+	mov.l	@r3,r2
+	mov.l	r2,@(4,r1)
+	mov.b	@(2,r1),r0
+	or	#4,r0
+	mov.b	r0,@(2,r1)
+1:	mov	r3,r0
 	lds.l	@r15+,pr
 	rts
 	nop
+
+	.p2align 2
+g_atom:	.long	0x082545F8
+k_w8d:	.long	W8D
 
 ! w7fb (DB task, handle r9 open, request r14): the PWV5 fetch answered nothing (a CDJ-3000 keeps its
 ! 3-band detail as PWV7 in the .2EX). Fetch PWV7/2EX (raw tag: 'PWV7', +8 header 24, +12 tag len,
@@ -242,28 +292,38 @@ getblk:	sts.l	pr,@-r15
 ! u16 BE = R 15-13 | G 12-10 | B 9-7 | height 6-2, height = max band, colours = orange mids, blue
 ! lows, white highs (r = m + h, g = m/2 + h, b = l + h scaled to the brightest). Out: r10 = the
 ! record, 0 = none (a bad block is freed).
+! 2.02 (#34): through w7get (W8D). The block's tag is read at +4 ([u32][tag], what an NXS2 server sends)
+! or, when the block starts with 'PWV7' itself, at +0 (W8D byte 2 bit 3; the 3000's form is not captured yet).
 w7fb:	sts.l	pr,@-r15
 	mov.l	r8,@-r15
 	mov.l	r11,@-r15
 	mov.l	r12,@-r15
-	mov.l	@(40,r14),r5
-	mova	k_tag7,r0
-	bsr	getblk
-	mov	r0,r6
-	mov	r0,r10
+	bsr	w7get
+	nop
 	tst	r0,r0
-	bt	w7x
-	mov.l	@(4,r10),r1
+	bt	w7x			! r10 = 0
+1:	mov	r0,r10
+	mov	r10,r11			! r11 = the tag (+0 'PWV7', +8 header, +12 len, +16 bytes, +20 n)
+	add	#4,r11
+	mov.l	@r10,r1
 	mov.l	k_tag7,r2
 	cmp/eq	r2,r1
+	bf	2f
+	mov	r10,r11			! the bare tag
+	mov.l	k_w8d2,r1
+	mov.b	@(2,r1),r0
+	or	#8,r0
+	mov.b	r0,@(2,r1)
+2:	mov.l	@r11,r1
+	cmp/eq	r2,r1
 	bf	w7bad
-	mov.l	@(16,r10),r1		! entry bytes (BE) = 3
+	mov.l	@(12,r11),r1		! entry bytes (BE) = 3
 	mov	#3,r2
 	shll8	r2
 	shll16	r2
 	cmp/eq	r2,r1
 	bf	w7bad
-	mov.l	@(20,r10),r6		! n (BE)
+	mov.l	@(16,r11),r6		! n (BE)
 	swap.b	r6,r6
 	swap.w	r6,r6
 	swap.b	r6,r6
@@ -272,7 +332,7 @@ w7fb:	sts.l	pr,@-r15
 	mov.l	k_nmax,r2
 	cmp/hi	r2,r6
 	bt	w7bad
-	mov.l	@(12,r10),r1		! tag length (BE) >= 24 + 3n
+	mov.l	@(8,r11),r1		! tag length (BE) >= 24 + 3n
 	swap.b	r1,r1
 	swap.w	r1,r1
 	swap.b	r1,r1
@@ -288,8 +348,8 @@ w7fb:	sts.l	pr,@-r15
 	mov.l	r1,@(4,r10)
 	mov	r10,r4
 	add	#20,r4			! out
-	mov	r10,r5
-	add	#28,r5			! in (always ahead of out)
+	mov	r11,r5
+	add	#24,r5			! in (always ahead of out)
 	mov	#64,r8
 	shll	r8			! 128
 w7lp:	mov.b	@r5+,r0
@@ -396,6 +456,7 @@ k_tag7:	.ascii	"PWV7"
 	.ascii	"2EX"
 	.byte	0
 k_nmax:	.long	0x30000		! PWV5 bytes the display keeps: 0x60000
+k_w8d2:	.long	W8D
 k_atom:	.long	0x082545F8
 k_free:	.long	0x08344B42
 

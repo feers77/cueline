@@ -830,6 +830,7 @@ UT_HIDE = UT_HIDE + ('MODS', 'LINK CUE', 'WAV 32-BIT', 'REKORDBOX BUTTON')   # V
 MM_LOAD_LIT, MM_LOAD_STOCK = 0x0846D990, 0x083FC4DC      # QUANTIZE setter (unpack)
 MM_SAVE_LIT, MM_SAVE_STOCK = 0x0846D5D0, 0x08401B60      # getter after byte 5 (pack)
 # V3rc2: the packer's memset of the HISTORY-name record (type 3) -> hist_save (BEAT JUMP + WAVEFORM COLOR hi bit)
+# R21 (2.01-b): hist_save also writes the versioned v1 settings block (modsmenu.s 'VERSIONED SETTINGS')
 MM_HIST_LIT, MM_HIST_STOCK = 0x0846D5D4, 0x08533D50
 MM_COPY_LITS, MM_COPY_STOCK = (0x08390944, 0x08391B60), 0x085336DC  # heartbeat block copies
 # V3e2: the panel task's touch_event calls (re/V3E_DESIGN.md §1.3) -> modsmenu v3e_touch (the CDJ-3000 tap targets)

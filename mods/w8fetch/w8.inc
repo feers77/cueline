@@ -66,3 +66,8 @@
 	.equ	CTL, 0x10
 	.equ	GPTR, 0x30
 	.equ	GBUF, 0x34
+! 2.02 (#34) W8D = W8N + 52 (zeroed with W8S): w8cap's DB diagnostic for the last reply of ours: byte 3 a
+! counter, byte 2 bits: 0 the 0x433 reply had a PWV5 block, 2 w7fb's PWV7 (0x2C04) came, 3 the block was
+! a bare tag (no u32 prefix); byte 1 the status of w7fb's PWV7 fetch (1 ok, 0xFF error, 0xFE unsupported,
+! 0 not tried); byte 0 = 0. W8D + 4: the first word of the last PWV7 block.
+	.equ	W8D, W8N+52

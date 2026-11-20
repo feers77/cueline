@@ -2,13 +2,13 @@
 !
 ! keyshift, MAIN side: our front end of the KEY SHIFT engine (mods/keyshift/keyshift.py).
 ! The engine itself (DSP program with the pitch shifter, the DSP loader patch and the
-! DJcont-path routine at 0x08122000 that sends the shift to the DSP) is an external
-! Key Shift engine, not part of this package; nothing of it is in this file.
+! DJcont-path routine at 0x08122000 that sends the shift to the DSP) is mods/ownks;
+! nothing of it is in this file.
 ! Its interface (re/KEY_SHIFT_PLAN.md, V4k notes in re/V3_PROGRESS.md):
 !   0x08122800 +0  1 = KEY SHIFT on (the DSP path goes through the shifter)
 !              +4  semitones, -12..+12 (signed word)
 !              +16 a generation counter (a change re-sends the parameter)
-! Linked at KSB (patch: 0x08123000, a page next to the engine).
+! Linked at KSB (patch: 0x08123000).
 !
 ! KSB +0  ks_rbm   REKORDBOX BUTTON (UTILITY): 0 REKORDBOX (stock), 1 KEY SHIFT
 !     +4  ks_panel the KEY SHIFT panel (-1 / RESET / +1) is open

@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Cueline Builder</title>
+<meta name="description" content="Build the Cueline firmware update for the CDJ-2000NXS2 from your own official 1.87 update, entirely in your browser.">
+<style>
+  :root {
+    --bg: #0e1013; --panel: #171a1f; --line: #2a2f37; --text: #e6e8eb; --muted: #9aa3ad;
+    --accent: #2fb7a6; --accent-ink: #06231f; --ok: #43c46b; --bad: #ff6b5e; --warn: #f2b84b;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 720px; margin: 0 auto; padding: 32px 16px 48px; }
+  h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: .02em; }
+  h1 span { color: var(--accent); }
+  .lead { color: var(--muted); margin: 0 0 4px; }
+  .es { color: var(--muted); font-size: 14px; margin: 0 0 24px; }
+  .privacy { border-left: 3px solid var(--accent); padding: 8px 12px; background: var(--panel); border-radius: 4px; margin: 0 0 24px; font-size: 15px; }
+  section.step { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; margin: 0 0 16px; }
+  section.step[aria-disabled="true"] { opacity: .45; pointer-events: none; }
+  h2 { font-size: 16px; margin: 0 0 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+  .disclaimer { margin: 0 0 12px; font-size: 15px; }
+  label.check { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; font-weight: 600; }
+  label.check input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--accent); flex: none; }
+  .drop {
+    display: block; border: 2px dashed var(--line); border-radius: 8px; padding: 28px 12px; text-align: center;
+    cursor: pointer; color: var(--muted); transition: border-color .15s, background .15s;
+  }
+  .drop strong { color: var(--text); }
+  .drop.hover, .drop:focus-within { border-color: var(--accent); background: rgba(47, 183, 166, .06); }
+  .drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  ol.phases { list-style: none; padding: 0; margin: 0 0 12px; }
+  ol.phases li { display: flex; gap: 10px; padding: 4px 0; color: var(--muted); }
+  ol.phases li::before { content: "\25CB"; width: 1.2em; flex: none; text-align: center; }
+  ol.phases li.run { color: var(--text); }
+  ol.phases li.run::before { content: "\25D4"; color: var(--warn); animation: spin 1s linear infinite; display: inline-block; }
+  ol.phases li.ok { color: var(--text); }
+  ol.phases li.ok::before { content: "\2713"; color: var(--ok); }
+  ol.phases li.bad { color: var(--bad); }
+  ol.phases li.bad::before { content: "\2717"; color: var(--bad); }
+  ol.phases li .t { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { ol.phases li.run::before { animation: none; } }
+  progress { width: 100%; height: 8px; accent-color: var(--accent); }
+  .msg { margin: 12px 0 0; padding: 10px 12px; border-radius: 6px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; }
+  .msg.bad { background: rgba(255, 107, 94, .1); border: 1px solid var(--bad); }
+  .msg.ok { background: rgba(67, 196, 107, .08); border: 1px solid var(--ok); }
+  .sha { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; overflow-wrap: anywhere; color: var(--muted); }
+  a.button, button {
+    display: inline-block; background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 16px;
+    border: 0; border-radius: 6px; padding: 12px 18px; text-decoration: none; cursor: pointer;
+  }
+  button.secondary { background: transparent; color: var(--text); border: 1px solid var(--line); font-weight: 600; }
+  a { color: var(--accent); }
+  ol.install { padding-left: 22px; margin: 12px 0; }
+  ol.install li { margin: 0 0 6px; }
+  .warnbox { color: var(--warn); font-weight: 600; }
+  .prerelease { border: 1px solid var(--warn); background: rgba(242, 184, 75, .08); border-radius: 6px; padding: 10px 12px; margin: 0 0 16px; font-size: 15px; }
+  .prerelease strong { color: var(--warn); }
+  footer { color: var(--muted); font-size: 13px; margin-top: 24px; }
+  footer a { color: var(--muted); }
+  [hidden] { display: none !important; }
+  noscript { display: block; color: var(--bad); margin: 0 0 16px; }
+</style>
+</head>
+<body>
+<main>
+  <h1><span>Cueline</span> Builder</h1>
+  <p class="lead">Make the <strong id="ver">Cueline</strong> firmware update for the CDJ-2000NXS2 from <em>your own</em> official Pioneer 1.87 update file.</p>
+  <p class="es" lang="es">Bienvenido: elegí tu C2KNXS2.UPD oficial 1.87 y el navegador arma el update de Cueline. Tu archivo nunca sale de tu computadora.</p>
+  <p class="prerelease" id="prerelease"><strong>Pre-release.</strong> Cueline 2.1 has been fully tested in our emulator but <strong>not yet confirmed on real decks</strong>. Keep the official 1.87 update to go back to stock, and test at home before a gig.</p>
+  <p class="privacy">Everything runs <strong>in this browser tab</strong>. Your file is never uploaded: the only things this page downloads are its own files and the Python runtime (Pyodide, from cdn.jsdelivr.net). No analytics, no cookies.</p>
+  <noscript>This builder needs JavaScript.</noscript>
+
+  <section class="step" id="s-disclaimer">
+    <h2>1 &middot; Disclaimer</h2>
+    <p class="disclaimer" id="disclaimer">Disclaimer: Bricking your CDJ-2000NXS2 is hard but not impossible. The main risk is a power cut while the update is being written (flashing). Use a UPS if possible, don't touch the deck or unplug the USB stick during the update, and keep the official 1.87 update to go back to stock. Use at your own risk -- this project is unofficial and provided as-is, without warranty (see LICENSE).</p>
+    <label class="check"><input type="checkbox" id="agree"> I have read this and accept the risk.</label>
+  </section>
+
+  <section class="step" id="s-file" aria-disabled="true">
+    <h2>2 &middot; Your official update</h2>
+    <label class="drop" id="drop">
+      <input type="file" id="file" accept=".UPD,.upd" disabled>
+      <strong>Choose or drop C2KNXS2.UPD</strong><br>
+      the official CDJ-2000NXS2 firmware 1.87 from Pioneer DJ (unzipped)
+    </label>
+  </section>
+
+  <section class="step" id="s-build" aria-disabled="true">
+    <h2>3 &middot; Build</h2>
+    <ol class="phases" id="phases">
+      <li data-p="check">Check the input is the official 1.87<span class="t"></span></li>
+      <li data-p="runtime">Load the Python runtime<span class="t"></span></li>
+      <li data-p="gui">Patch and pack the GUI image<span class="t"></span></li>
+      <li data-p="main">Patch and pack the MAIN image<span class="t"></span></li>
+      <li data-p="verify">Verify the result against the release sha256<span class="t"></span></li>
+    </ol>
+    <progress id="bar" max="100" value="0"></progress>
+    <p class="sha" id="status">Usually under a minute. Keep this tab open and in front.</p>
+    <div class="msg bad" id="error" hidden></div>
+    <p id="retry" hidden><button class="secondary" type="button" id="again">Choose another file</button></p>
+  </section>
+
+  <section class="step" id="s-done" hidden>
+    <h2>4 &middot; Download and install</h2>
+    <div class="msg ok" id="okmsg"></div>
+    <p><a class="button" id="download" download="C2KNXS2.UPD" href="#">Download C2KNXS2.UPD</a></p>
+    <ol class="install">
+      <li><strong>Unplug the Pro DJ Link (LAN) cable</strong> &mdash; while LINK is active the player does not allow DUPLICATION &rarr; DEFAULT.</li>
+      <li><strong>UTILITY &rarr; DUPLICATION &rarr; DEFAULT</strong> (factory reset: it erases the deck settings; without it the update can be skipped).</li>
+      <li>Copy this file <strong>alone</strong> to the root of a <strong>small FAT32 USB stick</strong> and update the deck as with an official update.</li>
+      <li class="warnbox">Never switch the deck off during the update.</li>
+    </ol>
+    <p>Back to stock: unplug the LAN cable, UTILITY &rarr; DUPLICATION &rarr; DEFAULT, then install the official 1.87 (<a id="stock" href="#">details</a>).</p>
+    <p><a id="readme" href="#">Read the README</a> &middot; <a id="releases" href="https://github.com/feers77/cueline/releases">Releases</a> &middot; <a id="discord" href="#">Discord</a></p>
+  </section>
+
+  <footer>
+    Cueline is unofficial and not affiliated with Pioneer DJ / AlphaTheta. The builder runs the same
+    <code>cueline_patch.py</code> as the desktop builders (Apache-2.0; firmware codec GPL-2.0-or-later) &mdash;
+    <a id="src" href="#">source</a>.
+  </footer>
+</main>
+<script src="app.js"></script>
+</body>
+</html>

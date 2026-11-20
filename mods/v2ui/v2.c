@@ -238,6 +238,12 @@ static int g_kcents;	/* KSAMT (V4n43): KEY SYNC cents (-50..+49) from the 0x4B w
  * heartbeat +0xD8 = 1 (emu keysweep: the only word that changes) */
 #define GA_MODE (u32be(DECK + 0xD8) == 1)
 static int ga_tch;	/* TOUCH (V4n41): MAIN (sl_pub, heartbeat +0x18 bit 3): a GRID ADJUST tile drives stock's GRID ADJUST pop-up */
+#ifdef V2_KITLOG	/* R21 deck kit (DEV only, with V2_HUD + V2_USBLOG): a second record a second, 'KIT1' (kit_push) */
+#define KIT(x) x
+static u32 kit_gr, kit_gcur, kit_cursor = 0xFFFFFFFF, kit_ink, kit_inkreq, kit_zgeo, kit_zhide, kit_zown, kit_sdraw, kit_pblit;
+#else
+#define KIT(x)
+#endif
 #define C_PRESS 0x632C		/* #646464: the 3000's pressed state */	/* V3rc3: SEARCH's keyboard hidden (a knob move): the 3000's results view */
 #define V3E_ROW0 ((int)(v3e_b & 0xFFFF))
 #ifdef V2_KEYSHIFT
@@ -736,6 +742,28 @@ static int pop_on(void)
 		return 0;
 	return MODEL[0x0F] && (s == 0x02 || s == 0x04 || s == 0x06);
 }
+/* 2.01-a displayer (re/V2_OVERLAYS.md "z 128"): every stock MENU pop-up lives in ONE window, z 128 (429,12
+ * 353x277), and stock copies it onto the frame after our paint while it is up.
+ * R21D5 (owner, deck: a big WHITE box with coloured dots -- stock's never-drawn SDRAM -- over UTILITY's value pane
+ * in R21D3, which handed z 128 to stock for any +0x0F it did not render): default = 1.92. z 128 stays ours
+ * (O_OWN, popup() + popup_sync draw our pane there) unless the pop-up is one we VERIFIED stock draws (stock_title:
+ * REMOVE ALL TRACKS, emu R21D2..D4; MY SETTINGS, deck-confirmed 1.92). Even then stock's surface is shown only once
+ * stock has really drawn it this time (pst_undrawn, see pop_stock_blit); until then our own pane is drawn as 1.92.
+ * Titles come from one English-only table in MAIN (main_unpacked 0xA8xxx), so matching them is language-safe. */
+static int ustr_eq(const char *a, int an, const volatile u8 *t, int n);
+static int pst_undrawn = 1;	/* the stock pop-up's surface does not hold stock's drawing (yet): ours instead */
+static void pst_stamp(void);
+static int stock_title(void)
+{
+	const volatile u8 *t = SLOT(1, 0);
+	if (ustr_eq("MY SETTINGS", 11, t + 0x2A, u16len(t)))	/* any screen, as the 1.92 fix */
+		return 1;
+	return pop_on() && ustr_eq("REMOVE ALL TRACKS", 17, t + 0x2A, u16len(t));
+}
+static int pop_ours(void)	/* we draw the MENU pop-up (popup() + popup_sync) */
+{
+	return pop_on() && (!stock_title() || pst_undrawn);
+}
 
 /* ---- number formatting ---- */
 
@@ -1080,6 +1108,71 @@ static void markers(int x0, int w, u32 len_ms)
 		} else {
 			tri_dn(x0 + sx, OV_TOP + 6, mem_col(r));	/* memory cue: its colour (V4b1; red by default), above */
 		}
+	}
+}
+
+/* R21 parity (c): the browse strip's mini overview carries the cue marks like the 3000's. The 3000's deck strip
+ * (PlayingTrackInfoWidget) is built in the same unit as HotCueMarker / MainCueMarker /
+ * PreviewableWaveform (its RTTI) and its skin
+ * (its layout skin) puts img_memoryCue (21x15) above the overview and
+ * img_currentCue under it. The 0x32 marker model belongs to the player screen, so -- like the overview pixels
+ * (strip_snap) -- the marks are snapshotted there, with their colours resolved (hot_col / mem_col need the loaded
+ * track's PCO2 table), whenever the player's overview region redraws (it is keyed on marks_ck); the strip only
+ * reads the copy. Sizes: our own player overview's (cue_badge 10 x 11, the 9 x 5 triangles), not re-scaled. */
+static u32 hmix(u32 h, u32 v);
+static u8 smk[N_MARKS * 16];		/* the marker records at the snapshot */
+static u16 smk_c[N_MARKS];		/* their colours then */
+static u32 smk_tid, smk_ck;
+static void strip_marks_snap(u32 tid)
+{
+	u32 c = tid;
+	int i;
+	for (i = 0; i < N_MARKS * 16; i++) {
+		smk[i] = MARKS[i];
+		c = hmix(c, smk[i]);
+	}
+	for (i = 0; i < N_MARKS; i++) {
+		const volatile u8 *r = MARKS + 16 * i;
+		smk_c[i] = i == 0 ? 0xFD06 : i <= N_HOT ? hot_col(i, r) : mem_col(r);
+		c = hmix(c, smk_c[i]);
+	}
+	smk_tid = tid;
+	smk_ck = c;
+}
+/* x0 / w: the strip overview (176, 344); top: the badge row (421..431, the strip's free line above the snapshot);
+ * ovy: the snapshot's first row; cy: the cue triangle's apex under the red progress line. Every mark is clamped
+ * inside the strip's own cleared box (region 4: 176..521), so nothing is left on the time / KEY regions. */
+static void strip_marks(int x0, int w, u32 len_ms, int top, int ovy, int cy)
+{
+	int i, pass;
+	if (!len_ms)
+		return;
+	KIT(kit_sdraw++;)
+	for (pass = 0; pass < 2; pass++)
+	for (i = 0; i < N_MARKS; i++) {
+		const u8 *r = smk + 16 * i;
+		u32 st = (u32)r[8] << 24 | (u32)r[9] << 16 | (u32)r[10] << 8 | r[11];
+		u32 en = (u32)r[12] << 24 | (u32)r[13] << 16 | (u32)r[14] << 8 | r[15];
+		u32 sx, ex;
+		int x;
+		if (st == 0xFFFFFFFF || (i >= 1 && i <= N_HOT) != pass)
+			continue;
+		sx = udiv(udiv(st * 20, 3) * (u32)w, len_ms);	/* 1/150 s -> ms -> px */
+		if (sx >= (u32)w)
+			continue;
+		if (en != 0xFFFFFFFF && en > st) {
+			ex = udiv(udiv(en * 20, 3) * (u32)w, len_ms);
+			if (ex >= (u32)w) ex = w - 1;
+			fill(x0 + sx, ovy - 2, ex - sx + 1, 2, C_MASTER);
+		}
+		x = x0 + (int)sx;
+		if (i == 0) {
+			if (en == 0xFFFFFFFF || en <= st)
+				tri(x < x0 + 4 ? x0 + 4 : x > x0 + w - 5 ? x0 + w - 5 : x, cy, smk_c[0]);
+		} else if (i <= N_HOT)
+			cue_badge(x > x0 + w - 10 ? x0 + w - 10 : x, top, i - 1, smk_c[i]);
+		else
+			tri_dn(x < x0 + 4 ? x0 + 4 : x > x0 + w - 5 ? x0 + w - 5 : x, top + 6, smk_c[i]);
 	}
 }
 
@@ -3705,6 +3798,8 @@ static void deck_area(int info, int on_player)
 					if (on_player && ov_ready(ana))
 						strip_snap(hmix(trackno, len), ana);
 				}
+				if (on_player)		/* R21 parity (c): the strip's cue marks (this region is keyed on marks_ck) */
+					strip_marks_snap(hmix(trackno, len));
 				/* V3e1 (audit Q13): the 3000 under-bar -- a white rule ahead, #555555 under the played
 				 * part with the red progress line below it */
 				fill(OV_X, OV_BAR, pos_x, 1, 0x52AA);
@@ -4950,7 +5045,8 @@ static void player(void)
 #endif
 	{	/* V3rc5: the MENU pop-up (LOAD PREVIOUS TRACK) opened / closed: everything under it redraws */
 		static int last_pop = -1;
-		int pn = pop_on();	/* (TOUCH: not the GRID ADJUST pop-up a tile drives) */
+		int pn = pop_on() | pop_ours() << 1;	/* (TOUCH: not the GRID ADJUST pop-up a tile drives; 2.01-a: also
+							 * our pane <-> a stock pop-up: our pane's pixels go) */
 		if (pn != last_pop) {
 			int i;
 			for (i = 0; i < NREG; i++)
@@ -5309,7 +5405,8 @@ static void player(void)
 		fb = sv;
 	}
 #endif
-	if (pop_on()) {		/* V3rc5: over the band / deck area, redrawn every frame (they are) */
+	if (pop_ours()) {	/* V3rc5: over the band / deck area, redrawn every frame (they are); 2.01-a: only the
+				 * pop-ups we render -- stock draws the others in place (pop_ours) */
 		popup(1);
 		popup_sync();
 	}
@@ -6050,10 +6147,14 @@ static void track_row(int sid, int k, int y, int h, int x1, u32 sid1, int unfocu
 		if (kn) {
 			int kc = key_code(m + 2 * k0, kn), kfn = kn, kw;
 			const volatile u8 *kft = kf_key(m + 2 * k0, &kfn);	/* V4n36: the KEY FORMAT */
-			int g = !cursor && key_compat(kc, ref_key());
+			/* R21 parity (b): the cursor row keeps its green KEY cell too -- the real 3000 (re/cdj3k_refs/video/
+			 * 24_search_results.jpg: the selected blue row "Saccharine 374" shows 5A on the green c017 cell;
+			 * skin NT_ColorList c016/c017 = KEY match text 0 / bg 0,255,0, no selected-row variant) */
+			int g = key_compat(kc, ref_key());
 			kw = row_text_w(&f_m, kft, kfn);
 			if (g)
 				fill(x1 - 54, y + 6, 52, h - 12, C_KEYG);	/* V4n30a: the 56-px KEY cell */
+			KIT(if (g) kit_gr++; if (cursor) kit_gcur = 2u | (g ? 1u : 0u);)
 			text_u16(&f_m, x1 - 28 - kw / 2, ty, kft, kfn, x1, g ? C_BLACK : fg, g ? C_KEYG : bg);
 		}
 	} else
@@ -6074,16 +6175,19 @@ static void track_row(int sid, int k, int y, int h, int x1, u32 sid1, int unfocu
  * dark text); MAIN (modsmenu va_rows0) loads on a tap there */
 /* V4n30 (user, CDJ-3000): LOAD shows only on a row selected by TOUCH; moving the cursor with the rotary
  * (cursor changes without a pressed row) hides it -- the row keeps its BPM / KEY */
-static int lb_tap_k = -1, lb_last_cur = -2;
+/* R21 parity (d): emu R21P02, a preview lifted on row 3 with the cursor on row 7 ended with row 3 selected but no
+ * LOAD (a 1-row title tap showed it) -- most likely MAIN's seek passes the rows between and the first cursor change
+ * dropped the tap (inferred, not traced). Cursor moves within 800 ms of the press keep it; after that the cursor anywhere else drops it as before. */
+static int lb_tap_k = -1;
+static u32 lb_t;
 static void lb_update(int cursor_k)
 {
-	if (V3E_PROW >= 0)
+	if (V3E_PROW >= 0) {
 		lb_tap_k = V3E_PROW;
-	if (cursor_k != lb_last_cur) {
-		if (cursor_k != lb_tap_k)
-			lb_tap_k = -1;
-		lb_last_cur = cursor_k;
+		lb_t = now_ms();
 	}
+	if (lb_tap_k >= 0 && cursor_k != lb_tap_k && now_ms() - lb_t > 800)
+		lb_tap_k = -1;	/* (the cursor settled elsewhere: as before, a move off the row drops the tap) */
 }
 static void load_btn(int k, int y, int h, int x1)
 {
@@ -6195,8 +6299,10 @@ static void strip(int info_title)
 		kt = hmix(hmix(kt, g_tid), g_tn);
 		if (ovok)
 			kt = hmix(hmix(kt, snap_builds), wave_type);
+		if (ovok && smk_tid == snap_tid)
+			kt = hmix(kt, smk_ck);	/* R21 parity (c) */
 		if (need(4, kt)) {
-			fill(176, 422, 346, 56, C_BLACK);
+			fill(176, 421, 346, 57, C_BLACK);	/* R21 parity (c): from 421, the hot-cue badge row */
 			if (failed)
 				text_c(&f_m, 348, 436, u16be(ERR_TXT + 10) == '5' ? "Unsupported file format." :
 				       "Media or File is collapsed.", C_RED, C_BLACK);
@@ -6213,6 +6319,8 @@ static void strip(int info_title)
 					cp16(d + pos, SNAP_U + y * SNAP_W + pos, SNAP_W - (int)pos);
 				}
 				fill(176, 469, pos, 1, C_RED);
+				if (smk_tid == snap_tid)	/* R21 parity (c): hot cues / memory cues above, the cue under */
+					strip_marks(176, SNAP_W, len, 421, 432, 470);
 				fill(176 + pos, 430, 1, 40, C_WHITE);
 				wave_off();
 			} else if (g_tn && g_tid == hmix(trackno, u32be(DECK + 0x7C))) {
@@ -7561,6 +7669,7 @@ static void browse(void)
 		fb_browse_row(sl);	/* V4m2 */
 	}
 	lb_update(cursor_k);	/* V4n30: LOAD only after a touch */
+	KIT(kit_cursor = (u32)cursor_k;)
 	/* the category on the rail */
 	if (root && cursor_k >= 0)
 		cur_cat = u16be(SLOT(0, cursor_k + 1) + 0x14);
@@ -7578,7 +7687,9 @@ static void browse(void)
 				two = 1;
 	}
 	x1 = info ? PANE2_X : two ? PANE2_X : W;
-	base = hmix(hmix(hmix(sid, tracks + 2 * two + 4 * root + 8 * info + 16 * pop), search + 2 * kbh), day | day_full << 1);
+	/* 2.01-a: + our pane <-> a stock pop-up (pop_ours): everything under our pane repaints when it goes */
+	base = hmix(hmix(hmix(sid, tracks + 2 * two + 4 * root + 8 * info + 16 * pop + 32 * (pop && pop_ours())),
+		search + 2 * kbh), day | day_full << 1);
 	base = hmix(hmix(base, sid1), ref_key());
 	layout(base);
 	if (need(21, hmix(hmix(hmix(base, cur_cat), cursor_k < 0), med_col())))
@@ -7733,7 +7844,7 @@ static void browse(void)
 		rows_drawn = 1;
 	if (!search && !root)
 		letter_jump(cursor_k, y0, rh);
-	if (pop) {
+	if (pop && pop_ours()) {	/* 2.01-a: a stock-drawn pop-up (pop_ours) is left to stock */
 		popup(rows_drawn);
 		popup_sync();
 	}
@@ -7879,7 +7990,8 @@ static const struct orule { u8 modes, zlo, zhi, act; } orules[] = {
 #endif
 	/* P8: with keep_dirty() the flush flips even when nothing is composed, so the top windows and the
 	 * list windows are ours too where we draw everything (stock no longer draws / clears / composes
-	 * them: the lists' double work) */
+	 * them: the lists' double work). z 129..134 = the screens' 800x294 top windows; z 128 = stock's pop-up
+	 * window, O_OWN here only when no stock-drawn pop-up is up (2.01-a, see oclass) */
 	{ V2_OWN_TOP, 128, 134, O_OWN },
 	{ V2_OWN_TOP, 136, 137, O_OWN },
 	{ MB(M_BROWSE) | MB(M_SHORTCUT) | MB(M_PINFO), 64, 79, O_OWN },
@@ -7891,21 +8003,20 @@ static const struct orule { u8 modes, zlo, zhi, act; } orules[] = {
 static int oclass(volatile u8 *w)
 {
 	int z = (int)u32be(w + 12), k;
-	/* V3rc1: TAGLIST MENU (frame 27, popup()): stock's menu window z 128 (429,12 353x277) as O_HIDE -- as an
-	 * O_OWN window it showed as a black box over the right half of the list. (SORT / LIST MENU: O_HIDE lets
-	 * stock's own menu show there, O_OWN the black box -- open, both since V3e1) */
-	if (own_mode == M_BROWSE && z == 128 && MODEL[7] == 0x04 && MODEL[0x0F] &&
-	    ustr_eq("TAGLIST MENU", 12, SLOT(1, 0) + 0x2A, u16len(SLOT(1, 0))))
-		return O_HIDE;
-	/* v1.92 (deck, owner report: inserting a USB with MY SETTINGS pops the stock "MY SETTINGS" LOAD dialog
-	 * -- a z128 popup() window, like TAGLIST MENU, that WE do not render. As O_OWN (the {128,134} rule below)
-	 * it became a black box / video glitch over our screen and the LOAD button could not be pressed, so the
-	 * settings never loaded. Let stock draw its own dialog in place (O_HIDE), matched by the exact popup title
-	 * so our own z128 panes -- TAGLIST / SORT / LIST MENU / LOAD PREVIOUS TRACK -- are untouched. The title is
-	 * written to SLOT(1,0) by popup() whatever the underlying screen (own_mode), so no mode guard. */
-	if (z == 128 && u16len(SLOT(1, 0)) == 11 &&
-	    ustr_eq("MY SETTINGS", 11, SLOT(1, 0) + 0x2A, u16len(SLOT(1, 0))))
-		return O_HIDE;
+	/* 2.01-a displayer (R21D5): z 128 = stock's pop-up window. O_HIDE (stock draws it, pop_stock_blit shows it)
+	 * ONLY for the pop-ups verified to be stock-drawn (stock_title: REMOVE ALL TRACKS, MY SETTINGS -- the latter
+	 * by title on any screen, as the deck-confirmed 1.92 fix). Everything else = the table below = 1.92: idle,
+	 * our MENU panes (SORT / LIST MENU / TAGLIST MENU / LOAD PREVIOUS TRACK and any other popup() draws), UTILITY's
+	 * value edit (+0x0F on sid 0x0A: R21D3 showed stock's undrawn surface there, white on the deck), the TOUCH
+	 * GRID ADJUST pop-up, TRACK FILTER / MY TAG pages. Replaces the V3rc1 TAGLIST MENU O_HIDE (now ours, synced:
+	 * no stock menu flashing over our pane) and the 1.92 MY SETTINGS special case. */
+	if (z == 128) {
+		if (stock_title()) {	/* R21D5: only the verified stock-drawn pop-ups */
+			KIT(kit_zhide++;)
+			return O_HIDE;
+		}
+		KIT(kit_zown++;)
+	}
 	for (k = 0; k < (int)(sizeof(orules) / sizeof(orules[0])); k++)
 		if ((orules[k].modes & MB(own_mode)) && z >= orules[k].zlo && z <= orules[k].zhi)
 			return orules[k].act;
@@ -7930,6 +8041,10 @@ static void pop_restore(void)	/* the pop-up gone: stock's own pixels back (the M
 		pop_surf = 0;
 	}
 }
+/* 2.01-a (review C2): every z 128 window is looked at (no return on the first one that is not ours), and a pane
+ * that cannot be mirrored (no usable surface, or bigger than POP_BAK) no longer fails silently into a black box:
+ * pop_nosync hands the window back to stock (oclass -> O_HIDE, stock's own menu in place) until the pop-up closes.
+ * Not expected with the one stock window (353 x 277 = 195,562 B < POP_BAK_SZ); a guard. */
 static void popup_sync(void)
 {
 	int i, y;
@@ -7937,18 +8052,18 @@ static void popup_sync(void)
 		volatile u8 *w = WPOOL + 160 * i;
 		int ww, hh, wx, wy;
 		u32 d, base;
-		if (!(u32be(w) & 0x40000000) || u32be(w + 28) != LAYER0 || wz(w) != 128)
+		if (!(u32be(w) & 0x40000000) || u32be(w + 28) != LAYER0 || wz(w) != 128 ||
+		    (oclass(w) != O_OWN && !(pst_undrawn && oclass(w) == O_HIDE)))	/* R21D5: ours until stock drew */
 			continue;
 		ww = (int)u16be(w + 8); hh = (int)u16be(w + 10);
 		wx = (int)u32be(w + 84); wy = (int)u32be(w + 88);
-		if (ww <= 0 || hh <= 0 || wx < 0 || wy < 0 || wx + ww > W || wy + hh > 480 || oclass(w) != O_OWN)
-			return;
 		d = u32be(w + 152);
-		if ((d & 0xFF000000) != 0x0F000000)
-			return;
-		base = u32be((const volatile u8 *)((d & 0x1FFFFFFF) | 0x20000000) + 12);
-		if ((base >> 24) != 0x0C || ww * hh * 2 > POP_BAK_SZ	/* bytes (V3rc8 audit B2) */)
-			return;
+		base = (d & 0xFF000000) == 0x0F000000 ?
+			u32be((const volatile u8 *)((d & 0x1FFFFFFF) | 0x20000000) + 12) : 0;
+		if (ww <= 0 || hh <= 0 || wx < 0 || wy < 0 || wx + ww > W || wy + hh > 480 || (base >> 24) != 0x0C ||
+		    ww * hh * 2 > POP_BAK_SZ	/* bytes (V3rc8 audit B2) */ || (pop_surf && pop_surf != (u16 *)base)) {
+			continue;	/* R21D5: stays ours (1.92), no hand-over to stock */
+		}
 		if (!pop_surf) {
 			pop_surf = (u16 *)base;
 			pop_n = ww * hh;
@@ -7956,7 +8071,7 @@ static void popup_sync(void)
 		}
 		for (y = 0; y < hh; y++)
 			cp16((u16 *)base + y * ww, fb + (wy + y) * W + wx, ww);
-		return;
+		pst_stamp();	/* R21D5: keep the sentinel for pst_check */
 	}
 }
 
@@ -7972,13 +8087,114 @@ static int hide_win(volatile u8 *w)	/* kept out of the composition on the screen
 	return own_mode != M_NONE && u32be(w + 28) == LAYER0 && oclass(w) != O_KEEP;
 }
 static int info_z(int z) { return z == 54 || z == 57 || z == 59; }
+/* 2.01-a (R21D3, coordinator: REMOVE ALL TRACKS' selected option was light text on the white cursor bar): the
+ * text colours are ours, not stock's -- patch_gui's ui3000xtext poke turns font styles 1 (selected row) and 3
+ * (selected row, dimmed while playing) from stock's dark ink into a light ramp, for ui3000x's navy / cyan
+ * cursors. Stock's pop-up keeps its WHITE cursor bar (its art is not recoloured), so the selected item came out
+ * #CED7DE / #FFFFFF on #FFFFFF. While a stock-drawn pop-up is up on a screen we own, nothing else stock renders
+ * uses those styles (every other window is ours and its text is skipped), so put stock's dark ramps back for
+ * that time and the light ones after. Data only (the style table is RAM), written cached + uncached as ui3000x
+ * does; only when the table holds exactly the ui3000xtext values (no ui3000x = nothing to undo). */
+#define STY(a) (*(volatile u32 *)(a))
+static const u32 sty_addr[6] = { 0x0E5958E8, 0x0E5958EC, 0x0E5958F0, 0x0E595908, 0x0E59590C, 0x0E595910 };
+static const u32 sty_ours[6] = { 0x0090A4B0, 0x00C8D4DC, 0x00FFFFFF, 0x0090A4B0, 0x00C8D4DC, 0x00FFFFFF };
+static const u32 sty_stock[6] = { 0x00B5B6BD, 0x005A595A, 0x00000000, 0x00C6C7CE, 0x00ADAEB5, 0x009C9A9C };
+static int sty_dark;
+static void sty_set(const u32 *v)
+{
+	int k;
+	for (k = 0; k < 6; k++) {
+		STY(sty_addr[k]) = v[k];
+		STY(sty_addr[k] | 0x20000000) = v[k];
+	}
+}
+/* R21D5 safety net (owner: no white / garbage box, ever): stock's z 128 surface is shown only after stock has
+ * drawn into it THIS time. When a verified stock pop-up comes up (manage, before stock draws the frame) five probe
+ * pixels of its surface (corners + centre; the stock dialog is opaque over the whole window) get a sentinel; at
+ * our paint (after stock drew) all five overwritten = drawn -> pst_undrawn 0, pop_stock_blit shows it. Until then
+ * pop_ours() keeps our own pane (popup() + popup_sync, which re-stamps the probes) = the 1.92 behaviour, so the
+ * worst case is our pane, never stock's uninitialised SDRAM. */
+#define PST_SENT 0x0841u
+static volatile u16 *pst_px;	/* the armed surface (uncached), 0 = none */
+static int pst_w, pst_h;
+static volatile u16 *pst_find(int *ww, int *hh)	/* the O_HIDE z 128 window's surface (uncached) or 0 */
+{
+	int i;
+	for (i = 0; i < 256 && own_now; i++) {
+		volatile u8 *w = WPOOL + 160 * i;
+		u32 d, base;
+		if (!(u32be(w) & 0x40000000) || u32be(w + 28) != LAYER0 || wz(w) != 128 || oclass(w) != O_HIDE)
+			continue;
+		*ww = (int)u16be(w + 8); *hh = (int)u16be(w + 10);
+		d = u32be(w + 152);
+		if (*ww < 8 || *hh < 8 || *ww > W || *hh > 480 || (d & 0xFF000000) != 0x0F000000)
+			return 0;
+		base = u32be((const volatile u8 *)((d & 0x1FFFFFFF) | 0x20000000) + 12);
+		return (base >> 24) == 0x0C ? (volatile u16 *)((base & 0x1FFFFFFF) | 0x20000000) : 0;
+	}
+	return 0;
+}
+static int pst_probe(int k) { return k == 0 ? 2 * pst_w + 2 : k == 1 ? 3 * pst_w - 3 : k == 2 ? (pst_h - 3) * pst_w + 2 :
+	k == 3 ? (pst_h - 2) * pst_w - 3 : (pst_h / 2) * pst_w + pst_w / 2; }
+static void pst_stamp(void)
+{
+	int k;
+	if (pst_px && pst_undrawn)
+		for (k = 0; k < 5; k++)
+			pst_px[pst_probe(k)] = PST_SENT;
+}
+static void pst_arm(void)	/* manage(): frame start */
+{
+	int ww = 0, hh = 0;
+	volatile u16 *px = pst_find(&ww, &hh);
+	if (px != pst_px || (px && (ww != pst_w || hh != pst_h))) {
+		pst_px = px; pst_w = ww; pst_h = hh;
+		pst_undrawn = 1;
+		pst_stamp();
+	}
+}
+static void pst_check(void)	/* paint start: stock has drawn this frame's windows */
+{
+	int k, n = 0;
+	if (!pst_px || !pst_undrawn)
+		return;
+	for (k = 0; k < 5; k++)
+		n += pst_px[pst_probe(k)] != PST_SENT;
+	if (n == 5) {
+		pst_undrawn = 0;
+		/* our pane's backup of this surface (popup_sync) must not be put back over stock's fresh drawing */
+		if (pop_surf && ((u32)pop_surf & 0x1FFFFFFF) == ((u32)pst_px & 0x1FFFFFFF))
+			pop_surf = 0;
+	}
+}
+static void stock_pop_ink(void)
+{
+	int i, up = 0, k;
+	pst_arm();
+	for (i = 0; i < 256 && own_now && !up; i++) {
+		volatile u8 *w = WPOOL + 160 * i;
+		up = (u32be(w) & 0x40000000) && u32be(w + 28) == LAYER0 && wz(w) == 128 && oclass(w) == O_HIDE;
+	}
+	if (up && !sty_dark) {
+		for (k = 0; k < 6; k++)
+			if (STY(sty_addr[k] | 0x20000000) != sty_ours[k])
+				return;
+		sty_set(sty_stock);
+		sty_dark = 1;
+	} else if (!up && sty_dark) {
+		sty_set(sty_ours);
+		sty_dark = 0;
+	}
+}
 static void manage(void)
 {
 	int i, j;
 	own_mode = screen_mode();
 	own_now = own_mode != M_NONE;
-	if (!(own_mode != M_NONE && pop_on()))
+	if (!(own_mode != M_NONE && pop_ours())) {	/* 2.01-a: also when a stock pop-up replaces ours */
 		pop_restore();
+	}
+	stock_pop_ink();	/* 2.01-a R21D3: before stock renders this frame's pop-up */
 	for (i = j = 0; i < n_hidden; i++) {
 		volatile u8 *w = hidden[i];
 		int z = hidden_z[i];
@@ -8766,6 +8982,126 @@ static void hwp_paint(void)	/* the hole + its label, into whatever fb is (canvas
 	text(&f_s, HWP_X, HWP_Y + HWP_H, KL[hwp_k < 0 ? 0 : hwp_k], 0xFFE0, C_BLACK);
 }
 #endif
+/* 2.01-a displayer: a stock-drawn pop-up (z 128 O_HIDE, oclass) shown by US, at its place, every frame. Stock's
+ * own copy of z 128 onto the frame after our paint is a race with the VDC latch (re/LPT_WHITE_BAR.md): alone it
+ * lands on some frames only (emu R21D1: REMOVE ALL TRACKS on every other shot). Copying the window's surface into
+ * our canvas makes every frame carry it, and stock's late copy then writes the same pixels. Opaque, as stock's
+ * copy. Its coming / going repaints everything once (cache_stale): the rows under it are cached regions. */
+static int pst_on;	/* a stock pop-up was shown last frame */
+static void pop_stock_blit(void)
+{
+	int i, y, on = 0;
+	for (i = 0; i < 256 && own_now; i++) {
+		volatile u8 *w = WPOOL + 160 * i;
+		int ww, hh, wx, wy;
+		u32 d, base;
+		if (!(u32be(w) & 0x40000000) || u32be(w + 28) != LAYER0 || wz(w) != 128 || oclass(w) != O_HIDE)
+			continue;
+		if (pst_undrawn) {	/* R21D5: never stock's surface before stock drew it -- our finished frame goes
+					 * into it instead (stock's late copy then shows our screen), also on screens
+					 * where popup() does not run (MY SETTINGS: MENU on the browse root, sid 0x00) */
+			popup_sync();
+			continue;
+		}
+		ww = (int)u16be(w + 8); hh = (int)u16be(w + 10);
+		wx = (int)u32be(w + 84); wy = (int)u32be(w + 88);
+		d = u32be(w + 152);
+		if (ww <= 0 || hh <= 0 || wx < 0 || wy < 0 || wx + ww > W || wy + hh > 480 || (d & 0xFF000000) != 0x0F000000)
+			continue;
+		base = u32be((const volatile u8 *)((d & 0x1FFFFFFF) | 0x20000000) + 12);
+		if ((base >> 24) != 0x0C)
+			continue;
+		dmark(wy, hh);
+		for (y = 0; y < hh; y++)	/* uncached: stock's latest pixels (as ovl_blit) */
+			cp16(fb + (wy + y) * W + wx, (const u16 *)((base & 0x1FFFFFFF) | 0x20000000) + y * ww, ww);
+		on = 1;
+#ifdef V2_KITLOG
+		kit_zgeo = (u32)ww | (u32)hh << 10 | ((u32)wx & 0x3FF) << 20;
+		if (kit_inkreq) {	/* once a second: dark / light pixel counts of what we copied (text readable?) */
+			u32 dk = 0, lt = 0, n;
+			const u16 *p = fb + wy * W + wx;
+			for (y = 0; y < hh; y++, p += W)
+				for (n = 0; n < (u32)ww; n++) {
+					u32 c = p[n], l = ((c >> 11) & 31) * 2 + ((c >> 5) & 63) + (c & 31) * 2;
+					if (l < 40) dk++;
+					else if (l > 150) lt++;
+				}
+			kit_ink = (dk > 0x7FFF ? 0x7FFF : dk) | (lt > 0x7FFF ? 0x7FFF : lt) << 15;
+			kit_inkreq = 0;
+		}
+#endif
+	}
+	KIT(if (on) kit_pblit++;)
+	if (on != pst_on) {
+		pst_on = on;
+		cache_stale = 1;
+	}
+}
+
+#ifdef V2_KITLOG
+/* R21 deck kit (work/r21/deckkit, DEV only): the 'KIT1' record, half a second after each HUD record -- what the deck
+ * kit's parser checks without a camera: pop-up class / title / stock ink, browse cursor + LOAD tap, green KEY cells,
+ * strip cue marks, w8 (master waveform), deck key. Every word < 0x80000000 (usblog_push masks bit 31). */
+static void kit_push(u32 t)
+{
+	u32 k[26], i;
+	const volatile u8 *tt = SLOT(1, 0);
+	int n = u16len(tt), nh = 0, nm = 0;
+	for (i = 0; i < 26; i++)
+		k[i] = 0;
+	k[0] = 0x4B495431u;	/* 'KIT1' */
+	k[1] = (u32)MODEL[7] | (u32)(screen_mode() & 0xFF) << 8 | (u32)pop_on() << 16 | (u32)pop_ours() << 17 |
+	       (u32)pst_on << 18 | (u32)pop_nosync << 19 | (MODEL[0x0F] ? 1u : 0u) << 20 | (ga_tch ? 1u : 0u) << 21 |
+	       (own_now ? 1u : 0u) << 22 | (V3E_PROW >= 0 ? 1u : 0u) << 23;
+	for (i = 0; i < 16; i++) {	/* side-1 slot 0 = the pop-up's title (ASCII, 16 chars) */
+		u32 c = (int)i < n ? u16be(tt + 0x2A + 2 * i) : 0;
+		if (c > 0x7E) c = '?';
+		k[2 + (i >> 2)] |= c << (24 - 8 * (i & 3));
+	}
+	k[6] = kit_ink; kit_ink = 0; kit_inkreq = 1;
+	k[7] = kit_zgeo; kit_zgeo = 0;
+	k[8] = ((kit_cursor + 1) & 15) | ((u32)(lb_tap_k + 1) & 15) << 4 | ((u32)(V3E_PROW + 1) & 15) << 8;
+	{	/* the first list row's text (16-bit hash): a list scroll changes it */
+		const volatile u8 *f1 = SLOT(0, 1);
+		u32 h = 0, m = (u32)u16len(f1);
+		for (i = 0; i < m && i < 24; i++)
+			h = h * 31 + u16be(f1 + 0x2A + 2 * i);
+		k[8] |= (h & 0xFFFF) << 12;
+	}
+	k[9] = (kit_gr > 0xFFFF ? 0xFFFF : kit_gr) | (kit_gcur & 3) << 16 | ((u32)ref_key() & 0x3F) << 20;
+	kit_gr = 0; kit_gcur = 0;
+	for (i = 0; i < N_MARKS; i++) {
+		const u8 *r = smk + 16 * i;
+		u32 st = (u32)r[8] << 24 | (u32)r[9] << 16 | (u32)r[10] << 8 | r[11];
+		if (st == 0xFFFFFFFF || i == 0)
+			continue;
+		if (i <= N_HOT) {
+			if (nh < 3)
+				k[11 + nh] = st & 0x7FFFFFFF;
+			nh++;
+		} else
+			nm++;
+	}
+	k[10] = (u32)nh | (u32)nm << 8 | (smk_tid & 0x7FFF) << 16;
+	k[14] = (kit_zhide > 0x7FFF ? 0x7FFF : kit_zhide) | (kit_zown > 0x7FFF ? 0x7FFF : kit_zown) << 15;
+	kit_zhide = kit_zown = 0;
+	k[15] = v2_frames;
+	k[16] = u32be(DECK + 0x70);
+	k[17] = u32be(DECK + 0x60);
+	k[18] = (u32be(W8BUF) == 0x57384D31 ? 1u : 0u) | (u32be(W8BUF + 4) & 1) << 1;
+	k[19] = u32be(W8BUF + 8);
+	k[20] = u32be(W8BUF + 0x0C);
+	k[21] = (u32)deck_key_green() | ((u32)own_key() & 0x3F) << 1 | (u32)is_master() << 8 |
+		(u32be(DECK + 0x28) == 1 ? 1u : 0u) << 9 | (pno56(u32be(DECK + 0xA4)) & 15) << 10 |
+		((u32)player_num() & 15) << 14 | (u32)(KS_ON ? 1 : 0) << 18 | (u32)(KS_KSYNC ? 1 : 0) << 19;
+	k[22] = smk_ck;
+	k[23] = kit_sdraw; kit_sdraw = 0;
+	k[24] = kit_pblit; kit_pblit = 0;
+	k[25] = 1;		/* KIT record version */
+	usblog_push(k, t);
+}
+#endif
+
 static int paint_frame(u32 base)
 {
 	if (!base || !owned()) {
@@ -8994,7 +9330,7 @@ static int paint_frame(u32 base)
 	ks_publish();	/* V4n: KEY SYNC's shift for MAIN (every owned frame) */
 #endif
 #ifdef V2_BDIRECT
-	bd_ok = smooth && screen_mode() == M_PLAYER && !pop_on() && !n_ovl;
+	bd_ok = smooth && screen_mode() == M_PLAYER && !pop_on() && !pst_on && !n_ovl;	/* 2.01-a: + pst_on */
 	bd_phys = phys;
 	if (screen_mode() != M_PLAYER)
 		bd_on = md_on = 0;
@@ -9005,12 +9341,14 @@ static int paint_frame(u32 base)
 		for (i = 0; i < (int)sizeof(NSR); i++)
 			rk[0][NSR[i]] = rk[1][NSR[i]] = 0;
 	}
+	pst_check();	/* R21D5: did stock draw its pop-up this frame? (before popup_sync overwrites it) */
 	switch (screen_mode()) {
 	case M_PLAYER: player(); break;
 	case M_SHORTCUT: shortcut(); break;
 	case M_PINFO: player_info(); break;
 	default: browse(); break;
 	}
+	pop_stock_blit();	/* 2.01-a: over our screen, under the overlays (as stock: z 128 under z 7) */
 	{
 		int i;
 		ovl_sig = ovl_gsig = ovl_rmask = 0;
@@ -9046,6 +9384,9 @@ static int paint_frame(u32 base)
 	{	/* TEST-only HUD (V3rc6 deck timing): per second -- painted frames, worst gap between paints, heartbeat
 		 * position updates, average draw ms, latch-wait ms, copied rows a frame; drawn last, top right */
 		static u32 w0, nf, gmax, lastp, hbn, lastpos, drw, lat0, rows0, cp0, pf0[4], heal0, stk0, txt[31];
+#ifdef V2_KITLOG
+		static int kit_due;
+#endif
 		u32 t = now_ms(), pos = u32be(DECK + 0x70);
 #ifdef V2_HWBAND
 		char b[100];
@@ -9059,6 +9400,12 @@ static int paint_frame(u32 base)
 		nf++;
 		drw += t - hud_t0;
 		if (pos != lastpos) { hbn++; lastpos = pos; }
+#ifdef V2_KITLOG
+		if (kit_due && t - w0 >= 500) {
+			kit_due = 0;
+			kit_push(t);
+		}
+#endif
 		if (t - w0 >= 1000) {
 			txt[0] = nf; txt[1] = gmax; txt[2] = hbn; txt[3] = nf ? udiv(drw, nf) : 0;
 			txt[4] = v2_latch_ms - lat0; txt[5] = nf ? udiv(v2_sm_rows - rows0, nf) : 0;
@@ -9200,6 +9547,9 @@ static int paint_frame(u32 base)
 				ul_x |= (hbr[hb_cur].look & 15) << 4;
 #endif
 			usblog_push(txt, t);
+#endif
+#ifdef V2_KITLOG
+			kit_due = 1;
 #endif
 			(void)heal0; (void)stk0;
 			w0 = t; nf = gmax = hbn = drw = 0; lat0 = v2_latch_ms; rows0 = v2_sm_rows; cp0 = v2_cp_ms;

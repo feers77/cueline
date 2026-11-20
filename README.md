@@ -11,16 +11,17 @@ Cueline is a custom firmware UI for the Pioneer CDJ-2000NXS2, inspired by the CD
 screens and waveforms, KEY SHIFT and KEY SYNC, Link Cue previews and more to the NXS2. You build it yourself from
 the official 1.87 update, in a few minutes, and you can go back to stock at any time.
 
-**This version: Cueline 1.92 beta — the latest release candidate of Cueline 2.0.** Build `Cueline-1.92 c5e8e0f3` (RELEASE), device
-version MAIN 1.92 / GUI 1.86; developer build `V4n60j192` (DEV). Cueline uses the deck's own version
-numbers (1.92 beta → 2.0).
+> [!WARNING]
+> **Cueline 2.1 is a PRE-RELEASE.** It has been fully tested in our emulator but **not yet confirmed on real
+> decks**. Keep the official 1.87 update to [go back to stock](#going-back-to-stock), and **test at home before a
+> gig**. If you need a version already used on real decks, stay on the
+> [1.92 beta](https://github.com/feers77/cueline/releases/tag/v1.92.0-beta) for now.
 
-> 🧪 **BETA — please read.** This is a **pre-release**. It has been tested on our own decks and in our test
-> environment, but it **may contain bugs**: screens that draw wrong, features that misbehave, in rare cases a deck
-> that needs a restart. **Test it at home before you take it to a gig**, keep the official 1.87 update on a USB
-> stick so you can [go back to stock](#going-back-to-stock) at any time, and if something matters at a gig, play it
-> with the official firmware. Please [report bugs](#reporting-bugs-and-contributing): that is how the betas become 2.0.
-> Cueline is unofficial and **not affiliated with or endorsed by Pioneer DJ or AlphaTheta**.
+**This version: Cueline 2.1 (pre-release).** Build `Cueline-2.1 e2a70b09` (RELEASE), device version MAIN 2.10 /
+GUI 2.04; developer build `V4n21` (DEV). Cueline uses the deck's own version numbers (2.1 → MAIN 2.10).
+It may contain bugs: screens that draw wrong, features that misbehave, in rare cases a deck that needs a restart.
+Please [report bugs](#reporting-bugs-and-contributing). Cueline is unofficial and **not affiliated with or endorsed
+by Pioneer DJ or AlphaTheta**.
 
 ### Highlights
 - ⚡ **59–60 fps player screen** — smooth, CDJ-3000-style scrolling waveforms driven by the NXS2's own display
@@ -39,11 +40,17 @@ numbers (1.92 beta → 2.0).
 - 🛟 **Safe to try** — built from the official 1.87 on your own computer, reproducible byte for byte, and the official
   update brings you back to stock.
 
-### New in 1.92 beta
-- **MY SETTINGS loads from USB again (bug fix):** the deck's own "MY SETTINGS" LOAD dialog is shown in its normal
-  place with its button working (it was hidden behind the Cueline screen before).
-- **Versioning:** MAIN 1.92 / GUI 1.86; UTILITY → INFO → BUILD shows `Cueline-1.92 c5e8e0f3`.
-- Details: [CHANGELOG.md](CHANGELOG.md).
+### New in 2.1
+- **Settings survive power-off again (bug fix):** KEY SHIFT, KEY SYNC, CLASSIC and BEAT JUMP no longer come back
+  changed after switching the deck off; settings are stored in a versioned, checksummed record.
+- **Stock pop-ups drawn correctly:** MY SETTINGS, REMOVE ALL TRACKS and the other deck dialogs show in their normal
+  place, with the selected option readable.
+- **Green KEY on the selected row** and **hot-cue badges on the browse strip**, as on the CDJ-3000.
+- **Preview gesture:** the row you press stays the previewed track for the whole gesture (CDJ-3000 style).
+- **Update safety** extended to the 3BAND waveform code; diagnostics for the master's waveform over LINK.
+- **[Cueline Web Builder](https://feers77.github.io/cueline/webbuilder/)** (build in your browser) and a **macOS app**.
+- **Versioning:** MAIN 2.10 / GUI 2.04; UTILITY → INFO → BUILD shows `Cueline-2.1 e2a70b09`.
+- Details: [CHANGELOG.md](CHANGELOG.md) and [RELEASE_NOTES_v2.1.md](RELEASE_NOTES_v2.1.md).
 
 > **No Pioneer DJ / AlphaTheta files are in this repository**: no firmware or `.UPD`, nothing extracted from any
 > firmware (images, binaries, fonts, icons, skins) and no keys. Everything here is our own work or open-source
@@ -54,7 +61,7 @@ numbers (1.92 beta → 2.0).
 > the update is being written. Use a UPS if you can, don't touch the deck or the USB stick during the update, and
 > keep the official 1.87 update to go back to stock. Unofficial, provided as-is, without warranty ([LICENSE](LICENSE)).
 
-> 🧪 **Community testing release (beta).** It very likely has bugs. Please report them in
+> 🧪 **Community testing release (pre-release).** It very likely has bugs. Please report them in
 > [Issues](https://github.com/feers77/cueline/issues) and send fixes or features as pull requests: we review them
 > and merge what works ([CONTRIBUTING.md](CONTRIBUTING.md)).
 
@@ -69,31 +76,31 @@ numbers (1.92 beta → 2.0).
 You need: the deck, a computer, and a small USB stick (FAT32).
 1. **Get the official update.** Download the CDJ-2000NXS2 firmware **1.87** from the Pioneer DJ website and unzip
    it. You get a file named `C2KNXS2.UPD`.
-2. **Get Cueline Builder** from the [Releases page](https://github.com/feers77/cueline/releases):
-   `CuelineBuilder.exe` for Windows, `CuelineBuilder-macOS.zip` for macOS (Intel and Apple Silicon). On Linux,
-   use the Python script in this repository (`builder/cueline_patch.py`, needs Python 3).
-3. **Build.** Windows: drag `C2KNXS2.UPD` onto `CuelineBuilder.exe` (or double-click it and pick the file).
-   macOS: unzip, then drag `C2KNXS2.UPD` onto `CuelineBuilder.app` (or double-click it and pick the file); see
-   [Easy install on macOS](#easy-install-on-macos) the first time.
-   Linux: `python3 builder/cueline_patch.py /path/to/C2KNXS2.UPD`.
-   It writes `Cueline/C2KNXS2.UPD` next to your file and checks it against the published result.
-4. **Copy** `Cueline/C2KNXS2.UPD`, alone, to the root of the USB stick.
-5. **Factory reset the deck first:** disconnect the Pro DJ Link (LAN) cable (while LINK is active the player does
+2. **Build Cueline** — pick one (all give the same, verified file):
+   - **EASY — in your browser:** open **[Cueline Web Builder](https://feers77.github.io/cueline/webbuilder/)**, drop your `C2KNXS2.UPD` and click
+     **Download**. Nothing to install, any computer (Windows, macOS, Linux). Your file never leaves your computer:
+     everything runs inside the browser page.
+   - **App:** from the [Releases page](https://github.com/feers77/cueline/releases), `CuelineBuilder.exe` (Windows)
+     or `CuelineBuilder-macOS.zip` (macOS, Intel and Apple Silicon; see [Easy install on macOS](#easy-install-on-macos)
+     the first time). Drag `C2KNXS2.UPD` onto it, or open it and pick the file. It writes `Cueline/C2KNXS2.UPD`
+     next to your file.
+   - **Linux / Python:** `python3 builder/cueline_patch.py /path/to/C2KNXS2.UPD`.
+3. **Copy** the built `C2KNXS2.UPD`, alone, to the root of the USB stick.
+4. **Factory reset the deck first:** disconnect the Pro DJ Link (LAN) cable (while LINK is active the player does
    not allow DUPLICATION → DEFAULT), then **UTILITY → DUPLICATION → DEFAULT** ([why](#install)).
-6. **Install** it like an official update ([details](#install)). Never switch the deck off during the update.
-7. **Check** UTILITY → INFO → BUILD: it shows `Cueline-1.92 c5e8e0f3`.
+5. **Install** it like an official update ([details](#install)). Never switch the deck off during the update.
+6. **Check** UTILITY → INFO → BUILD: it shows `Cueline-2.1 e2a70b09`.
 
 To go back to the official firmware, see [Going back to stock](#going-back-to-stock).
 
 ### Easy install on macOS
 1. Download `CuelineBuilder-macOS.zip` from the [Releases page](https://github.com/feers77/cueline/releases)
-   and double-click it to unzip: you get `CuelineBuilder.app`.
+   and double-click it to unzip: you get `CuelineBuilder.app`. (Or skip all this and use the web builder above.)
 2. The app is not notarized by Apple, so the first time macOS blocks it ("cannot be opened" / "could not verify").
    Open **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to CuelineBuilder,
    then confirm. You only do this once.
 3. Drag your official `C2KNXS2.UPD` onto `CuelineBuilder.app` (or double-click the app, click **Continue** and pick
    the file). When it finishes, click **Show in Finder**: your file is `Cueline/C2KNXS2.UPD` next to the original.
-4. Continue with step 4 of the Quick start.
 
 ### Install
 1. If you use MY SETTINGS, save them with rekordbox first, and write down your deck settings: the next step erases
@@ -101,12 +108,12 @@ To go back to the official firmware, see [Going back to stock](#going-back-to-st
 2. **Disconnect the Pro DJ Link (LAN) cable first: while LINK is active the player does not allow DUPLICATION →
    DEFAULT.** Then **UTILITY → DUPLICATION → DEFAULT** (factory reset). The deck only installs an update whose
    version is newer than the one it remembers; the reset clears that memory, so the update is never skipped. It is
-   **required** if the deck has had an earlier Cueline test build with a higher version number (1.92 would be
+   **required** if the deck has had an earlier Cueline test build with a higher version number (2.1 would be
    skipped), a DEV build, another custom firmware, or a Cueline build with the same or a higher version; we recommend it always.
 3. Put only the new `C2KNXS2.UPD` in the root of a small FAT32 USB stick.
 4. With the deck off, insert the stick and start the update exactly as Pioneer DJ's CDJ-2000NXS2 update guide
    describes. Wait until it shows 100 % / complete, then switch the deck off and on.
-5. UTILITY → INFO → BUILD shows `Cueline-1.92 c5e8e0f3`. If the deck still shows the old build, the update was skipped:
+5. UTILITY → INFO → BUILD shows `Cueline-2.1 e2a70b09`. If the deck still shows the old build, the update was skipped:
    repeat step 2 and install again.
 6. Test it at home (load, play, browse, your LINK setup) before using it at a gig.
 
@@ -202,7 +209,7 @@ How to use each feature: [docs/USER_GUIDE.md](docs/USER_GUIDE.md).
 - Loading a track on a lone deck makes it the master.
 
 **Not yet verified on real hardware:** everything with a real CDJ-3000 / CDJ-3000X (0x0b packets, the 3000
-showing our waveform, KEY SYNC with a 3000: tested in an emulator only), Touch Cue, and some fixes in this beta that our
+showing our waveform, KEY SYNC with a 3000: tested in an emulator only), Touch Cue, and some fixes in this release that our
 emulator could not reproduce (they come from reading the code).
 
 **Limits**
@@ -244,7 +251,7 @@ recorder (`BLACKBOX.BIN` on the stick), a test log over USB or the network, a ne
 switches, performance counters and automated tests. **Not for gigs**, and use it only on your own network: a
 computer on the same LINK network can query and operate a DEV deck.
 - Build it from source: `PROFILE=dev ./build.sh /path/to/C2KNXS2.UPD` (expected sha256 for this version:
-  `5d7c578fa49565c1a08ec38ce065369e43206fbdcbae6601c1d3662aad9cad33`). Cueline Builder makes RELEASE builds only.
+  `c8d39cbeb6ad78e26e23d6aa3b5c2c51c571124fefb0fed9098cbcdfc8012610`). Cueline Builder makes RELEASE builds only.
 - Install it like RELEASE. DEV and RELEASE carry the same version number, so switching between them needs
   UTILITY → DUPLICATION → DEFAULT first (LAN cable disconnected).
 - Everything else, including how to capture logs for a bug report and a privacy note:
@@ -263,7 +270,7 @@ Builds every component yourself; the result is byte-identical to what Cueline Bu
    ./build.sh /path/to/C2KNXS2.UPD
    ```
 4. The result is `out-release/C2KNXS2.UPD`. The script prints `verify ... all checks passed` and `bootcheck PASS`,
-   and compares the result with the reference sha256 `91eca696ff991006aed81dfdb30a9d2fec16c045fd56fb8922b720aebeb78223`.
+   and compares the result with the reference sha256 `3b85d55f05052ad0cc376a807114d6bf218be2d50483c0038b1d66afcbb5cd23`.
    Exit code 0 = identical, 2 = built but different (other tool versions; still checked), 1 = error.
    **Never install a build whose verify or boot check failed.**
 
@@ -295,15 +302,15 @@ The emulator we use for development is not part of this repository.
 | File | sha256 |
 |---|---|
 | Official `C2KNXS2.UPD` 1.87 (your input) | `f211191a573b7a5c0e694936871f76011a58d5861dd061301cdb0d8b83a8b3e5` |
-| `CuelineBuilder.exe` (Release asset) | `b043ffbf4f98337b3c9adeb6742bf7d0cccb7bc0e51a068a30d1699766112f4e` |
-| `CuelineBuilder-macOS.zip` (Release asset) | `d2e95671aeb15fdd62f9782674197b415adbe08bb6555102c4cbeb3ea4d254aa` |
-| `builder/cueline.delta` (our patch data) | `a4ed8c974ae7b5015d888208f2432874d0a8e0e4bcd88f16409b6930168da992` |
-| Your built `C2KNXS2.UPD` (Builder or `build.sh`) | `91eca696ff991006aed81dfdb30a9d2fec16c045fd56fb8922b720aebeb78223` |
+| `CuelineBuilder.exe` (Release asset) | `decce828bcf59ef972ec2ee7e69f8c191e8823bd6407a3ce54eecc4f5f60eada` |
+| `CuelineBuilder-macOS.zip` (Release asset) | `9fd5d5af7ad883e5bae6daa6c2e962e7de36b809d409709857ff46d50037637d` |
+| `builder/cueline.delta` (our patch data) | `89230d1afbd6bad2b11432c953779cd087596cc425fcea4091b97aeccda37344` |
+| Your built `C2KNXS2.UPD` (Builder or `build.sh`) | `3b85d55f05052ad0cc376a807114d6bf218be2d50483c0038b1d66afcbb5cd23` |
 
 - Windows may warn about an unsigned program (SmartScreen or antivirus). If you prefer not to run it, use the
   Python script or build from source: all three give the same result.
 - Extra check: build from source, then run
-  `python3 builder/mkdelta.py /path/to/C2KNXS2.UPD out-release/C2KNXS2.UPD my.delta --release V4r60j192 --build-id "Cueline-1.92 20261119-1242 c5e8e0f3"`
+  `python3 builder/mkdelta.py /path/to/C2KNXS2.UPD out-release/C2KNXS2.UPD my.delta --release V4r21 --build-id "Cueline-2.1 20261120-1459 e2a70b09"`
   and compare `my.delta` with `builder/cueline.delta`. To rebuild the exe yourself, see `builder/build_exe.bat`.
 
 ## License and trademarks

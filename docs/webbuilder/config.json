@@ -1,0 +1,13 @@
+{
+  "version_label": "Cueline 2.1",
+  "delta": "cueline.delta",
+  "delta_sha256": "89230d1afbd6bad2b11432c953779cd087596cc425fcea4091b97aeccda37344",
+  "input_sha256": "f211191a573b7a5c0e694936871f76011a58d5861dd061301cdb0d8b83a8b3e5",
+  "input_size": 16768854,
+  "output_sha256": "3b85d55f05052ad0cc376a807114d6bf218be2d50483c0038b1d66afcbb5cd23",
+  "output_name": "C2KNXS2.UPD",
+  "readme_url": "https://github.com/feers77/cueline#readme",
+  "back_to_stock_url": "https://github.com/feers77/cueline#going-back-to-stock",
+  "discord_url": "https://discord.gg/UHfG94zeW",
+  "pyodide_index_url": "https://cdn.jsdelivr.net/pyodide/v0.29.5/full/"
+}

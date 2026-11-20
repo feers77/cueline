@@ -1,5 +1,32 @@
 # CHANGELOG
 
+## 2.1 (pre-release) -- 2026-11-20: RELEASE `V4r21` / DEV `V4n21` (labels MAIN 2.10 / GUI 2.04, source hash `e2a70b09`)
+Pre-release: fully tested in our emulator, not yet confirmed on real decks. Changes since 1.92 beta:
+- **Settings survive power-off again (bug fix):** on 1.92, KEY SHIFT, KEY SYNC, CLASSIC key format and the BEAT
+  JUMP value could come back changed (forced ON / CLASSIC) after switching the deck off and on. Fixed, confirmed on
+  real decks with a 2.1 development build. Cueline's settings are now stored in a **versioned, checksummed** record:
+  a damaged or unknown record falls back to the defaults instead of odd values, and settings saved by 1.92 are
+  carried over.
+- **Stock pop-ups drawn correctly:** the deck's own dialogs (MY SETTINGS, REMOVE ALL TRACKS and the other stock
+  pop-ups that Cueline does not redraw) are drawn by the deck itself in their normal place, with the selected option
+  readable (dark text on the white cursor bar). Editing a value in UTILITY no longer leaves a blank box over the
+  value list.
+- **Green KEY on the selected row:** the harmonic-match green KEY cell now also shows on the cursor row in BROWSE,
+  as on the CDJ-3000.
+- **Hot-cue badges on the browse strip:** the mini overview at the top of BROWSE shows the loaded track's hot cues,
+  memory cues and cue mark (CDJ-3000 style).
+- **Preview gesture (CDJ-3000 style):** the row you press is the one that is previewed for the whole gesture;
+  sliding up or down while previewing no longer switches tracks (left / right still seeks), and the previewed row
+  ends selected with LOAD. A press on the preview column never scrolls the list.
+- **Update safety:** the 3BAND waveform code now also stays inactive in update mode, like the rest of Cueline.
+- **Master waveform over LINK, diagnostics:** more robust reading of the master's waveform data block and a
+  diagnostic for the CDJ-3000 "error" reply we have seen, to track down an empty WAVEFORM meter with some 3000 setups.
+- **Cueline Web Builder:** build Cueline in your browser, nothing to install; your file never leaves your computer.
+- **macOS app:** `CuelineBuilder-macOS.zip` (Intel and Apple Silicon), drag and drop like the Windows builder.
+- **Versioning:** MAIN 2.10 / GUI 2.04 (DEV and RELEASE alike); UTILITY > INFO > BUILD shows `Cueline-2.1 <hash>`.
+
+Known issues: the WAVEFORM meter may sit 1 pixel row off vertically; PHASE and 4 BARS views unchanged (CPU).
+
 ## 1.92 beta (release candidate of 2.0) -- 2026-11-19: RELEASE `V4r60j192` / DEV `V4n60j192` (labels MAIN 1.92 / GUI 1.86, source hash `c5e8e0f3`)
 Pre-release: may contain bugs. Changes since 1.91 beta:
 - **MY SETTINGS now loads from USB again (bug fix):** inserting a USB stick that holds your rekordbox MY SETTINGS

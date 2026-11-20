@@ -3,7 +3,7 @@
 """ownks: our own KEY SHIFT engine (no third-party code), behind the keyshift front end's interface.
 
 Selected with the `ownks` mod name next to `keyshift` (EXTRA_MODS=ownks); keyshift.apply()
-then calls apply_engine() instead of importing Key Shift engine. What it writes:
+then calls apply_engine(). What it writes:
 
   - DSP: the stock boot table (16 sections, sha256-checked) with
       * one new section at DSP 0x805C0000 (mods/ownks/dsp/ks3.c, KS3 v4.1: ks_ctl + ks_fill/ks_process,

@@ -29,17 +29,17 @@ disassembly and no keys.
 
 | item | RELEASE | DEV |
 |---|---|---|
-| Tag / build ID | `Cueline-1.92 20261119-1242 c5e8e0f3` | `V4n60j192 20261119-1245 c5e8e0f3` |
-| UPD sha256 | `91eca696ff991006aed81dfdb30a9d2fec16c045fd56fb8922b720aebeb78223` | `5d7c578fa49565c1a08ec38ce065369e43206fbdcbae6601c1d3662aad9cad33` |
-| Labels | `MAINVer1.92` / `GUI Ver1.86` (bump 5) | `MAINVer1.92` / `GUI Ver1.86` (bump 5) |
-| MAIN | section 9,347,916 B; packed 3551145 of 3846144 B 92.3%; layout `ks` | packed 3556417 of 3846144 B 92.5% |
+| Tag / build ID | `Cueline-2.1 20261120-1459 e2a70b09` | `V4n21 20261120-1502 e2a70b09` |
+| UPD sha256 | `3b85d55f05052ad0cc376a807114d6bf218be2d50483c0038b1d66afcbb5cd23` | `c8d39cbeb6ad78e26e23d6aa3b5c2c51c571124fefb0fed9098cbcdfc8012610` |
+| Labels | `MAINVer2.10` / `GUI Ver2.04` (bump 23) | `MAINVer2.10` / `GUI Ver2.04` (bump 23) |
+| MAIN | section 9,347,916 B; packed 3551519 of 3846144 B 92.3%; layout `ks` | packed 3556889 of 3846144 B 92.5% |
 | GUI | section -> B (stock 6,931,940 B) | -> B |
 | GUI flags | `-DV2_DMACPY -DV2_VSPACE -DV2_BDIRECT -DV2_AUTO60 -DV2_HWBAND -DV2_KEYSHIFT -DV2_MSUB -DV2_G3PURGE -DV2_GR1METER -DV2_SC0BYP` | `-DV2_HUD -DV2_DMACPY -DV2_VSPACE -DV2_BDIRECT -DV2_AUTO60 -DV2_HWBAND -DV2_KEYSHIFT -DV2_MSUB -DV2_G3PURGE -DV2_GR1METER -DV2_SC0BYP -DV2_USBLOG` |
 | MAIN mods | touchaudio touchaudioip touchaudiotouch tadec modsmenu wav32 rowwave three_band ui3000x bootname font3000 v2ui v2needle lang2 usbkey keyshift reclaim guitrim_cjk w8send w8cap w8recv ks3k ownks jogcue link0brx link0btx + player56 (`proven`) | + autotest usblog |
 | UTILITY items | 42 | 43 (+ TEST LOG) |
 | Gates | verify PASS, `gui_bootcheck --strict` PASS, racegate R1 + OFF: 0 MACHINE RESET | same |
 
-Both are built by `build.sh` (`PROFILE=release|dev`) from the same sources (source hash `c5e8e0f3` = sha256 of
+Both are built by `build.sh` (`PROFILE=release|dev`) from the same sources (source hash `e2a70b09` = sha256 of
 every `mods/` source, `patch_main.source_hash()`); `CDJ_PROFILE=release` makes `build_final` / `patch_main`
 refuse the dev flags and mods.
 
@@ -141,7 +141,7 @@ zeroes its own block on first use (for example, w8send stamps `W8F1`).
 **Flash budget** (`re/MAIN_BUDGET_AUDIT.md`, memory notes):
 
 - The real limit is the *packed* MAIN size, about 3,846,656 B packed;
-  `patch_update` uses 3,846,144. V4r60j192 packs 3551145 of 3846144 B 92.3%, V4n60j192 3556417 of 3846144 B 92.5%.
+  `patch_update` uses 3,846,144. V4r21 packs 3551519 of 3846144 B 92.3%, V4n21 3556889 of 3846144 B 92.5%.
 - An earlier "MAIN section limit" of 0x902A00 was a misdiagnosis. Its real cause was the update race in §1.3.
 - The T1 deck test proved a 9.48 MB section installs. RC1 is built with
   `--no-main-size-check`.
@@ -270,7 +270,7 @@ their `.s`, and `patch_update.check_committed_bins` now guards against that.
   between 7 B and 600 B left. `guitrim_cjk` (zeroes the CJK glyph banks, a cosmetic effect only) gives about
   2.9 MB of room, and RC1 is about 2.94 MB under stock.
 - **Build flags (V4).** RELEASE `-DV2_DMACPY -DV2_VSPACE -DV2_BDIRECT -DV2_AUTO60 -DV2_HWBAND -DV2_KEYSHIFT`; DEV adds
-  `-DV2_HUD -DV2_USBLOG`; both with `CDJ_V2_FONTTRIM=1`. GUI room: V4r60j192 is ? MB under stock.
+  `-DV2_HUD -DV2_USBLOG`; both with `CDJ_V2_FONTTRIM=1`. GUI room: V4r21 is ? MB under stock.
 - **Icons.** Our own icon set in the 3000 style (shipped as sources) plus stock NXS2 icons taken from the
   builder's official 1.87 `.UPD` at build time; the generated atlas is not shipped. No other firmware is needed.
 
@@ -893,7 +893,7 @@ KEY SHIFT uses our own Key Shift engine (`keyshift`, built from the sources in t
 12. **Not built in V4:** jogcue (cue-marker blink on the jog centre), jogtest, M4A decoding, players 5/6 on the GUI
     side (`V2_P56`).
 13. **Deck coverage:** the real-rig plans passed on V4n35; V4n37 ran on the decks on 2026-11-16 and the V4n38
-    change (WAVEFORM now sets overview / browse, detail always FULL) comes from that session. V4n60j192 / V4r60j192 have passed the
+    change (WAVEFORM now sets overview / browse, detail always FULL) comes from that session. V4n21 / V4r21 have passed the
     emulator gates; their deck runs: see `TESTREPORTS.md`.
 
 ---

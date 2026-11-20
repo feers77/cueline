@@ -850,7 +850,7 @@ ck_mck:		.long	0x4B433356		! "V3CK"
 ck_malloc:	.long	0x08344A9C
 ck_cap:		.long	15 * 60 * 1000
 
-! mem_rec: MEM (r6 = the op: b = len, c = addr) -> a 'V3MM' record: w2 seq, w3 addr, w4 len (0:
+! mem_rec (also at_watch's script MEM requests, R21 kit): MEM (r6 = the op: b = len, c = addr) -> a 'V3MM' record: w2 seq, w3 addr, w4 len (0:
 ! refused), w5.. the bytes. Read-only; 1..64 bytes inside DRAM 0x08000000..0x18000000 (P0, or its
 ! P1 / P2 mirror 0x8.. / 0xA..). r11 = the datagram. Keeps r4-r7.
 mem_rec:
@@ -1096,7 +1096,29 @@ at_watch:
 	mov.l	@r13,r11		! r11 = the autotest block
 	tst	r11,r11
 	bt	aw_out
-	mov.l	@(48,r11),r0		! AT_STEP
+	mov.w	aw_mop,r0		! R21 kit: a script MEM request (mods/autotest op 8, AT_MOP) -> 'V3MM'
+	mov.b	@(r0,r11),r0
+	cmp/eq	#8,r0
+	bf	3f
+	mov.l	@(U_FORCE,r8),r0	! (mem_rec's cm_fin asks for a flush: not for these, U_FORCE kept)
+	mov.l	r0,@-r15
+	mov.l	r6,@-r15
+	mov.l	r11,@-r15
+	mov.w	aw_mop,r0
+	mov	r11,r6
+	add	r0,r6			! r6 = the op image (+2 len, +4 addr)
+	mov	r6,r11
+	add	#8,r11			! r11 + 4 = AT_MSEQ (mem_rec's "seq")
+	bsr	mem_rec
+	nop
+	mov.l	@r15+,r11
+	mov.l	@r15+,r6
+	mov.l	@r15+,r0
+	mov.l	r0,@(U_FORCE,r8)
+	mov.w	aw_mop,r0
+	mov	#0,r1
+	mov.b	r1,@(r0,r11)		! taken
+3:	mov.l	@(48,r11),r0		! AT_STEP
 	mov.l	@(U_PSTEP,r8),r1
 	cmp/eq	r0,r1
 	bt	1f
@@ -1164,6 +1186,7 @@ aw_out:
 	rts
 	nop
 aw_ops:		.word	208
+aw_mop:		.word	168			! R21 kit: mods/autotest AT_MOP
 	.p2align 2
 aw_mk:		.long	0x4B4D3356		! "V3MK"
 aw_ae:		.long	0x45413356		! "V3AE"

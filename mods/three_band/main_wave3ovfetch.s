@@ -69,6 +69,16 @@ reloc_done:
 	sts.l	pr,@-r15
 	mov.l	r0,@-r15
 
+	! R20 update safety (defense in depth): nothing of ours unless MAIN
+	! booted normally (*0x0A35DF3C == 1; 2 = USB/SD update). The preview
+	! reader then goes on to its own PWV4 read untouched.
+	mov.l	p_bootst,r1
+	mov.l	@r1,r0
+	cmp/eq	#1,r0
+	bt	2f
+	bra	out
+	nop
+2:
 	mov.l	p_shared,r0
 	mov.l	@r0,r1
 	mov	#0,r2
@@ -446,6 +456,7 @@ divloop:
 p_malloc:	.long 0x08344A9C
 p_free:		.long 0x08344B42
 p_shared:	.long 0x081FFFFC
+p_bootst:	.long 0x0A35DF3C	! MAIN boot state: 1 normal, 2 update (R20 gate)
 p_scratch:	.long scratch
 p_dnorm:	.long dnorm
 p_curve8:	.long curve8

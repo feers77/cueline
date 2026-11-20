@@ -48,6 +48,24 @@ answers with blocks shaped like w8cap's. The DB task never touches NFS;
 w8send gives up after 60 s (cancels: KEY 0) and frees late answers.
 Bench: work/v4n/w8n (W8EMPTY test build of w8cap = every DB answer empty).
 
+## 2.02: what the CDJ-3000 serves, DB diagnostic (#34)
+
+Mined from the CDJ-3000 3.22 dump (; work/r21/LINK3K_DONE): the 3000's
+own client asks PWV5 / PWV4 / PQT2 / PSSI / PVB2 (.EXT) with dbserver 0x2C04
+GET_SPECIFIED_ATOM_INFO and the 3-band PWV6 / PWV7 (.2EX) with 0x2D04
+GET_SPECIFIED_ATOM_INFO2; its server hands both types to one handler, which
+answers 0x4F02 `[type, 0, length, blob, n]` or, on any failure, `[type, 0x32]`
+(no blob: stock's client then returns status 1 with no block = the "empty"
+reply). Our request is byte-identical to the 3000's own (tag / ext reversed on
+the wire). Stock's client cannot send 0x2D04 (tried: status -1, nothing sent),
+so w7fb keeps 0x2C04 for PWV7. New in w8cap: the PWV7 block is taken as
+`[u32][tag]` (an NXS2 server's form) or as a bare tag, and W8D (W8N + 52,
+w8.inc) records each reply of ours (counter, PWV5 present, PWV7 status /
+block / form; W8D + 4 the block's first word). Test-only switches:
+`W8NOPWV5` (the PWV5 block dropped: w7fb runs), `W8EMPTY` (every answer
+empty: the NFS path runs); `work/r21/out_link3k/build.sh TAG FLAG`. Bench and
+real-3000 probe: `scripts/net/anlz_probe.py`.
+
 ## Message 0x31
 
 `[seq][0x31][len u16][last u16][index u16]` + payload (≤ 0x2000 B).

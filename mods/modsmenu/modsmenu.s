@@ -390,107 +390,61 @@ fa_skip: .long	0			! label of an item MODS OFF leaves alone
 					! (0 = none)
 
 
+! ---------------------------------------------------------------------------------------------------------------
+! R21 (2.01-b, work/r21/SETTINGS_DONE): VERSIONED SETTINGS. Before, our fields were bits scattered over stock
+! "free" bits and the HISTORY tail, decoded blindly from whatever record the unpacker got (a MY SETTINGS import,
+! a record of another build). Now every load goes through one decision tree (st_load) into one settings word W,
+! every field is clamped against a table on load AND save (st_desc, the lang8 clampt model: an unknown value
+! becomes the field's default, never garbage), and the HISTORY tail carries a versioned block.
+!
+! W (16 bits): 0-1 LIGHT MODE (0..2), 2 BPM DECIMALS, 3-4 WAVEFORM COLOR (0..2), 5 WAVEFORM CURRENT POSITION,
+!   6-7 PHASE METER style (0..2) | 8-10 BEAT JUMP index (0..6), 11 KEY SHIFT, 12 KEY FORMAT (1 = ALPHANUMERIC,
+!   kf_v), 13 KEY SYNC BUTTON, 14 WAVEFORM HALF (wh_v), 15 reserved 0. Defaults: ST_WDEF (all 0, kf_v 1).
+!
+! Carriers (N = the 32-byte HISTORY-name record = unpacker record + 8, L = the name's length):
+!   main record (type 2, always): byte 6 bit 4 pos, bits 5-6 PHASE style + 1 (1..3: these bits are also the stock
+!     loader's record version, >= 2 accepted, 0/1 migrated -- 0x08350EDC/0x08350F18), byte 7 bit 4/6 LIGHT lo/hi,
+!     bit 5 BPM DECIMALS, bit 7 WAVEFORM COLOR bit 0. Byte 6 bit 0 is ALWAYS written 0 (the stock loader's
+!     "invalid record" flag, 0x08350E88: a full factory reset at the next boot). Byte 5 bit 5 MODS OFF.
+!   L <= 30: N[31] = the legacy byte 0x80 | BEAT JUMP | COLOR bit 1 << 3 | KEY SHIFT << 4 | CLASSIC << 5 |
+!     KEY SYNC << 6 (what 1.92 / 2.0 read: a downgrade keeps them).
+!   L <= 29: N[30] = WAVEFORM HALF << 2, bit 7 CLEAR. Stock's type-3 message builder (0x0835333C) widens the record
+!     bytes with mov.b (sign extension): an EVEN byte >= 0x80 turns the next byte into 0xFF in flash. 1.92 / 2.0
+!     wrote N[30] = 0x80 | HALF << 2 -> their N[31] reads back 0xFF after every power cycle (KEY SHIFT, KEY SYNC,
+!     CLASSIC and COLOR bit 1 all forced on). Rule since R21: every even byte of N we write is < 0x80.
+!   L <= 24: the v1 block N[25] = ST_MAGIC, N[26] = ST_VER, N[27] = W & 0xFF, N[28] = W >> 8 (< 0x80, even),
+!     N[29] = (0x5A + N[25] + N[26] + N[27] + N[28]) & 0xFF. The stock loader / unpacker / HISTORY export stop at
+!     the name's NUL; stock's own save clears the 32 bytes (memset) and drops our block.
+! Load (st_load, src word st_src for the benches):
+!   1 = v1 block (magic + version 1 + checksum)          -> W from the block
+!   0xFF magic present but unknown version / bad checksum -> defaults (a newer or damaged record: never applied)
+!   0 = legacy tail (N[31] bit 7, zero padding between the NUL and N[30], N[30] in {0, 4, 0x80, 0x84}): the 1.92 /
+!       2.0 layout (v0) and ours for names of 25..30 -> main-record fields + N[31] (0xFF = the sign-extension
+!       artefact above: BEAT JUMP / COLOR bit 1 / KEY fields default) + HALF from N[30] bit 2
+!   2 = no tail at all (stock-written record, factory reset, a name of 31-32) -> main-record fields, rest default
+!   0xFE anything else after the NUL (a foreign record) -> defaults
+	.equ	ST_MAGIC, 0xC1
+	.equ	ST_VER, 1
+	.equ	ST_WDEF, 0x1000
+	.equ	ST_CHK0, (0x5A + ST_MAGIC + ST_VER) & 0x7F	! 0x1C, the checksum's constant part
+
 ! The record unpacker hands the QUANTIZE field (3 bits) to its setter in r4.
 mods_load:
-	mov.b	@(7,r14),r0		! WAVEFORM COLOR: byte 7 bit 7 (lo) + the HISTORY record's byte 31
-	mov	#0,r2			! bit 3 (hi). V3rc2: NOT byte 6 bit 0 any more -- that bit is the stock
-	tst	#0x80,r0		! loader's "invalid record" flag (0x08350E88): BLUE reset every setting
-	bt	3f			! at the next boot (re_settings)
-	mov	#1,r2
-3:	sts.l	pr,@-r15
-	bsr	hist_get		! r0 = the HISTORY tail byte (bit 7 = ours), 0 = none
-	nop
-	lds.l	@r15+,pr
-	.ifdef	KEYSHIFT
-	mov.l	r0,@-r15		! V4k: bit 4 KEY SHIFT ON, bit 5 REKORDBOX BUTTON = KEY SHIFT
-	mov.l	l_ksb,r1
-	mov	r0,r3
-	shlr2	r3
-	shlr2	r3
-	mov	r3,r0
-	and	#1,r0
-	mov.l	r0,@(20,r1)
-	mov.l	l_kse,r3
-	mov.l	r0,@r3			! the engine's on word
-	mov	#0,r0			! V4n23 (user): REKORDBOX BUTTON removed -- the rekordbox key is stock,
-	mov.l	r0,@r1			!   a saved ON is ignored (row hidden in UTILITY)
-	mov.l	@r15,r0			! V4n24: bit 6 KEY SYNC BUTTON ON (none saved / factory reset: OFF)
-	shll	r0
-	shll	r0
-	shlr8	r0
-	and	#1,r0
-	add	#72,r1
-	mov.l	r0,@r1
-	mov.l	@r15,r0			! V4n36: bit 5 KEY FORMAT CLASSIC (none saved / factory reset: ALPHANUMERIC;
-	shlr2	r0			!   the bit was REKORDBOX BUTTON's, saved 0 since V4n23)
-	shlr2	r0
-	shlr	r0
-	and	#1,r0
-	xor	#1,r0
-	mov.l	l_kf,r3
-	mov.l	r0,@r3
-	mov.l	@r15+,r0
-	.endif
-	tst	r0,r0
-	bt	4f
-	mov	r0,r1
-	and	#7,r0			! bits 0-2: BEAT JUMP BEAT VALUE index (0..6 = 1..64 beats)
-	cmp/eq	#7,r0
-	bf	7f
-	mov	#0,r0
-7:
-	.ifdef	V3E2
-	mov.l	l_bjv,r3
-	mov.l	r0,@r3
-	.endif
-	mov	r1,r0
-	tst	#8,r0
-	bt	4f
-	add	#2,r2
-4:	mov	r2,r0
-	cmp/eq	#3,r0
-	bf	5f
-	mov	#0,r2
-5:	mov.l	l_wave,r1
-	mov.l	r2,@r1
-	mov.b	@(6,r14),r0		! V3c WAVEFORM CURRENT POSITION: byte 6 bit 4 (free on stock:
-	shlr2	r0			! the packer keeps bits 0 and 4-6, the unpacker reads 1-3 + 7)
-	shlr2	r0
-	and	#1,r0
-	mov.l	l_pos,r1
-	mov.l	r0,@r1
-	mov.b	@(6,r14),r0		! V3e1 PHASE METER style (0 PHASE, 1 WAVEFORM, 2 4 BARS),
-	shlr2	r0			! byte 6 bits 5-6 (free on stock, as bit 4)
-	shlr2	r0
-	shlr	r0
-	and	#3,r0			! stored style + 1 (0 and 1 = PHASE: the emu's stock
-	tst	r0,r0			! settings carry 1 in these bits)
-	bt	6f
-	add	#-1,r0
-6:	mov.l	l_pmc,r1
-	mov.l	r0,@r1
-	mov.b	@(7,r14),r0		! the unpacker's record (r14): byte 7 bit 4 =
-	shlr2	r0			! LIGHT MODE, bit 5 = BPM DECIMALS (free on stock)
-	shlr2	r0
-	mov	r0,r2			! (bit 6 = LIGHT MODE high bit: OFF / LIGHT / FULL)
-	shlr	r0
-	and	#2,r0
-	mov	r0,r1
-	mov	r2,r0
-	and	#1,r0
-	or	r1,r0
-	cmp/eq	#3,r0
-	bf	2f
-	mov	#2,r0
-2:	mov.l	l_light,r1
-	mov.l	r0,@r1
-	mov	r2,r0
-	shlr	r0
-	and	#1,r0
-	mov.l	l_bpmd,r1
-	mov.l	r0,@r1
 	sts.l	pr,@-r15
 	mov.l	r4,@-r15
+	bsr	st_load			! r0 = W from the record r14 (validated, versioned)
+	nop
+	mov	r0,r4
+	bsr	st_put			! every field clamped into its word
+	nop
+	.ifdef	KEYSHIFT
+	mov.l	l_ksb,r1
+	mov	#0,r0			! V4n23 (user): REKORDBOX BUTTON removed -- the rekordbox key is stock,
+	mov.l	r0,@r1			!   a saved ON is ignored (row hidden in UTILITY)
+	mov.l	@(20,r1),r0		! KEY SHIFT -> the engine's on word
+	mov.l	l_kse,r3
+	mov.l	r0,@r3
+	.endif
 	bsr	mm_publish
 	nop
 	.ifdef	KEYSHIFT
@@ -512,24 +466,24 @@ mods_load:
 	and	r2,r4
 	.p2align 2
 l_var:	.long	mods_off
-.ifdef V3E2
-l_bjv:	.long	bj_v
-.endif
 l_qset:	.long	0x083FC4DC
 	.ifdef	KEYSHIFT
 l_ksb:	.long	KSB
 l_kse:	.long	0x08122800
-l_kf:	.long	kf_v
 l_klr:	.long	kl_reveal
 	.endif
-l_light: .long	light_v
-l_bpmd:	.long	bpmd_v
-l_wave:	.long	wave_v
-l_pos:	.long	pos_v
-l_pmc:	.long	pm_c
 
-! The record packer, after byte 5: our bit into it, then the stock getter.
+! The record packer, after byte 5: our bits into bytes 5-7 (from the clamped W), then the stock getter.
+! r4-r7 kept for the getter (the old code used r0-r2 only).
 mods_save:
+	sts.l	pr,@-r15
+	mov.l	r4,@-r15
+	mov.l	r5,@-r15
+	mov.l	r6,@-r15
+	mov.l	r7,@-r15
+	bsr	st_get
+	nop
+	mov	r0,r4			! W, clamped
 	mov.l	s_var,r1
 	mov.l	@r1,r1
 	mov.b	@(5,r12),r0
@@ -538,85 +492,65 @@ mods_save:
 	bf	1f
 	or	#0x20,r0
 1:	mov.b	r0,@(5,r12)
-	mov.b	@(7,r12),r0		! byte 7 bits 4+6: LIGHT MODE (0..2), bit 5: BPM DECIMALS
-	and	#0x8F,r0
-	mov	r0,r2
-	mov.l	s_light,r1
-	mov.l	@r1,r0
-	mov	r0,r1
+	mov	r4,r0			! byte 7: bit 4 LIGHT lo, 5 BPM DECIMALS, 6 LIGHT hi, 7 COLOR bit 0
 	and	#1,r0
 	shll2	r0
 	shll2	r0
+	mov	r0,r2
+	mov	r4,r0
+	and	#4,r0
+	shll2	r0
+	shll	r0
 	or	r0,r2
-	mov	r1,r0
+	mov	r4,r0
 	and	#2,r0
 	shll2	r0
 	shll2	r0
 	shll	r0
 	or	r0,r2
-	mov.l	s_bpmd,r1
-	mov.l	@r1,r0
-	and	#1,r0
+	mov	r4,r0
+	and	#8,r0
 	shll2	r0
 	shll2	r0
-	shll	r0
+	or	r0,r2
+	mov.b	@(7,r12),r0
+	and	#0x0F,r0
 	or	r2,r0
 	mov.b	r0,@(7,r12)
-	mov.l	s_wave,r1		! WAVEFORM COLOR: bit 0 -> byte 7 bit 7, bit 1 -> byte 6 bit 0
-	mov.l	@r1,r2
-	mov.b	@(7,r12),r0
-	and	#0x7F,r0
-	mov	r0,r1
-	mov	r2,r0
-	tst	#1,r0
-	mov	r1,r0
-	bt	2f
-	or	#0x80,r0
-2:	mov.b	r0,@(7,r12)
-	mov.b	@(6,r12),r0
-	and	#0xFE,r0		! V3rc2: byte 6 bit 0 stays 0 (stock's invalid-record flag); the high
-	mov.b	r0,@(6,r12)		! bit goes to the HISTORY record's tail (hist_save)
-	mov.l	s_pos,r1		! WAVEFORM CURRENT POSITION -> byte 6 bit 4
-	mov.l	@r1,r2
-	mov.b	@(6,r12),r0
-	and	#0xEF,r0
-	mov	r0,r1
-	mov	r2,r0
-	tst	#1,r0
-	mov	r1,r0
-	bt	4f
-	or	#0x10,r0
-4:	mov.b	r0,@(6,r12)
-	mov.l	s_pmc,r1		! V3e1 PHASE METER style -> byte 6 bits 5-6
-	mov.l	@r1,r2
-	mov.b	@(6,r12),r0
-	and	#0x9F,r0
-	mov	r0,r1
-	mov	r2,r0
-	and	#3,r0
-	add	#1,r0			! stored as style + 1 (1..3)
+	mov	r4,r0			! byte 6: bit 4 POSITION, bits 5-6 PHASE style + 1 (1..3 = the stock version
+	and	#0x20,r0		!   2..7, accepted as is), bit 0 cleared: never the invalid-record flag
+	shlr	r0
+	mov	r0,r2
+	mov	r4,r0
+	shlr2	r0
+	shlr2	r0
+	shlr2	r0
+	and	#3,r0			! <= 2 (st_get clamps)
+	add	#1,r0
 	shll2	r0
 	shll2	r0
 	shll	r0
-	or	r1,r0
+	or	r0,r2
+	mov.b	@(6,r12),r0
+	and	#0x8E,r0		! stock bits 1-3 and 7 kept
+	or	r2,r0
 	mov.b	r0,@(6,r12)
+	mov.l	@r15+,r7
+	mov.l	@r15+,r6
+	mov.l	@r15+,r5
+	mov.l	@r15+,r4
+	lds.l	@r15+,pr
 	mov.l	s_get,r1
 	jmp	@r1
 	nop
 	.p2align 2
 s_var:	.long	mods_off
 s_get:	.long	0x08401B60
-s_light: .long	light_v
-s_bpmd:	.long	bpmd_v
-s_wave:	.long	wave_v
-s_pos:	.long	pos_v
-s_pmc:	.long	pm_c
 
-! V3rc2 (work/v3rc2/re_settings): our own 8 bits in the HISTORY-name record (type 3, saved with the settings
-! by the same packer): its 32 bytes (record + 8) are cleared by memset (literal 0x0846D5D4 -> hist_save), then
-! the name 0x0A35F698 is copied up to its NUL; the stock loader / unpacker stop at the NUL. With a name of at
-! most 30 bytes byte 31 is never written nor read by stock: 0x80 | BEAT JUMP index (bits 0-2) | WAVEFORM COLOR
-! high bit (bit 3). A longer name: nothing saved (harmless).
+! V3rc2 (work/v3rc2/re_settings): the HISTORY-name record (type 3, saved with the settings by the same packer):
+! its 32 bytes (record + 8) are cleared by memset (literal 0x0846D5D4 -> hist_save), then the name 0x0A35F698 is
+! copied up to its NUL. R21: the legacy byte N[31], HALF in N[30] and the v1 block N[25..29], by the name's length
+! (layout above). A pure function of the settings: Backup_TASK appends a record only when the 32 bytes change.
 	.global	hist_save
 hist_save:				! r4 = record + 8, r5 = 0, r6 = 32 (memset's), r12 = the record
 	sts.l	pr,@-r15
@@ -624,112 +558,322 @@ hist_save:				! r4 = record + 8, r5 = 0, r6 = 32 (memset's), r12 = the record
 	mov.l	hs_mset,r0
 	jsr	@r0
 	nop
-	mov.l	@r15+,r4
-	mov.l	hs_name,r1
-	mov	#31,r2
+	mov.l	@r15,r4			! (memset's r4 is not kept)
+	mov.l	hs_name,r1		! L = the name's length (32: no NUL)
+	mov	#0,r6
+	mov	#32,r3
 1:	mov.b	@r1+,r0
 	tst	r0,r0
 	bt	2f
-	dt	r2
+	add	#1,r6
+	cmp/eq	r3,r6
 	bf	1b
-	bra	9f			! 31+ bytes: no room
+2:	mov	#30,r0
+	cmp/hi	r0,r6
+	bt	9f			! 31+: no room (main record only)
+	bsr	st_get			! keeps r4, r6
 	nop
-2:	mov	r2,r3			! HALFBLUE: 31 - the name's length (>= 2: byte 30 is free too)
-	mov	#0,r2
-	.ifdef	V3E2
-	mov.l	hs_bj,r1
-	mov.l	@r1,r2
-	mov	#7,r0
-	and	r0,r2
-	.endif
-	mov.l	hs_wave,r1
-	mov.l	@r1,r0
-	tst	#2,r0
-	bt	3f
-	add	#8,r2
-3:	mov	#0x40,r0
-	shll	r0
-	or	r0,r2			! 0x80: ours
-	.ifdef	KEYSHIFT
-	mov.l	hs_ks,r1		! V4k: bit 4 KEY SHIFT ON, bit 5 REKORDBOX BUTTON = KEY SHIFT
-	mov.l	@(20,r1),r0
-	tst	r0,r0
-	bt	5f
-	add	#16,r2
-5:	mov.l	hs_kf,r0		! V4n36: bit 5 KEY FORMAT CLASSIC (was REKORDBOX BUTTON, always 0 since V4n23)
-	mov.l	@r0,r0
-	tst	r0,r0
-	bf	6f
-	add	#32,r2
-6:	mov	#72,r0			! V4n24: bit 6 KEY SYNC BUTTON ON
-	mov.l	@(r0,r1),r0
-	tst	r0,r0
-	bt	7f
-	add	#64,r2
-7:
-	.endif
-	mov	#2,r0			! HALFBLUE: byte 30 = 0x80 | bit 2 WAVEFORM HALF when the name leaves it free (a
-	cmp/ge	r0,r3			!   pure function of wh_v: Backup_TASK appends a record only when the 32 bytes
-	bf	8f			!   change). Bits 0 (V4n37h) and 1 (V4n38) are retired: such records read FULL
-	mov.l	hs_wh,r1
-	mov.l	@r1,r0
-	and	#1,r0
-	shll2	r0
+	mov	r0,r7			! W
+	shlr8	r0			! N[31] = 0x80 | BEAT JUMP | COLOR bit 1 << 3 | KS << 4 | CLASSIC << 5 | KSYNC << 6
+	and	#7,r0
+	mov	r0,r2
+	mov	r7,r0
+	and	#0x10,r0
+	shlr	r0
+	or	r0,r2
+	mov	r7,r0
+	shlr2	r0
+	shlr2	r0
+	shlr2	r0
+	shlr	r0
+	and	#0x70,r0
+	xor	#0x20,r0		! kf_v 1 = ALPHANUMERIC = CLASSIC bit clear
+	or	r2,r0
 	or	#0x80,r0
+	mov	r4,r1
+	add	#31,r1
+	mov.b	r0,@r1
+	mov	#29,r0
+	cmp/hi	r0,r6
+	bt	9f
+	mov	r7,r0			! N[30] = HALF << 2 -- bit 7 clear (even byte, see above)
+	shlr8	r0
+	shlr2	r0
+	shlr2	r0
+	and	#4,r0
 	mov	r4,r1
 	add	#30,r1
 	mov.b	r0,@r1
-8:	add	#31,r4
-	mov.b	r2,@r4
-9:	lds.l	@r15+,pr
+	mov	#24,r0
+	cmp/hi	r0,r6
+	bt	9f
+	mov	r4,r1			! v1 block N[25..29]
+	add	#25,r1
+	mov	#ST_MAGIC-256,r0
+	mov.b	r0,@r1
+	mov	#ST_VER,r0
+	mov.b	r0,@(1,r1)
+	mov	r7,r0
+	mov.b	r0,@(2,r1)		! F0 (odd byte: any value)
+	extu.b	r0,r3
+	shlr8	r0
+	and	#0x7F,r0
+	mov.b	r0,@(3,r1)		! F1 (even byte: < 0x80)
+	add	r0,r3
+	add	#ST_CHK0,r3
+	mov	r3,r0
+	mov.b	r0,@(4,r1)
+9:	mov.l	@r15+,r4
+	lds.l	@r15+,pr
 	rts
-	nop
-! hist_get: r14 = the unpacked record -> r0 = its HISTORY tail byte when ours (a NUL in bytes 8..38 and bit 7
-! set), else 0. Uses r0, r1, r3.
-hist_get:
-	mov	r14,r1
-	add	#8,r1
-	mov	#31,r3
-1:	mov.b	@r1+,r0
-	tst	r0,r0
-	bt	2f
-	dt	r3
-	bf	1b
-	rts
-	mov	#0,r0
-2:	mov	#2,r0			! HALFBLUE: WAVEFORM from byte 30 when the name leaves it free: (b & 0x84) == 0x84
-	cmp/ge	r0,r3			! = HALF; anything else (no room, a V4n37h / V4n38 record, none) = FULL, the
-	mov	#0,r3			! default (the CDJ-3000's centred overview)
-	bf	4f
-	mov	r14,r1
-	add	#38,r1
-	mov.b	@r1,r0
-	not	r0,r0
-	tst	#0x84,r0
-	movt	r3
-4:	mov.l	hs_wh,r1
-	mov.l	r3,@r1
-	mov	r14,r1
-	add	#39,r1
-	mov.b	@r1,r0
-	extu.b	r0,r0
-	tst	#0x80,r0
-	bf	3f
-	mov	#0,r0
-3:	rts
 	nop
 	.p2align 2
 hs_mset: .long	0x08533D50
-	.ifdef	KEYSHIFT
-hs_ks:	.long	KSB
-hs_kf:	.long	kf_v
-	.endif
 hs_name: .long	0x0A35F698
-.ifdef V3E2
-hs_bj:	.long	bj_v
-.endif
-hs_wave: .long	wave_v
-hs_wh:	.long	wh_v			! HALFBLUE
+
+! st_get -> r0 = W from the live words, every field clamped (out of range -> its default). Uses r0-r3, r5.
+st_get:
+	mov.l	g_desc,r5
+	mov	#0,r3
+1:	mov.l	@r5+,r1			! the word (0 = end)
+	tst	r1,r1
+	bt	3f
+	mov.l	@r1,r1
+	mov.b	@r5+,r2			! shift
+	add	#1,r5			! (mask: max <= mask)
+	mov.b	@r5+,r0			! max
+	cmp/hi	r0,r1			! unsigned: a negative word is out of range too
+	mov.b	@r5+,r0			! default
+	bf	2f
+	mov	r0,r1
+2:	shld	r2,r1
+	bra	1b
+	or	r1,r3
+3:	rts
+	mov	r3,r0
+
+! st_put: r4 = W -> every field into its word, clamped (out of range -> its default). Uses r0-r3, r5.
+st_put:
+	mov.l	g_desc,r5
+1:	mov.l	@r5+,r1
+	tst	r1,r1
+	bt	3f
+	mov.b	@r5+,r2
+	neg	r2,r2
+	mov	r4,r0
+	shld	r2,r0
+	mov.b	@r5+,r2
+	and	r2,r0			! mask
+	mov.b	@r5+,r2
+	cmp/hi	r2,r0			! > max
+	mov.b	@r5+,r2
+	bf	2f
+	mov	r2,r0
+2:	bra	1b
+	mov.l	r0,@r1
+3:	rts
+	nop
+
+! st_main: r14 = the record -> r0 = W's main-record fields (LIGHT, BPM DECIMALS, COLOR bit 0, POSITION, PHASE
+! style; the rest 0). Uses r0-r2.
+st_main:
+	mov.b	@(7,r14),r0
+	extu.b	r0,r1
+	shlr2	r1
+	shlr2	r1			! b7 >> 4: bit 0 LIGHT lo, 1 BPM DECIMALS, 2 LIGHT hi, 3 COLOR bit 0
+	mov	r1,r0
+	and	#9,r0			! LIGHT lo -> W 0, COLOR bit 0 -> W 3
+	mov	r0,r2
+	mov	r1,r0
+	and	#4,r0
+	shlr	r0			! LIGHT hi -> W 1
+	or	r0,r2
+	mov	r1,r0
+	and	#2,r0
+	shll	r0			! BPM DECIMALS -> W 2
+	or	r0,r2
+	mov.b	@(6,r14),r0
+	extu.b	r0,r1
+	mov	r1,r0
+	and	#0x10,r0
+	shll	r0			! POSITION -> W 5
+	or	r0,r2
+	mov	r1,r0
+	shlr2	r0
+	shlr2	r0
+	shlr	r0
+	and	#3,r0			! PHASE style + 1 (0 = a stock version-0 record: PHASE)
+	tst	r0,r0
+	bt	1f
+	add	#-1,r0
+1:	shll2	r0
+	shll2	r0
+	shll2	r0			! -> W 6-7
+	rts
+	or	r2,r0
+
+! st_load: r14 = the unpacked record -> r0 = W (decision tree above), st_src = the path taken. Uses r0-r7.
+st_load:
+	sts.l	pr,@-r15
+	mov	r14,r5
+	add	#8,r5			! N
+	mov	r5,r1
+	mov	#0,r6			! L
+	mov	#32,r3
+1:	mov.b	@r1+,r0
+	tst	r0,r0
+	bt	2f
+	add	#1,r6
+	cmp/eq	r3,r6
+	bf	1b
+2:	mov	#24,r0
+	cmp/hi	r0,r6
+	bt	st_leg			! L > 24: no v1 block
+	mov	r5,r1
+	add	#25,r1
+	mov.b	@r1,r0
+	cmp/eq	#ST_MAGIC-256,r0	! (mov.b sign-extends)
+	bf	st_leg
+	mov.b	@(1,r1),r0
+	cmp/eq	#ST_VER,r0
+	bf	st_bad			! a version this build does not know: defaults
+	mov.b	@(2,r1),r0
+	extu.b	r0,r2			! F0
+	mov.b	@(3,r1),r0
+	extu.b	r0,r3			! F1
+	mov.b	@(4,r1),r0
+	extu.b	r0,r7			! checksum
+	mov	r2,r0
+	add	r3,r0
+	add	#ST_CHK0,r0
+	extu.b	r0,r0
+	cmp/eq	r7,r0
+	bf	st_bad
+	shll8	r3
+	or	r3,r2
+	bra	st_out
+	mov	#1,r7
+st_leg:	mov	#30,r0			! legacy tail?
+	cmp/hi	r0,r6
+	bt	st_none			! L 31 / 32: no tail
+	mov	r5,r1
+	add	r6,r1
+	add	#1,r1			! N + L + 1
+	mov	#29,r3
+	sub	r6,r3			! the padding N[L+1..29] must be zero
+1:	cmp/pl	r3
+	bf	2f
+	mov.b	@r1+,r0
+	tst	r0,r0
+	bf	st_forn
+	bra	1b
+	add	#-1,r3
+2:	mov	#29,r0			! B = N[30] when L <= 29 (r6 from here on; L is done)
+	cmp/hi	r0,r6
+	mov	#0,r6
+	bt	3f
+	mov	r5,r1
+	add	#30,r1
+	mov.b	@r1,r0
+	extu.b	r0,r6
+3:	mov	r5,r1
+	add	#31,r1
+	mov.b	@r1,r0
+	extu.b	r0,r3			! A = N[31]
+	tst	#0x80,r0
+	bf	4f
+	or	r6,r0			! no legacy marker: all zero = no tail, else foreign
+	tst	r0,r0
+	bt	st_none
+	bra	st_forn
+	nop
+4:	mov	r6,r0
+	tst	#0x7B,r0		! B in {0, 4, 0x80, 0x84}
+	bf	st_forn
+	bsr	st_main
+	nop
+	mov	r0,r7			! W so far
+	mov	r6,r0			! HALF -> W 14
+	and	#4,r0
+	shll8	r0
+	shll2	r0
+	shll2	r0
+	or	r0,r7
+	mov	#-1,r1
+	extu.b	r1,r1
+	cmp/eq	r1,r3
+	bt	5f			! 0xFF = the 1.92 / 2.0 sign-extension artefact: its fields default
+	mov	r3,r0
+	and	#7,r0			! BEAT JUMP -> W 8-10
+	shll8	r0
+	or	r0,r7
+	mov	r3,r0
+	and	#8,r0
+	shll	r0			! COLOR bit 1 -> W 4
+	or	r0,r7
+	mov	r3,r0
+	and	#0x70,r0
+	xor	#0x20,r0		! KS, CLASSIC -> ALPHANUMERIC, KSYNC -> W 11-13
+	shll8	r0
+	shlr	r0
+	bra	6f
+	or	r0,r7
+5:	mov.w	g_wdef,r0
+	or	r0,r7
+6:	mov	r7,r2
+	bra	st_out
+	mov	#0,r7
+st_none: bsr	st_main			! main-record fields, the rest default
+	nop
+	mov.w	g_wdef,r2
+	or	r0,r2
+	bra	st_out
+	mov	#2,r7
+st_bad:	mov.w	g_wdef,r2
+	bra	st_out
+	mov	#-1,r7
+st_forn: mov.w	g_wdef,r2
+	mov	#-2,r7
+st_out:	mov.l	g_src,r1
+	extu.b	r7,r7
+	mov.l	r7,@r1
+	mov	r2,r0
+	lds.l	@r15+,pr
+	rts
+	nop
+g_wdef:	.short	ST_WDEF
+	.p2align 2
+g_desc:	.long	st_desc
+g_src:	.long	st_src
+	.global	st_src
+st_src:	.long	0x55			! the last load's path (1 v1, 0 legacy, 2 main only, 0xFF bad v1, 0xFE foreign)
+! st_desc: the saved fields -- word, W shift, mask, max, default (an out-of-range value -> default, both ways)
+st_desc:
+	.long	light_v
+	.byte	0, 3, 2, 0
+	.long	bpmd_v
+	.byte	2, 1, 1, 0
+	.long	wave_v
+	.byte	3, 3, 2, 0
+	.long	pos_v
+	.byte	5, 1, 1, 0
+	.long	pm_c
+	.byte	6, 3, 2, 0
+	.ifdef	V3E2
+	.long	bj_v
+	.byte	8, 7, 6, 0
+	.endif
+	.ifdef	KEYSHIFT
+	.long	KSB + 20
+	.byte	11, 1, 1, 0
+	.long	kf_v
+	.byte	12, 1, 1, 1
+	.long	KSB + 72
+	.byte	13, 1, 1, 0
+	.endif
+	.long	wh_v
+	.byte	14, 1, 1, 0
+	.long	0
 
 ! mm_publish: the display has no view of MAIN's item words, but the heartbeat
 ! (type 0x03) is a copy of the 508-byte block at 0x0B568C9C made every frame
@@ -983,7 +1127,7 @@ entries2:
 	.long	it_commit, 0x084F046E, 0x084F04B0, 0x084F056A
 light_v: .long	0			! LIGHT MODE (0 OFF, 1 LIGHT, 2 FULL), saved: byte 7 bits 4 (lo) + 6 (hi)
 bpmd_v:	.long	0			! BPM DECIMALS (0 OFF, 1 ON), saved: byte 7 bit 5
-wave_v:	.long	0			! WAVEFORM COLOR (0 3BAND, 1 RGB, 2 BLUE), saved: byte 7 bit 7 + byte 6 bit 0
+wave_v:	.long	0			! WAVEFORM COLOR (0 3BAND, 1 RGB, 2 BLUE), saved: W bits 3-4 (byte 7 bit 7 + legacy N[31] bit 3)
 pos_v:	.long	0			! WAVEFORM CURRENT POSITION (0 CENTER, 1 LEFT), saved: byte 6 bit 4
 OPTSP:	.long	L_CTR, L_LEFT
 L_CTR:	.short	'C', 'E', 'N', 'T', 'E', 'R', 0
@@ -1671,12 +1815,12 @@ va_rows0:				! a list row: move the cursor to it; on the cursor row,
 	bt	3f
 	mov.l	@(0x1C,r3),r0
 	cmp/eq	#1,r0
-	bt	va_out
+	bt	8f
 3:	mov.l	vt_vcur,r1		! V3e3: the cursor row from the live UI (0x0B5433B8)
 	mov.l	@r1,r0
 	cmp/eq	r4,r0
 	bt	6f
-	mov.l	vt_vfst,r1
+9:	mov.l	vt_vfst,r1
 	mov.l	@r1,r0
 	add	r0,r4			! a seek to first + k
 	bsr	vt_seek_to
@@ -1700,6 +1844,16 @@ va_rows0:				! a list row: move the cursor to it; on the cursor row,
 	cmp/hs	r0,r5
 	bt	4b
 7:	bra	va_out
+	nop
+! R21 parity (d): the 3000's preview gesture ends with the previewed row SELECTED (blue, LOAD over BPM / KEY;
+! re/V3_PROGRESS.md 3000 parity list #9). touch_audio row_touch still owns the press / drag / lift (play from x,
+! seek, stop); the release's tap (vt_drag vd_up -> here, a finger that moved < 8 px vertically, any time held)
+! now also moves the cursor to that row -- never a PUSH from this column (the cursor row: nothing, as before).
+8:	mov.l	vt_vcur,r1
+	mov.l	@r1,r0
+	cmp/eq	r4,r0
+	bf	9b
+	bra	va_out
 	nop
 	.p2align 1
 vt_220:	.short	0x220
@@ -3198,7 +3352,7 @@ vq_kcm:	.long	KSB + 104		! V4n33 kc_mst
 	.endif
 	.endif
 	.ifdef	KEYSHIFT
-! V4k (mods/keyshift): KEY SHIFT OFF / ON (the engine on: the DSP path through the engine's pitch
+! V4k (mods/keyshift): KEY SHIFT OFF / ON (the engine on: the DSP path through the pitch
 ! shifter; the header tile and the rekordbox key work the panel) and REKORDBOX BUTTON
 ! REKORDBOX / KEY SHIFT, both saved in the HISTORY tail (bits 4 / 5). Their words live in
 ! mods/keyshift's block (KSB +20 / +0).
@@ -3374,7 +3528,34 @@ vt_drag:
 3:	mov	#4,r1			! < 8 px: still a tap
 	cmp/hs	r1,r0
 	bf	vd_out
-	mov	#2,r0
+	mov.l	@(4,r7),r0		! R21 parity (d): a press on a rowwave row's PREVIEW column (x < 212) never
+	mov	#53,r1			! scrolls the list -- the 3000's preview waveform keeps the finger: the drag
+	cmp/hs	r1,r0			! is touch_audio's seek (row_touch follows the finger's row, so a scroll
+	bt	8f			! under it would switch the previewed track); the lift is still the tap
+	mov.l	@(8,r7),r0		! row k = (y / 2 at the press - 45) / 20
+	add	#-45,r0
+	cmp/pz	r0
+	bf	8f
+	mov	#0,r2
+	mov	#20,r1
+1:	cmp/hs	r1,r0
+	bf	4f
+	sub	r1,r0
+	bra	1b
+	add	#1,r2
+4:	mov	#8,r0
+	cmp/hs	r0,r2
+	bt	8f
+	add	#1,r2			! slot k + 1
+	mov.w	vd_220,r0
+	mulu.w	r0,r2
+	sts	macl,r2
+	mov.l	vd_slots,r1
+	add	r1,r2
+	mov.l	@(0x1C,r2),r0		! a rowwave row (its cell) -> stays a tap
+	cmp/eq	#1,r0
+	bt	vd_out
+8:	mov	#2,r0
 	mov.l	r0,@r7
 2:	mov	#10,r0			! V4n5: to the nearest row (half a row = 10 units), not toward 0
 	cmp/pz	r5
@@ -3460,6 +3641,9 @@ vd_dgp:	.long	vt_dg
 vd_tk:	.long	0x0B0C5258		! ms tick
 vd_sk:	.long	vt_seek_to
 vd_r0:	.long	va_rows0
+vd_slots: .long	0x0B53FBA4		! R21 parity (d): the model's side-0 slot 0 (= vt_slots)
+vd_220:	.short	0x220
+	.p2align 2
 ! div20: r0 = r5 / 20, toward 0 (|r5| < 65536). Uses r0, r1.
 div20:
 	mov	r5,r0

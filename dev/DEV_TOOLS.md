@@ -1,7 +1,7 @@
-# DEV tools -- using the DEV build (`V4n60j192`) on a test rig
+# DEV tools -- using the DEV build (`V4n21`) on a test rig
 
-Everything here needs the **DEV** profile (`PROFILE=dev ./build.sh ...`, UTILITY > BUILD `V4n60j192 c5e8e0f3`).
-The RELEASE build (`V4r60j192`) has none of the deck-side hooks: it does not listen on UDP 50098, sends nothing on
+Everything here needs the **DEV** profile (`PROFILE=dev ./build.sh ...`, UTILITY > BUILD `V4n21 e2a70b09`).
+The RELEASE build (`V4r21`) has none of the deck-side hooks: it does not listen on UDP 50098, sends nothing on
 50099, has no autotest runner and no HUD. Only the BLACK BOX stick dump (MENU + BACK 3 s) and the kill switches
 exist in both.
 
@@ -30,7 +30,7 @@ The PC side is plain Python 3 (standard library; `rig.py` needs PyYAML only for 
 
 ## 2. Network commander (`cmd.py`, deck UDP 50098 -> answers on 50099)
 ```
-python3 dev/tools/commander/cmd.py ver                                  # BUILD V4n60j192 20261119-1245 c5e8e0f3 (+ UPD sha if BUILDS.tsv knows it)
+python3 dev/tools/commander/cmd.py ver                                  # BUILD V4n21 20261120-1502 e2a70b09 (+ UPD sha if BUILDS.tsv knows it)
 python3 dev/tools/commander/cmd.py --ip 169.254.128.46 send "KEY INFO" "WAIT 2000" "TOUCH 28 235"
 python3 dev/tools/commander/cmd.py --done send "KEY PLAY" "WAIT 5000" "KEY PLAY"     # wait until the ops ran
 python3 dev/tools/commander/cmd.py mem 0x08014180 48                    # MAIN RAM read, 1..64 bytes (the build record)
@@ -109,7 +109,7 @@ Set `ipA` / `ipB` (the decks' addresses) with `--set`.
 
 ## 7. Test report (`testreport.sh`)
 ```
-BUILDS=BUILDS.tsv dev/tools/testreport.sh V4n60j192 out-dev dev/tools/rig/runs   # -> out-dev/TESTREPORT_V4n60j192.txt
+BUILDS=BUILDS.tsv dev/tools/testreport.sh V4n21 out-dev dev/tools/rig/runs   # -> out-dev/TESTREPORT_V4n21.txt
 ```
 Build sha + sizes (from `build.log`), the gates (`verify.txt`, `bootcheck.txt`) and the latest rig run of each plan
 (a run named with this build's prefix `v38_` / `r2_` preferred).

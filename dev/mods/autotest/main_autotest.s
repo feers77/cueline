@@ -21,10 +21,13 @@
 ! of the ops, 8 reserved bytes, then 8-byte ops: u8 op, s8 a, u16 b, u32 c
 !   0 END   1 KEY a=value b=level offset (0x0B54C990 + b) c=ms   2 ROT a=detents
 !   3 TOUCH b=x c=y | ms << 16   4 WAIT c=ms   5 MARK b=step id   6 LOOP b=count   7 ENDL
-!   9 ACK c=seq (V4n26: queued only by the network commander, mods/usblog cmd_poll; 8 MEM never
-!     reaches here). The commander also appends to / starts the script in this block (UDP 50098).
+!   9 ACK c=seq (V4n26: queued only by the network commander, mods/usblog cmd_poll). The commander also
+!     appends to / starts the script in this block (UDP 50098).
+!   R21 deck kit (work/r21/deckkit): 8 MEM b=len (1..64) c=addr -> a request mods/usblog logs as 'V3MM'
+!     (read-only, DRAM only: usblog mem_rec's range check); TOUCH a=1 = a drag segment: the point is held
+!     like any TOUCH but the next ops run meanwhile (a later TOUCH moves the finger without a lift).
 ! Life cycle: idle -> ARMED (file read; 3 s learning the noisy raw bits) -> RUN -> DONE / ABORT.
-! ABORT (AT_WHY): 1 a real key, 2 the rotary, 3 a real touch (calibrated point on screen), 4 boot state, 5 the 15-min cap,
+! ABORT (AT_WHY): 1 a real key, 2 the rotary, 3 a real touch (calibrated point on screen), 4 boot state, 5 the 40-min cap,
 ! 6 NOMODS / UTILITY MODS OFF, 7 a bad SCRIPT.BIN, 8 (CMDFIX) a bad op / PC (exec_op's checks). Never re-armed until the stick is re-mounted.
 
 	.include "layout.inc"
@@ -32,7 +35,7 @@
 	.equ	AT_STATE, 0		! 0 idle 1 armed 2 run 3 done 4 aborted
 	.equ	AT_PC, 4		! op pointer
 	.equ	AT_WAIT, 8		! tick: next op not before
-	.equ	AT_DEADL, 12		! tick: hard stop (RUN + 15 min)
+	.equ	AT_DEADL, 12		! tick: hard stop (RUN + 40 min, R21 kit; was 15)
 	.equ	AT_KLVL, 16		! level word being held (0 none)
 	.equ	AT_KVAL, 20
 	.equ	AT_KEND, 24		! tick: release
@@ -50,6 +53,10 @@
 	.equ	AT_LS, 96		! 4 x {count, op ptr}
 	.equ	AT_ACK, 156		! V4n26: seq of the last ACK op run (network commander, mods/usblog)
 	.equ	AT_SRC, 160		! V4n26: 'NETC' = the script is the commander's (the loader clears it)
+	.equ	AT_TNB, 164		! R21 kit: the TOUCH holding now is a drag segment (a = 1): ops go on
+	.equ	AT_MOP, 168		! R21 kit: MEM request = an op image (+0 op 8 = pending, +2 len, +4 addr) that
+	.equ	AT_MSEQ, 180		!   mods/usblog's at_watch turns into a 'V3MM' record; +180 its seq
+	.equ	AT_MT, 184		!   tick of the request (a request nobody takes for 2 s is replaced)
 	.equ	T_BASE, 128		! at_tick's fields (r11 = block + T_BASE)
 	.equ	T_ARMT, 0		!   tick ARMED began
 	.equ	T_ENDT, 4		!   tick DONE / ABORT was seen
@@ -134,7 +141,7 @@ ap_ret:
 ap_run:
 	mov.l	ap_tick,r1
 	mov.l	@r1,r9			! r9 = now (ms)
-	mov.l	@(AT_DEADL,r8),r1	! 15 min cap
+	mov.l	@(AT_DEADL,r8),r1	! the run-time cap (tk_cap)
 	mov	r9,r0
 	sub	r1,r0
 	cmp/pz	r0
@@ -197,8 +204,15 @@ ap_touch:	! touch: at_cal puts the point in; here only the release
 	mov	r9,r0
 	sub	r1,r0
 	cmp/pz	r0
-	bf	ap_out0
-	mov	#0,r1
+	bt	1f
+	mov.w	ap_tnbo,r0		! R21 kit: a drag segment holds while the next ops run
+	mov.l	@(r0,r8),r0
+	tst	r0,r0
+	bt	ap_out0
+	bra	ap_step
+	nop
+ap_tnbo:	.word	AT_TNB
+1:	mov	#0,r1
 	mov.l	r1,@(AT_TEND,r8)
 	mov.l	r1,@(AT_TX,r8)		! (at_cal stops overriding)
 
@@ -249,7 +263,7 @@ ap_bias:	.long	0x10DE15C0
 ! r8 = block, r9 = now. Returns r0 = 1 if a key press started (skip the decode).
 ! CMDFIX (hang47): every op is checked before it runs; a bad one ABORTs the script (AT_WHY 8):
 ! the PC inside the op area [OPS + 16, OPS + OPS_MAX) on an op boundary, op 0 = END (DONE), 1..7 / 9
-! known (else abort), KEY level offset a word of the key table (0..0x1FC) held <= 500 ms, TOUCH
+! known (else abort), KEY level offset a word of the key table (0..0x1FC) held <= 3000 ms (R21 kit), TOUCH
 ! inside 800 x 480 held <= 2 s, LOOP count 0 -> 1.
 exec_op:
 	mov.l	@(AT_PC,r8),r4
@@ -287,6 +301,8 @@ exec_op:
 	bt	op_endl
 	cmp/eq	#9,r0
 	bt	op_ack
+	cmp/eq	#8,r0
+	bt	op_mem
 	tst	r0,r0			! CMDFIX: 0 = END: done; any other op: abort (8)
 	bf	eo_bad
 	mov	#ST_DONE,r0
@@ -300,7 +316,7 @@ eo_bad:	mov	#8,r0			! CMDFIX: a bad op / PC: ABORT (8), nothing of it runs
 	rts
 	mov	#0,r0
 op_key:
-	mov	r6,r0			! CMDFIX: b = a word of the key table (0..0x1FC), held <= 500 ms
+	mov	r6,r0			! CMDFIX: b = a word of the key table (0..0x1FC), held <= 3000 ms (R21 kit)
 	tst	#3,r0
 	bf	eo_bad
 	mov.w	eo_kmax,r1
@@ -352,6 +368,10 @@ op_touch:
 	mov	r9,r0
 	add	r7,r0
 	mov.l	r0,@(AT_TEND,r8)
+	mov	#1,r1			! R21 kit: a bit 0 = a drag segment (no wait for the lift)
+	and	r5,r1
+	mov.w	eo_tnb,r0
+	mov.l	r1,@(r0,r8)
 	rts
 	mov	#0,r0
 op_wait:
@@ -407,13 +427,45 @@ op_ack:	! V4n26: ACK (only the network commander queues it, mods/usblog cmd_pkt)
 	mov.l	r7,@(r0,r8)
 	rts
 	mov	#0,r0
+op_mem:	! R21 kit: one pending request; while usblog has not taken the last one (< 2 s) the op is retried
+	mov.w	eo_mop,r0
+	mov.b	@(r0,r8),r0
+	cmp/eq	#8,r0
+	bf	1f
+	mov.w	eo_mt,r0
+	mov.l	@(r0,r8),r1
+	mov	r9,r0
+	sub	r1,r0
+	mov.w	eo_t2000,r1
+	cmp/hs	r1,r0
+	bt	1f
+	add	#-8,r4			! busy: the same op again next frame
+	mov.l	r4,@(AT_PC,r8)
+	rts
+	mov	#0,r0
+1:	mov	r8,r1
+	mov.w	eo_mop,r0
+	add	r0,r1			! r1 = the op image
+	mov.l	r7,@(4,r1)		! addr
+	mov	r6,r0
+	mov.w	r0,@(2,r1)		! len
+	mov.l	@(12,r1),r0		! seq++ (AT_MSEQ = AT_MOP + 12)
+	add	#1,r0
+	mov.l	r0,@(12,r1)
+	mov.l	r9,@(16,r1)		! AT_MT = AT_MOP + 16
+	mov	#8,r0
+	rts
+	mov.b	r0,@r1			! pending: the op byte last
 eo_ops0:	.word	OPS + 16		! CMDFIX: the first op slot
 eo_opsn:	.word	OPS_MAX - 16		! CMDFIX: the op area's length
 eo_kmax:	.word	0x1FC			! CMDFIX: the key table's last level word (atc.py KEYS <= 0x1D0)
-eo_k500:	.word	500
+eo_k500:	.word	3000			! R21 kit: 3 s (a long press: MENU -> UTILITY); was 500
 eo_800:		.word	800
 eo_480:		.word	480
 eo_t2000:	.word	2000
+eo_tnb:		.word	AT_TNB
+eo_mop:		.word	AT_MOP
+eo_mt:		.word	AT_MT
 	.p2align 2
 eo_lvl:	.long	0x0B54C990
 
@@ -783,7 +835,7 @@ tk_opsmaxb:	.word	OPS_MAX - 16
 tk_base:	.long	autotest - tk_base
 tk_boot:	.long	0x0A35DF3C
 tk_tick:	.long	0x0B0C5258
-tk_cap:		.long	15 * 60 * 1000
+tk_cap:		.long	40 * 60 * 1000		! R21 kit: 40 min (the deck kit's single run: functions + soak)
 tk_kill:	.long	RAMB+0x1F7F0		! touch_audio's kill word ("NOMO" = mods off)
 tk_nomo:	.long	0x4F4D4F4E
 tk_usb:		.long	0x0A35F3AC
