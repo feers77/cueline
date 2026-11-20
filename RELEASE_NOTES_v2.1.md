@@ -1,9 +1,9 @@
-# Cueline 2.1 (pre-release)
+# Cueline 2.1
 
-> [!WARNING]
-> **Cueline 2.1 is a PRE-RELEASE.** It has been fully tested in our emulator but **not yet confirmed on real
-> decks**. Keep the official 1.87 update to go back to stock, and **test at home before a gig**. If you need a
-> version already used on real decks, stay on 1.92 beta for now.
+> [!NOTE]
+> **Stable release:** tested in our emulator and confirmed on real CDJ-2000NXS2 decks (two decks on Pro DJ Link,
+> including an autonomous test run and the settings power-cycle check). Keep the official 1.87 update to go back to
+> stock, and test at home before a gig.
 
 **Give new life to your CDJ-2000NXS2.** Custom firmware UI for the Pioneer CDJ-2000NXS2, inspired by the CDJ-3000.
 Unofficial firmware patcher, **use at your own risk**, provided as-is without warranty. **Not affiliated with or
@@ -68,8 +68,6 @@ alone on the stick. Check UTILITY → VERSION = 1.87. Details: README → *Going
 Full history: CHANGELOG.md.
 
 ## Known limits (short)
-- **Not yet confirmed on real decks** as a whole (see the notice above); the settings fix was confirmed on real decks
-  with a 2.1 development build.
 - The WAVEFORM meter may sit 1 pixel row off vertically. The PHASE and 4 BARS views are unchanged (drawn by the CPU).
 - Everything with a real CDJ-3000 / CDJ-3000X (0x0b packets, the 3000 showing our waveform, KEY SYNC with a 3000)
   is tested against an emulator only. Reports from real 3000 owners are very welcome (docs/COMPATIBILITY.md).

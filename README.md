@@ -3,7 +3,7 @@
 ### Give new life to your CDJ-2000NXS2
 
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
-[![Release](https://img.shields.io/github/v/release/feers77/cueline?include_prereleases)](https://github.com/feers77/cueline/releases)
+[![Release](https://img.shields.io/github/v/release/feers77/cueline)](https://github.com/feers77/cueline/releases)
 
 ![Cueline on the CDJ-2000NXS2: player, browse, KEY SHIFT, LINK sources, UTILITY, phase waveform](docs/images/cueline_grid.png)
 
@@ -11,13 +11,12 @@ Cueline is a custom firmware UI for the Pioneer CDJ-2000NXS2, inspired by the CD
 screens and waveforms, KEY SHIFT and KEY SYNC, Link Cue previews and more to the NXS2. You build it yourself from
 the official 1.87 update, in a few minutes, and you can go back to stock at any time.
 
-> [!WARNING]
-> **Cueline 2.1 is a PRE-RELEASE.** It has been fully tested in our emulator but **not yet confirmed on real
-> decks**. Keep the official 1.87 update to [go back to stock](#going-back-to-stock), and **test at home before a
-> gig**. If you need a version already used on real decks, stay on the
-> [1.92 beta](https://github.com/feers77/cueline/releases/tag/v1.92.0-beta) for now.
+> [!NOTE]
+> **Cueline 2.1 is the current stable release:** tested in our emulator and confirmed on real CDJ-2000NXS2 decks.
+> As with any firmware, keep the official 1.87 update to [go back to stock](#going-back-to-stock) and test at home
+> before a gig.
 
-**This version: Cueline 2.1 (pre-release).** Build `Cueline-2.1 e2a70b09` (RELEASE), device version MAIN 2.10 /
+**This version: Cueline 2.1.** Build `Cueline-2.1 e2a70b09` (RELEASE), device version MAIN 2.10 /
 GUI 2.04; developer build `V4n21` (DEV). Cueline uses the deck's own version numbers (2.1 → MAIN 2.10).
 It may contain bugs: screens that draw wrong, features that misbehave, in rare cases a deck that needs a restart.
 Please [report bugs](#reporting-bugs-and-contributing). Cueline is unofficial and **not affiliated with or endorsed
@@ -61,7 +60,7 @@ by Pioneer DJ or AlphaTheta**.
 > the update is being written. Use a UPS if you can, don't touch the deck or the USB stick during the update, and
 > keep the official 1.87 update to go back to stock. Unofficial, provided as-is, without warranty ([LICENSE](LICENSE)).
 
-> 🧪 **Community testing release (pre-release).** It very likely has bugs. Please report them in
+> 🧪 **Community project.** It may still have bugs. Please report them in
 > [Issues](https://github.com/feers77/cueline/issues) and send fixes or features as pull requests: we review them
 > and merge what works ([CONTRIBUTING.md](CONTRIBUTING.md)).
 

@@ -74,7 +74,7 @@ autotest). Only for testing; see dev/README.md.
 4. Deck off, insert the stick, start the update as in Pioneer's official CDJ-2000NXS2 update guide, wait for
    complete, power-cycle. Never switch off during the update.
 5. UTILITY > INFO > BUILD shows `Cueline-2.1 e2a70b09`.
-6. Tell them this is a PRE-RELEASE (2.1, tested in an emulator, not yet on real decks): it may have bugs; test at home before a gig, keep the
+6. Tell them 2.1 is the current stable release (confirmed on real decks), but it is unofficial: test at home before a gig, keep the
    official 1.87 on a stick, report bugs in GitHub Issues.
 7. Back to stock (explain all of it):
    a. Why: Cueline has a higher version number, so the deck skips the official 1.87 until the installed version is

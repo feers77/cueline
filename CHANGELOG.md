@@ -1,7 +1,7 @@
 # CHANGELOG
 
-## 2.1 (pre-release) -- 2026-11-20: RELEASE `V4r21` / DEV `V4n21` (labels MAIN 2.10 / GUI 2.04, source hash `e2a70b09`)
-Pre-release: fully tested in our emulator, not yet confirmed on real decks. Changes since 1.92 beta:
+## 2.1 -- 2026-11-20: RELEASE `V4r21` / DEV `V4n21` (labels MAIN 2.10 / GUI 2.04, source hash `e2a70b09`)
+Stable: tested in our emulator and confirmed on real decks. Changes since 1.92 beta:
 - **Settings survive power-off again (bug fix):** on 1.92, KEY SHIFT, KEY SYNC, CLASSIC key format and the BEAT
   JUMP value could come back changed (forced ON / CLASSIC) after switching the deck off and on. Fixed, confirmed on
   real decks with a 2.1 development build. Cueline's settings are now stored in a **versioned, checksummed** record:
