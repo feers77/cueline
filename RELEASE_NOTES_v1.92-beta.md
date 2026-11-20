@@ -16,7 +16,8 @@ number or a DEV build).
 No firmware file is attached. You build Cueline yourself from **your own official CDJ-2000NXS2 update 1.87**
 (`C2KNXS2.UPD`, sha256 `f211191a573b7a5c0e694936871f76011a58d5861dd061301cdb0d8b83a8b3e5`):
 - **Windows:** download `CuelineBuilder.exe` below and drag your `C2KNXS2.UPD` onto it.
-- **macOS / Linux:** `python3 builder/cueline_patch.py /path/to/C2KNXS2.UPD` (from the source code, Python 3).
+- **macOS (Intel and Apple Silicon):** download `CuelineBuilder-macOS.zip` below, unzip, and drag your `C2KNXS2.UPD` onto `CuelineBuilder.app`. The app is not notarized: the first time, open System Settings → Privacy & Security → **Open Anyway**.
+- **Linux:** `python3 builder/cueline_patch.py /path/to/C2KNXS2.UPD` (from the source code, Python 3).
 - **From source:** `./build.sh /path/to/C2KNXS2.UPD` (see the README).
 
 All three give the same file:
@@ -59,6 +60,7 @@ CHANGELOG.md.
 | File | sha256 |
 |---|---|
 | `CuelineBuilder.exe` (Windows, unsigned; SmartScreen may warn) | `b043ffbf4f98337b3c9adeb6742bf7d0cccb7bc0e51a068a30d1699766112f4e` |
+| `CuelineBuilder-macOS.zip` (macOS universal app, not notarized) | `d2e95671aeb15fdd62f9782674197b415adbe08bb6555102c4cbeb3ea4d254aa` |
 | `cueline.delta` (patch data, also in `builder/`) | `a4ed8c974ae7b5015d888208f2432874d0a8e0e4bcd88f16409b6930168da992` |
 | `SHA256SUMS.txt` | the checksums above, plus input and expected output |
 

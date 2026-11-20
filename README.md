@@ -70,10 +70,12 @@ You need: the deck, a computer, and a small USB stick (FAT32).
 1. **Get the official update.** Download the CDJ-2000NXS2 firmware **1.87** from the Pioneer DJ website and unzip
    it. You get a file named `C2KNXS2.UPD`.
 2. **Get Cueline Builder** from the [Releases page](https://github.com/feers77/cueline/releases):
-   `CuelineBuilder.exe` for Windows. On macOS or Linux, use the Python script in this repository
-   (`builder/cueline_patch.py`, needs Python 3).
+   `CuelineBuilder.exe` for Windows, `CuelineBuilder-macOS.zip` for macOS (Intel and Apple Silicon). On Linux,
+   use the Python script in this repository (`builder/cueline_patch.py`, needs Python 3).
 3. **Build.** Windows: drag `C2KNXS2.UPD` onto `CuelineBuilder.exe` (or double-click it and pick the file).
-   macOS / Linux: `python3 builder/cueline_patch.py /path/to/C2KNXS2.UPD`.
+   macOS: unzip, then drag `C2KNXS2.UPD` onto `CuelineBuilder.app` (or double-click it and pick the file); see
+   [Easy install on macOS](#easy-install-on-macos) the first time.
+   Linux: `python3 builder/cueline_patch.py /path/to/C2KNXS2.UPD`.
    It writes `Cueline/C2KNXS2.UPD` next to your file and checks it against the published result.
 4. **Copy** `Cueline/C2KNXS2.UPD`, alone, to the root of the USB stick.
 5. **Factory reset the deck first:** disconnect the Pro DJ Link (LAN) cable (while LINK is active the player does
@@ -82,6 +84,16 @@ You need: the deck, a computer, and a small USB stick (FAT32).
 7. **Check** UTILITY → INFO → BUILD: it shows `Cueline-1.92 c5e8e0f3`.
 
 To go back to the official firmware, see [Going back to stock](#going-back-to-stock).
+
+### Easy install on macOS
+1. Download `CuelineBuilder-macOS.zip` from the [Releases page](https://github.com/feers77/cueline/releases)
+   and double-click it to unzip: you get `CuelineBuilder.app`.
+2. The app is not notarized by Apple, so the first time macOS blocks it ("cannot be opened" / "could not verify").
+   Open **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to CuelineBuilder,
+   then confirm. You only do this once.
+3. Drag your official `C2KNXS2.UPD` onto `CuelineBuilder.app` (or double-click the app, click **Continue** and pick
+   the file). When it finishes, click **Show in Finder**: your file is `Cueline/C2KNXS2.UPD` next to the original.
+4. Continue with step 4 of the Quick start.
 
 ### Install
 1. If you use MY SETTINGS, save them with rekordbox first, and write down your deck settings: the next step erases
@@ -284,6 +296,7 @@ The emulator we use for development is not part of this repository.
 |---|---|
 | Official `C2KNXS2.UPD` 1.87 (your input) | `f211191a573b7a5c0e694936871f76011a58d5861dd061301cdb0d8b83a8b3e5` |
 | `CuelineBuilder.exe` (Release asset) | `b043ffbf4f98337b3c9adeb6742bf7d0cccb7bc0e51a068a30d1699766112f4e` |
+| `CuelineBuilder-macOS.zip` (Release asset) | `d2e95671aeb15fdd62f9782674197b415adbe08bb6555102c4cbeb3ea4d254aa` |
 | `builder/cueline.delta` (our patch data) | `a4ed8c974ae7b5015d888208f2432874d0a8e0e4bcd88f16409b6930168da992` |
 | Your built `C2KNXS2.UPD` (Builder or `build.sh`) | `91eca696ff991006aed81dfdb30a9d2fec16c045fd56fb8922b720aebeb78223` |
 

@@ -173,9 +173,49 @@ def gui_main():
         return 1
 
 
+def _osa(script, *args):
+    """Run an AppleScript with its text passed as arguments (no quoting); (ok, stdout)."""
+    import subprocess
+    r = subprocess.run(['osascript', '-e', 'on run argv', '-e', script, '-e', 'end run', *args],
+                       capture_output=True, text=True)
+    return r.returncode == 0, r.stdout.strip()
+
+
+def mac_main():
+    """macOS app: double-click (file picker) or drop the .UPD on the icon; native dialogs, no Tk."""
+    ok, _ = _osa('display dialog (item 1 of argv) with title "Cueline Builder" '
+                 'buttons {"Cancel", "Continue"} default button "Continue"', DISCLAIMER)
+    if not ok:
+        return 1
+    files = [a for a in sys.argv[1:] if not a.startswith('-psn')]
+    if files:
+        upd = files[0]
+    else:
+        ok, upd = _osa('POSIX path of (choose file with prompt (item 1 of argv))',
+                       'Cueline Builder: choose your official CDJ-2000NXS2 1.87 C2KNXS2.UPD')
+        if not ok or not upd:
+            return 1
+    lines = []
+    try:
+        out = default_out(upd)
+        build(upd, out, delta_path(), log=lines.append)
+        ok, btn = _osa('button returned of (display dialog (item 1 of argv) with title "Cueline Builder" '
+                       'buttons {"Show in Finder", "OK"} default button "OK")', '\n'.join(lines))
+        if ok and btn == 'Show in Finder':
+            import subprocess
+            subprocess.run(['open', '-R', out])
+        return 0
+    except Fail as e:
+        _osa('display dialog (item 1 of argv) with title "Cueline Builder" buttons {"OK"} '
+             'default button "OK" with icon stop', '\n'.join(lines + ['', 'ERROR: %s' % e]))
+        return 1
+
+
 def main():
     if getattr(sys, 'frozen', False) and os.name == 'nt' and '--console' not in sys.argv:
         return gui_main()
+    if getattr(sys, 'frozen', False) and sys.platform == 'darwin' and '--console' not in sys.argv:
+        return mac_main()
     args = [a for a in sys.argv[1:] if a != '--console']
     print(DISCLAIMER + '\n')
     if not args or args[0] in ('-h', '--help'):
