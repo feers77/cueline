@@ -11,6 +11,22 @@ Cueline is a custom firmware UI for the Pioneer CDJ-2000NXS2, inspired by the CD
 screens and waveforms, KEY SHIFT and KEY SYNC, Link Cue previews and more to the NXS2. You build it yourself from
 the official 1.87 update, in a few minutes, and you can go back to stock at any time.
 
+> [!WARNING]
+> **Known issues in 2.1.1 — a fix is in progress.** We have reproduced two display problems:
+> the **INFO panel in browse** can render as a blank white panel, and **heavy browsing** can leave bands of
+> corrupted pixels on screen. Both are display-only: playback is not affected, the deck cannot be damaged, and a
+> power cycle clears the pixels.
+>
+> Several bugs that appear only with **two Cueline decks on Pro DJ Link** are already fixed but **not yet
+> released**: Touch Cue previewing the other deck's track, the other deck's cues and artwork being shown, and
+> Link Cue audio breaking up.
+>
+> **If any of this gets in your way, wait for the next release, or
+> [go back to stock](#going-back-to-stock)** — Cueline never prevents you from doing that.
+>
+> The next release is a foundations release: we are fixing the cause of these redraw problems properly instead of
+> patching each case. No date — it ships when it is right.
+
 > [!NOTE]
 > **Cueline 2.1.1 is the current stable release:** 2.1 plus the Link Cue fix below, both confirmed on real
 > CDJ-2000NXS2 decks. As with any firmware, keep the official 1.87 update to
