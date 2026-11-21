@@ -99,8 +99,9 @@ You need: the deck, a computer, and a small USB stick (FAT32).
      next to your file.
    - **Linux / Python:** `python3 builder/cueline_patch.py /path/to/C2KNXS2.UPD`.
 3. **Copy** the built `C2KNXS2.UPD`, alone, to the root of the USB stick.
-4. **Factory reset the deck first:** disconnect the Pro DJ Link (LAN) cable (while LINK is active the player does
-   not allow DUPLICATION → DEFAULT), then **UTILITY → DUPLICATION → DEFAULT** ([why](#install)).
+4. **Only if the deck already runs Cueline or another custom build:** disconnect the Pro DJ Link (LAN) cable
+   (while LINK is active the player does not allow DUPLICATION → DEFAULT), then **UTILITY → DUPLICATION → DEFAULT**
+   ([why](#install)). Coming from the official firmware you can skip this.
 5. **Install** it like an official update ([details](#install)). Never switch the deck off during the update.
 6. **Check** UTILITY → INFO → BUILD: it shows `Cueline-2.1.1 1c1a45f3`.
 
@@ -116,13 +117,15 @@ To go back to the official firmware, see [Going back to stock](#going-back-to-st
    the file). When it finishes, click **Show in Finder**: your file is `Cueline/C2KNXS2.UPD` next to the original.
 
 ### Install
-1. If you use MY SETTINGS, save them with rekordbox first, and write down your deck settings: the next step erases
-   them.
-2. **Disconnect the Pro DJ Link (LAN) cable first: while LINK is active the player does not allow DUPLICATION →
-   DEFAULT.** Then **UTILITY → DUPLICATION → DEFAULT** (factory reset). The deck only installs an update whose
-   version is newer than the one it remembers; the reset clears that memory, so the update is never skipped. It is
-   **required** if the deck has had an earlier Cueline test build with a higher version number (2.1.1 would be
-   skipped), a DEV build, another custom firmware, or a Cueline build with the same or a higher version; we recommend it always.
+1. If you use MY SETTINGS, save them with rekordbox first, and write down your deck settings: the factory reset in
+   the next step erases them (it is only needed in the case described there).
+2. **Coming from the official firmware (1.87)? Skip this step** — Cueline's version is newer, so the deck installs
+   it and your deck settings are kept.
+   **If the deck already runs Cueline or another custom build**, the factory reset is **required**: the deck only
+   installs an update whose version is newer than the one it remembers, so without it the update can be skipped
+   (for example 2.1.1 over a DEV or test build with a higher number). Disconnect the Pro DJ Link (LAN) cable first
+   — while LINK is active the player does not allow DUPLICATION → DEFAULT — then **UTILITY → DUPLICATION → DEFAULT**.
+   It erases the deck settings.
 3. Put only the new `C2KNXS2.UPD` in the root of a small FAT32 USB stick.
 4. With the deck off, insert the stick and start the update exactly as Pioneer DJ's CDJ-2000NXS2 update guide
    describes. Wait until it shows 100 % / complete, then switch the deck off and on.
