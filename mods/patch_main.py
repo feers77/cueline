@@ -802,7 +802,9 @@ UT_ORDER = (
 )
 # V4n36 trace: the kill switches (modsmenu entries5 + the LINK CUE item), after VERSION No. and counted out of the
 # item count unless UTILITY TEST LOG is not OFF (modsmenu kl_reveal); each ON = the feature, OFF = its stock path
-UT_KILL = ('LINK KEY STATUS', 'KEY SYNC', 'LINK CUE', 'MASTER WAVE NFS', 'MASTER WAVEFORM', 'HW BAND LAYER',
+# 2.1.1: LINK CUE is NOT one of them any more -- it is a normal row in the PRO DJ LINK group (UT_ORDER, after
+# DUPLICATION) in both profiles: with two Cueline decks it is the switch that turns Link Cue off on one of them
+UT_KILL = ('LINK KEY STATUS', 'KEY SYNC', 'MASTER WAVE NFS', 'MASTER WAVEFORM', 'HW BAND LAYER',
            'LINK ROW PREVIEW', 'BLACK BOX',     # V4n37r: BLACK BOX = modsmenu kill_v+20 (row only with mods/bbox)
            'KS3 ENGINE',                        # KS3 (v4.1): kill_v+24, row only in CDJ_KSAB=1 DEV A/B test builds
            'LINK 0x0B')                         # LINK0B (v4.2): kill_v+28, row only with mods/link0b (CDJ_LINK0B=1)
@@ -826,7 +828,9 @@ UT_CATS = (
 UT_HIDE = () if os.environ.get('CDJ_UT_DIAG') == '1' else ('LINK CUE DIAG',)
 # V4n18 (user 2026-11-13): MODS / LINK CUE / WAV 32-BIT are native (always on) on the CDJ-3000 -> hidden; each is
 # ON / BOTH at every boot anyway (modsmenu), the NOMODS file stays the hidden kill switch
-UT_HIDE = UT_HIDE + ('MODS', 'LINK CUE', 'WAV 32-BIT', 'REKORDBOX BUTTON')   # V4n23: rekordbox button stock (user)
+UT_HIDE = UT_HIDE + ('MODS', 'WAV 32-BIT', 'REKORDBOX BUTTON')   # V4n23: rekordbox button stock (user)
+# 2.1.1 (owner): LINK CUE is visible again in BOTH profiles (it was hidden here and brought back only as a kill
+# switch, i.e. only with TEST LOG on). LINK CUE DIAG and the kill switches stay hidden exactly as before.
 MM_LOAD_LIT, MM_LOAD_STOCK = 0x0846D990, 0x083FC4DC      # QUANTIZE setter (unpack)
 MM_SAVE_LIT, MM_SAVE_STOCK = 0x0846D5D0, 0x08401B60      # getter after byte 5 (pack)
 # V3rc2: the packer's memset of the HISTORY-name record (type 3) -> hist_save (BEAT JUMP + WAVEFORM COLOR hi bit)

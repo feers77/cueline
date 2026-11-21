@@ -39,6 +39,12 @@ Not yet confirmed on real hardware:
 
 - Needs a **DJM-A9** with LINK CUE, on **Pro DJ Link**.
 - Plays **MP3, FLAC and WAV** only. **AIFF and M4A** rows stay silent.
+- **One deck at a time.** The mixer keeps a single Link Monitor slot, so with two Cueline decks on the LINK the
+  monitor follows the deck you touched last (2.1.1). Two rough edges there, both to be improved: the hand-over
+  takes a moment, so the sound starts with a short delay, and holding a preview on both decks at the same time can
+  interleave the audio for a few seconds. **UTILITY → PRO DJ LINK → LINK CUE = OFF** on one deck removes any doubt.
+- **UTILITY → PRO DJ LINK → LINK CUE** is saved only when the deck's HISTORY name is 23 characters or shorter;
+  with a longer name it comes back as BOTH at every power-on.
 
 ## Waveforms and grid
 

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # build.sh -- one-command build of the CDJ-2000NXS2 "CDJ-3000 UI" firmware update, both profiles.
 #
-#   ./build.sh /path/to/official/C2KNXS2.UPD [options]               -> the RELEASE build (= V4r21)
+#   ./build.sh /path/to/official/C2KNXS2.UPD [options]               -> the RELEASE build (= V4r211e)
 #   PROFILE=dev ./build.sh /path/to/official/C2KNXS2.UPD [options]   -> the DEV build for contributors (dev/README.md)
 #
 # Input : YOUR OWN copy of the official CDJ-2000NXS2 update 1.87 (MAIN 1.87 / GUI 1.81), unchanged (sha256 checked).
@@ -26,11 +26,11 @@ ROBOTO_SHA=a9603db0f52e244064de480253ab7f48e6c21c22e24528207cab06d39abc7bb7
 REF_TOOLS="sh4-linux-gnu-gcc 13.3.0 / binutils 2.42 (Ubuntu 24.04), Python 3.12, Pillow 12.1.1, numpy, fontTools 4.61.1"
 
 # ---- the two reference builds (same sources, same toolchain) ---------------------------------------------------
-# release = V4r21  (labels MAIN 2.10 / GUI 2.04 = bump 23)
-REL_TAG=V4r21;  REL_BUMP=23; REL_ID="Cueline-2.1 20261120-1459 e2a70b09"
-REL_SHA=3b85d55f05052ad0cc376a807114d6bf218be2d50483c0038b1d66afcbb5cd23
-DEV_TAG=V4n21; DEV_BUMP=23; DEV_ID="V4n21 20261120-1502 e2a70b09"
-DEV_SHA=c8d39cbeb6ad78e26e23d6aa3b5c2c51c571124fefb0fed9098cbcdfc8012610
+# release = V4r211e  (labels MAIN 2.11 / GUI 2.05 = bump 24)
+REL_TAG=V4r211e;  REL_BUMP=24; REL_ID="Cueline-2.1.1 20261120-2037 1c1a45f3"
+REL_SHA=765790f583f1365ef42d7bfd5ad09af4736a730e0edbfe888337ec5929755650
+DEV_TAG=V4n211e; DEV_BUMP=24; DEV_ID="V4n211e 20261120-2040 1c1a45f3"
+DEV_SHA=8083b74901b611f5950bc6e9cfeba2d6d6cc92f883ab0a6570f4abb21557d835
 
 # the recipe (both profiles share every feature; dev adds the tooling: see the README / DEV_TOOLS.md)
 FEAT_MODS="touchaudio touchaudioip touchaudiotouch tadec modsmenu wav32 rowwave three_band ui3000x bootname

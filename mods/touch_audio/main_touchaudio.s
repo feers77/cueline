@@ -74,6 +74,9 @@
 	.equ	D_LATCH, 292		! a load stopped the preview: no new press
 	.equ	D_ROWK, 296		! R21 (option A): the row (1-8) the row preview's press started on, 0 none
 	.equ	D_ROWT, 300		!   tick of row_touch's last pass (a latch older than 100 ms is a new press)
+	.equ	D_CLAIM, 304		! 2.1.1: tick while engaged (we hold the mixer's Link Cue slot)
+	.equ	D_EDGE, 308		!   tick of the last press (a fresh engagement may claim the slot)
+	.equ	D_PWAS, 312		!   D_PREVIEW on the previous pass (the press edge)
 					! until the finger leaves the row
 
 	.equ	STACK, 4096
@@ -473,7 +476,31 @@ lp_diag:
 	mov.l	@(D_TICK,r8),r3
 	mov.l	@r3,r13			! now (touch_preview may have read files)
 
-	ld	r1,D_NEXTST			! every 200 ms: device-17 keepalive
+	ld	r0,D_PREVIEW		! 2.1.1 (two Cueline decks, one mixer slot): we only OCCUPY the
+	mov	r0,r1			! mixer's Link Cue slot while the user has this deck engaged, plus
+	mov.w	ca_pws,r0		! a hold; an idle deck announces nothing, so it can never collide
+	mov.l	@(r0,r8),r2		! with the other one. r1 = engaged now, r2 = on the previous pass.
+	mov.l	r1,@(r0,r8)
+	tst	r1,r1
+	bt	1f
+	mov.w	ca_clm,r0		! engaged: hold the slot
+	mov.l	r13,@(r0,r8)
+	tst	r2,r2
+	bf	2f
+	mov.w	ca_edg,r0		! and, on the press itself, open the window in which we ask the
+	mov.l	r13,@(r0,r8)		! mixer for the slot (sa_eng_ok): the newest press wins it
+	bra	2f
+	nop
+1:	mov.w	ca_clm,r0		! not engaged: keep the slot for the hold, then let it go
+	mov.l	@(r0,r8),r1
+	tst	r1,r1
+	bt	5f
+	mov	r13,r2
+	sub	r1,r2
+	mov.l	ca_hold,r0
+	cmp/hs	r0,r2
+	bt	5f
+2:	ld	r1,D_NEXTST			! every 200 ms: device-17 keepalive
 	mov	r13,r2
 	sub	r1,r2
 	cmp/pz	r2
@@ -584,6 +611,7 @@ t_bbx:		.long 0			!   the bbox entry (0 = none)
 t_thb:		.long test_hooks - t_thb
 .endif
 t_cnt:		.long RAMB+0x1FE80	! counters (README: diag)
+ca_hold:	.long 3000		! 2.1.1: ms we keep the mixer's slot after the finger lifts
 t_owner:	.long RAMB+0x1F7F8	! 1 while our waveform is in the strip
 t_med:		.long MED
 t_cc:		.long RAMB+0x15010	! V4b1: the cue block's control words (CC_*)
@@ -591,6 +619,9 @@ t_cp:		.long RAMB+0x14000	! V4b1: the cue block (header 'PCO2' + tags, CUEBUF)
 
 t_1000:		.word 1000
 ca_200:		.word 200
+ca_clm:		.word D_CLAIM		! 2.1.1
+ca_edg:		.word D_EDGE
+ca_pws:		.word D_PWAS
 l_due:		.word D_DUE
 t_p50004:	.word 50004
 t_btx:		.word B_TX
@@ -796,10 +827,10 @@ sa_cont:
 	nop
 	bsr	sa_engaged		! engaged = E==1 && T==0x11 && FH!=0
 	nop
-	bf	sa_zero
+	bf	sa_notel
 	ld	r2,D_FH
 	tst	r2,r2
-	bt	sa_zero
+	bt	sa_notel
 	ld	r2,D_FIRST		! I = first
 	mov	r1,r0
 	add	#0x24,r0
@@ -816,6 +847,13 @@ sa_cont:
 	mov.l	r2,@(4,r1)
 	bra	sa_send
 	nop
+sa_notel:				! 2.1.1: not elected. The engage packets ask the mixer for the slot,
+	mov.l	r1,@-r15		! so we send them only while our press window is open; afterwards the
+	bsr	sa_eng_ok		! slot is the other deck's and we put NOTHING on the wire (before,
+	nop				! a second touched deck kept injecting silent packets into the
+	mov.l	@r15+,r1		! elected deck's stream: that was the chopped Link Cue)
+	tst	r0,r0
+	bt	sa_idle
 sa_zero:
 	mov	#0,r2			! silent: the next PCM fades in from 0
 	mov.w	sa_gain,r0
@@ -890,6 +928,10 @@ sa_gain:	.word D_GAIN
 sa_cnt:		.long RAMB+0x1FE80	! counters: +0 SENT, +4 PCM, +8 ZERO, +0x18 SND_ERR
 
 ! sa_engaged: T = the A9 elected us (E == 1 && T == 0x11). Clobbers r0, r2.
+! 2.1.1: the number stays 17. It is not a device type but the Pro DJ Link slot the mixer registered for a Link
+! Monitor source (re/LINK_CUE.md, captures against the real DJM-A9): the A9 elects ONE source (T in its timing
+! packet) and ignores a number it has not registered -- per-deck numbers (0x12, 0x13) got no timing at all on the
+! owner's rig. Two decks must therefore take turns: UTILITY > LINK CUE = OFF on the one that is not the source.
 sa_engaged:
 	ld	r2,D_E
 	mov	#1,r0
@@ -900,6 +942,28 @@ sa_engaged:
 	cmp/eq	r0,r2
 1:	rts
 	nop
+
+! sa_eng_ok (2.1.1): r0 = 1 while the press window after the last engagement is open, i.e. while this deck may
+! ask the mixer for the Link Cue slot. Uses r0-r2.
+sa_eng_ok:
+	mov.w	ca_edg2,r0
+	mov.l	@(r0,r8),r1
+	tst	r1,r1
+	bt	1f			! no press since boot
+	mov.l	@(D_TICK,r8),r2
+	mov.l	@r2,r2
+	sub	r1,r2
+	mov.l	ca_win2,r0
+	cmp/hs	r0,r2
+	bt	1f
+	rts
+	mov	#1,r0
+1:	rts
+	mov	#0,r0
+	.p2align 1
+ca_edg2:	.word D_EDGE
+	.p2align 2
+ca_win2:	.long 2000
 
 ! apply_gain: the Link Cue ramps (as the CDJ-3000's 480-sample ones): gain g
 ! (0..512) steps one per frame toward 512 while a finger previews, toward 0
@@ -7698,3 +7762,6 @@ d_due:	.long	0			! D_DUE
 	.long	0			! D_LATCH
 	.long	0			! D_ROWK
 	.long	0			! D_ROWT
+	.long	0			! D_CLAIM
+	.long	0			! D_EDGE
+	.long	0			! D_PWAS

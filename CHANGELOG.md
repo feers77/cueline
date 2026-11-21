@@ -1,5 +1,28 @@
 # CHANGELOG
 
+## 2.1.1 -- 2026-11-20: RELEASE `V4r211e` / DEV `V4n211e` (labels MAIN 2.11 / GUI 2.05, source hash `1c1a45f3`)
+Link Cue fix release: 2.1 plus the changes below, nothing else. Changes since 2.1:
+- **Link Cue with two Cueline decks (bug fix):** the mixer keeps a *single* Link Monitor slot and plays one source
+  at a time. Until now every Cueline deck claimed that slot permanently, so two linked Cueline decks fought over
+  it: the preview stuttered and you could hear the other deck. Now a deck claims the slot only while you are
+  actually using Link Cue on it (a preview touch or Touch Cue) plus a few seconds, and an idle deck announces
+  nothing at all -- so there is no collision, the deck you touch last takes the monitor, and it all happens by
+  itself with no menu action.
+  This is **not new in 2.1**: the same code is in 1.92 and earlier. It only ever showed when two decks ran Cueline
+  with Link Cue at the same time, which is why a single Cueline deck was never affected.
+- **UTILITY > PRO DJ LINK > LINK CUE (OFF / PREVIEW / CUE / BOTH) is visible in the release build** -- it used to
+  appear only in developer builds -- and it is now saved across a power cycle (default BOTH). Handy as a manual
+  override: set one deck to OFF and only the other one ever feeds the mixer. It is saved only when the deck's
+  HISTORY name is 23 characters or shorter; with a longer name it comes back as BOTH.
+- **Still being improved:** the hand-over from one deck to the other takes a moment, so the monitor starts with a
+  short delay; and if you hold a preview on both decks at the same time the audio can still interleave for a few
+  seconds. Both are on the list for a later release.
+- **Nothing else changed:** same features, same screens and the same source as 2.1 otherwise.
+- **Versioning:** MAIN 2.11 / GUI 2.05 (DEV and RELEASE alike); UTILITY > INFO > BUILD shows
+  `Cueline-2.1.1 <hash>`. 2.1.1 installs over 2.1 without a factory reset.
+
+Known issues: the WAVEFORM meter may sit 1 pixel row off vertically; PHASE and 4 BARS views unchanged (CPU).
+
 ## 2.1 -- 2026-11-20: RELEASE `V4r21` / DEV `V4n21` (labels MAIN 2.10 / GUI 2.04, source hash `e2a70b09`)
 Stable: tested in our emulator and confirmed on real decks. Changes since 1.92 beta:
 - **Settings survive power-off again (bug fix):** on 1.92, KEY SHIFT, KEY SYNC, CLASSIC key format and the BEAT

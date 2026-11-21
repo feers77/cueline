@@ -1,10 +1,10 @@
 {
-  "version_label": "Cueline 2.1",
+  "version_label": "Cueline 2.1.1",
   "delta": "cueline.delta",
-  "delta_sha256": "89230d1afbd6bad2b11432c953779cd087596cc425fcea4091b97aeccda37344",
+  "delta_sha256": "6809d72584d8e16576a4252f6cb63a67904079ebc239854eb6b081939e59c55d",
   "input_sha256": "f211191a573b7a5c0e694936871f76011a58d5861dd061301cdb0d8b83a8b3e5",
   "input_size": 16768854,
-  "output_sha256": "3b85d55f05052ad0cc376a807114d6bf218be2d50483c0038b1d66afcbb5cd23",
+  "output_sha256": "765790f583f1365ef42d7bfd5ad09af4736a730e0edbfe888337ec5929755650",
   "output_name": "C2KNXS2.UPD",
   "readme_url": "https://github.com/feers77/cueline#readme",
   "back_to_stock_url": "https://github.com/feers77/cueline#going-back-to-stock",

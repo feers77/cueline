@@ -423,8 +423,12 @@ fa_skip: .long	0			! label of an item MODS OFF leaves alone
 !       artefact above: BEAT JUMP / COLOR bit 1 / KEY fields default) + HALF from N[30] bit 2
 !   2 = no tail at all (stock-written record, factory reset, a name of 31-32) -> main-record fields, rest default
 !   0xFE anything else after the NUL (a foreign record) -> defaults
+!   2.1.1: v2 (L <= 23) carries one more byte, N[24] = LINK CUE (0..3), in the checksum; a v1 block (2.0 / 2.1,
+!   or a name of exactly 24) has no such byte and loads as BOTH, like every other path.
 	.equ	ST_MAGIC, 0xC1
 	.equ	ST_VER, 1
+	.equ	ST_VER2, 2		! 2.1.1: v1 + N[24] LINK CUE
+	.equ	ST_CHKM, (0x5A + ST_MAGIC) & 0xFF	! the checksum's constant part without the version
 	.equ	ST_WDEF, 0x1000
 	.equ	ST_CHK0, (0x5A + ST_MAGIC + ST_VER) & 0x7F	! 0x1C, the checksum's constant part
 
@@ -607,12 +611,26 @@ hist_save:				! r4 = record + 8, r5 = 0, r6 = 32 (memset's), r12 = the record
 	mov	#24,r0
 	cmp/hi	r0,r6
 	bt	9f
-	mov	r4,r1			! v1 block N[25..29]
+	mov	#ST_VER,r5		! 2.1.1: v1, or v2 + N[24] LINK CUE when the name leaves room (L <= 23)
+	mov	#23,r0
+	cmp/hi	r0,r6
+	bt	1f
+	mov	#ST_VER2,r5
+	mov.l	hs_lc,r1
+	mov.l	@r1,r0
+	mov	#3,r2
+	cmp/hi	r2,r0			! out of range -> BOTH
+	bf	2f
+	mov	r2,r0
+2:	mov	r4,r1
+	add	#24,r1
+	mov.b	r0,@r1			! N[24] (even byte: 0..3 < 0x80)
+1:	mov	r4,r1			! the block N[25..29]
 	add	#25,r1
 	mov	#ST_MAGIC-256,r0
 	mov.b	r0,@r1
-	mov	#ST_VER,r0
-	mov.b	r0,@(1,r1)
+	mov	r5,r0
+	mov.b	r0,@(1,r1)		! the version written above
 	mov	r7,r0
 	mov.b	r0,@(2,r1)		! F0 (odd byte: any value)
 	extu.b	r0,r3
@@ -620,8 +638,17 @@ hist_save:				! r4 = record + 8, r5 = 0, r6 = 32 (memset's), r12 = the record
 	and	#0x7F,r0
 	mov.b	r0,@(3,r1)		! F1 (even byte: < 0x80)
 	add	r0,r3
-	add	#ST_CHK0,r3
-	mov	r3,r0
+	add	r5,r3			! + the version
+	add	#ST_CHKM,r3
+	mov	#ST_VER2,r0
+	cmp/eq	r0,r5
+	bf	3f
+	mov	r4,r0
+	add	#24,r0
+	mov.b	@r0,r0			! + N[24]
+	extu.b	r0,r0
+	add	r0,r3
+3:	mov	r3,r0
 	mov.b	r0,@(4,r1)
 9:	mov.l	@r15+,r4
 	lds.l	@r15+,pr
@@ -630,6 +657,7 @@ hist_save:				! r4 = record + 8, r5 = 0, r6 = 32 (memset's), r12 = the record
 	.p2align 2
 hs_mset: .long	0x08533D50
 hs_name: .long	0x0A35F698
+hs_lc:	.long	lc_off			! 2.1.1: LINK CUE (0..3), saved in N[24]
 
 ! st_get -> r0 = W from the live words, every field clamped (out of range -> its default). Uses r0-r3, r5.
 st_get:
@@ -715,6 +743,9 @@ st_main:
 ! st_load: r14 = the unpacked record -> r0 = W (decision tree above), st_src = the path taken. Uses r0-r7.
 st_load:
 	sts.l	pr,@-r15
+	mov	#3,r0			! 2.1.1: LINK CUE = BOTH on every path but a valid v2 block (old record,
+	mov.l	g_lc,r1			!   stock record, foreign record, damaged block: exactly 2.1's behaviour)
+	mov.l	r0,@r1
 	mov	r14,r5
 	add	#8,r5			! N
 	mov	r5,r1
@@ -735,21 +766,50 @@ st_load:
 	cmp/eq	#ST_MAGIC-256,r0	! (mov.b sign-extends)
 	bf	st_leg
 	mov.b	@(1,r1),r0
-	cmp/eq	#ST_VER,r0
+	extu.b	r0,r4			! the version: 1, or 2.1.1's v2 (+ N[24] LINK CUE)
+	mov	#ST_VER,r0
+	cmp/eq	r0,r4
+	bt	1f
+	mov	#ST_VER2,r0
+	cmp/eq	r0,r4
 	bf	st_bad			! a version this build does not know: defaults
-	mov.b	@(2,r1),r0
+1:	mov.b	@(2,r1),r0
 	extu.b	r0,r2			! F0
 	mov.b	@(3,r1),r0
 	extu.b	r0,r3			! F1
-	mov.b	@(4,r1),r0
-	extu.b	r0,r7			! checksum
 	mov	r2,r0
 	add	r3,r0
-	add	#ST_CHK0,r0
+	add	r4,r0			! + the version
+	add	#ST_CHKM,r0
+	mov	r0,r6			! (L is done: the running checksum)
+	mov	#ST_VER2,r0
+	cmp/eq	r0,r4
+	bf	2f
+	mov	r1,r0
+	add	#-1,r0
+	mov.b	@r0,r0			! + N[24]
+	extu.b	r0,r0
+	add	r0,r6
+2:	mov.b	@(4,r1),r0
+	extu.b	r0,r7			! checksum
+	mov	r6,r0
 	extu.b	r0,r0
 	cmp/eq	r7,r0
 	bf	st_bad
-	shll8	r3
+	mov	#ST_VER2,r0
+	cmp/eq	r0,r4
+	bf	4f
+	mov	r1,r0			! the block is sound: LINK CUE from N[24], clamped (else BOTH)
+	add	#-1,r0
+	mov.b	@r0,r0
+	extu.b	r0,r0
+	mov	#3,r4
+	cmp/hi	r4,r0
+	bf	3f
+	mov	r4,r0
+3:	mov.l	g_lc,r1
+	mov.l	r0,@r1
+4:	shll8	r3
 	or	r3,r2
 	bra	st_out
 	mov	#1,r7
@@ -844,6 +904,7 @@ st_out:	mov.l	g_src,r1
 g_wdef:	.short	ST_WDEF
 	.p2align 2
 g_desc:	.long	st_desc
+g_lc:	.long	lc_off			! 2.1.1: LINK CUE (0..3), N[24] of a v2 block
 g_src:	.long	st_src
 	.global	st_src
 st_src:	.long	0x55			! the last load's path (1 v1, 0 legacy, 2 main only, 0xFF bad v1, 0xFE foreign)
