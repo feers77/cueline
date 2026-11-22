@@ -233,8 +233,6 @@ How to use each feature: [docs/USER_GUIDE.md](docs/USER_GUIDE.md).
 | ![Phase meter 3BAND](docs/images/10_phase_3band.png) | ![Player BLUE](docs/images/11_player_blue.png) |
 | **Phase meter following the master** | **Player in BLUE** |
 
-![KEY SHIFT by touch](docs/images/7_keyshift_touch.gif)
-
 *Screenshots from our test environment with neutral demo tracks. Photos of real decks will follow.*
 
 ## Pro DJ Link compatibility

@@ -8,7 +8,7 @@ dfc6d312229aadec82d8db7ea1d2acad9899c4b606191f6f9b59d0fe08cbb94e  ./CHANGELOG.md
 cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30  ./LICENSE
 6f04ae8364d0079a192b14635f4b1da294ce18724c034c39a6a41d1b09df6100  ./LICENSES/GPL-2.0.txt
 bd0a1cba95eb2616e4110c50560293fef5e3bbb68dd65782a0f6b967b77442e1  ./NOTICE
-d8d86c48a0f7de099aa8b14fe0b2e9b76ed24e2e3128e096022dffbc97a6a544  ./README.md
+bf30e9523ace1578fad68aa8b9179d66efef7938e5af74a8b8d1f180c33954dc  ./README.md
 7c06ccfa0c6f771d9c5b11175285a22717dd901ff3b4c69523373bfea63c7843  ./RELEASE_NOTES_v2.2.md
 14e15f069126c122e8484af838ff63b115eb3c06dc88f6cc0c29f6df86bca484  ./THIRD_PARTY.md
 aef8ca476a02ac171b0d4fe5f21eeb3b8b2ec3d752c7866b529d9208cbcbef23  ./build.sh
@@ -64,7 +64,6 @@ f82993c5c51a71d08afe33984e6b250302b5ce7da7e8d9deb6269b1f4c37e79b  ./docs/images/
 9deabc3120f2498d449f3a84bfa8f3daf91342b2b9559dcefbb0806f73a05796  ./docs/images/4_source_link.png
 5f2767643f024bd34f0cb7a32619dacc645cd2cf23a52a7246290249325c5ca4  ./docs/images/5_utility.png
 4f1406b2fccf017e5ba3281cf80c26e8e194615f055aea70c2bf9989cd1cfa89  ./docs/images/6_phase_waveform.png
-175ca06952a74733aa6a4a4edafa99b667257e4f80f968ed099f1eb28240fc3f  ./docs/images/7_keyshift_touch.gif
 3b075178fa05867ca528c3bc9d50a007289bd1c3a968dbc52930fb73257c3f51  ./docs/images/8_player_3band.png
 e521f8ddf0102e9747fcf2ea80e2ffd21986f66b952e52fa670525bcace6b0e9  ./docs/images/9_browse_3band.png
 75109dcc1ffa877133553c0fd33447c00b6383d52aff014f8172c0e5bd1497e1  ./docs/images/cueline_grid.png
