@@ -831,6 +831,14 @@ UT_HIDE = () if os.environ.get('CDJ_UT_DIAG') == '1' else ('LINK CUE DIAG',)
 UT_HIDE = UT_HIDE + ('MODS', 'WAV 32-BIT', 'REKORDBOX BUTTON')   # V4n23: rekordbox button stock (user)
 # 2.1.1 (owner): LINK CUE is visible again in BOTH profiles (it was hidden here and brought back only as a kill
 # switch, i.e. only with TEST LOG on). LINK CUE DIAG and the kill switches stay hidden exactly as before.
+# Cueline 2.2 (owner, 2026-11-21): this release has NO KEY SHIFT / KEY SYNC -- they come back in 2.3, once the engine
+# is redone. CDJ_NOTONE=1: the code and the MAIN layout stay exactly as deck-tested (removing the mods would move MAIN
+# to the `stock` layout, where the decoders and the player 5/6 cave collide), but nothing can switch them on: their
+# UTILITY rows and kill-switch rows are not in the table, modsmenu clears the saved KEY SHIFT / KEY SYNC BUTTON bits
+# and keeps the KEY SYNC kill switch OFF (NOTONE in modsmenu.s), and keyshift sends the stock 292-byte status
+# (TONEOFF in main_keyshift.s). With the engine's on word 0 the DSP path is its bit-exact bypass.
+NOTONE = os.environ.get('CDJ_NOTONE') == '1'
+UT_NOTONE = ('KEY SHIFT', 'KEY SYNC BUTTON', 'LINK KEY STATUS', 'KEY SYNC') if NOTONE else ()
 MM_LOAD_LIT, MM_LOAD_STOCK = 0x0846D990, 0x083FC4DC      # QUANTIZE setter (unpack)
 MM_SAVE_LIT, MM_SAVE_STOCK = 0x0846D5D0, 0x08401B60      # getter after byte 5 (pack)
 # V3rc2: the packer's memset of the HISTORY-name record (type 3) -> hist_save (BEAT JUMP + WAVEFORM COLOR hi bit)
@@ -852,6 +860,8 @@ def build_modsmenu(base, layout='stock'):
         v3e2 = ['--defsym', 'V3E2=1'] if os.environ.get('CDJ_V3E2', '1') == '1' else []   # V3e2 touch layer + publish
         if layout == 'ks':          # V4k: the KEY SHIFT items, touch zones and publish (mods/keyshift)
             v3e2 += ['--defsym', 'KEYSHIFT=1', '--defsym', 'KSB=0x08123000']
+            if NOTONE:                                  # 2.2: KEY SHIFT / KEY SYNC cannot be switched on
+                v3e2 += ['--defsym', 'NOTONE=1']
             if os.environ.get('CDJ_TESTLOG') == '1':    # V4n: UTILITY TEST LOG (TEST builds, set by place_modsmenu)
                 v3e2 += ['--defsym', 'TESTLOG=1']
             if os.environ.get('CDJ_BBOX') == '1':       # V4n37r: the BLACK BOX kill-switch row (mods/bbox in, patch())
@@ -861,7 +871,7 @@ def build_modsmenu(base, layout='stock'):
             if os.environ.get('CDJ_KSAB') == '1' and os.environ.get('CDJ_TESTLOG') == '1':   # KS3: A/B row (DEV + ownks)
                 v3e2 += ['--defsym', 'KSAB=1']
         subprocess.run(['sh4-linux-gnu-as', '--isa=sh4', '-little', '--defsym', 'RAMB=%#x' % ramb[0]] + v3e2 +
-                       ['-I', os.path.join(HERE, 'v2ui'),     # TOUCH (V4n41): vt_zones = v2ui/touch_vt_zones.inc
+                       ['-I', os.path.join(HERE, 'v2ui'), '-I', HERE,     # TOUCH (V4n41): vt_zones = v2ui/touch_vt_zones.inc
                         '-o', obj, src], check=True)
         subprocess.run(['sh4-linux-gnu-ld', '-Ttext=%#x' % base, '-e', 'entry', '-o', elf, obj], check=True)
         subprocess.run(['sh4-linux-gnu-objcopy', '-O', 'binary', '-j', '.text', elf, out], check=True)
@@ -920,7 +930,7 @@ def place_modsmenu(data, layout='stock'):
         return raw.decode('utf-16-le', 'replace').split('\0')[0]
     names = [label(e) for e in items]
     kills = UT_KILL if 'entries5' in syms else ()    # V4n36 trace: LINK CUE comes back as a kill switch
-    keep = [k for k, n in enumerate(names) if n not in UT_HIDE or n in kills]
+    keep = [k for k, n in enumerate(names) if n not in UT_NOTONE and (n not in UT_HIDE or n in kills)]
     items, names = [items[k] for k in keep], [names[k] for k in keep]
     rank = {n: k for k, n in enumerate(UT_ORDER)}
     last = rank['VERSION No.']
@@ -1459,7 +1469,7 @@ def patch_flash(flash, names):
 
 DELAY_SLOT_BRANCHES = re.compile(r'^\s*(bra|bsr|bt/s|bf/s|jmp|jsr|rts|rte|bsrf|braf)\b')
 DELAY_SLOT_HAZARDS = re.compile(
-    r'^\s*(?:(?:ld|st|fw|adr)\b'                     # a multi-instruction macro
+    r'^\s*(?:(?:ld|st|fw|adr|own_rec|own_loaded)\b'                     # a multi-instruction macro
     r'|mova\b'                                        # a pc-relative address
     r'|mov\.[wl]\s+(?!r\d+\b)[A-Za-z_]\w*\s*,)')  # a pc-relative literal load
 

@@ -67,9 +67,9 @@ Row colours tell you about each track:
 
 | Row looks like | Meaning |
 |---|---|
-| Green triangle and green title | The track loaded on this deck |
-| Green | Played on this deck in this session |
-| Dark green | Previewed in this session |
+| Bright green | The track playing on this deck |
+| Dark green | Already played on this deck in this session (it was loaded *and* played) |
+| No colour | Only previewed: a preview leaves no mark, as on the CDJ-3000 |
 | Bright green with a moving line | Being previewed right now |
 | Dimmed green | Loaded on another deck |
 | Green cell in the KEY column | Key compatible with the tempo master [needs Pro DJ Link] |
@@ -238,7 +238,7 @@ when your **HISTORY NAME is 29 characters or fewer** (see `KNOWN_LIMITS.md`).
 
 | Item | Options | Default | Saved |
 |---|---|---|---|
-| BUILD | read-only | shows `Cueline-2.1.1 1c1a45f3` | - |
+| BUILD | read-only | shows `Cueline-2.2 7c0049ef` | - |
 | LINK KEY STATUS | OFF / ON | ON | no (ON at every boot) |
 | KEY SYNC | OFF / ON | ON | no (ON at every boot) |
 | LINK CUE | OFF / PREVIEW / CUE / BOTH | BOTH | no (BOTH at every boot) |
@@ -411,6 +411,10 @@ Saved only with a HISTORY NAME of 29 characters or fewer.
 - A key changed with KEY SHIFT shows in **orange**.
 
 ### 4.3 KEY SHIFT
+> **Switched off in Cueline 2.2.** KEY SHIFT, KEY SYNC and the KEY SYNC BUTTON (sections 4.3–4.5) are hidden and
+> held off in 2.2; the grey KEY SHIFT tile stays in the header. They return in 2.3 with a new engine. The text
+> below describes 2.1 / 2.1.1.
+
 
 KEY SHIFT changes the key in semitone steps, from -12 to +12, without changing the tempo. It uses **our own key
 shift engine**.
@@ -592,7 +596,7 @@ always on.
 UTILITY > INFO > **BUILD** shows the installed build's tag and source hash, for example:
 
 ```
-Cueline-2.1.1 1c1a45f3
+Cueline-2.2 7c0049ef
 ```
 
 Check it after every install. Quote it in every bug report.

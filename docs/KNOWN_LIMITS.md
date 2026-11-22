@@ -5,20 +5,24 @@ normal RELEASE build.
 
 ## Planned improvements
 
-- **KEY SHIFT at large shifts:** better sound quality is planned (today it can sound phasey).
+- **KEY SHIFT and KEY SYNC** are switched off in 2.2 and return in 2.3 with a new engine (the 2.1 one did not
+  sound right on its own).
+- **First preview over LINK:** from another deck's USB it can take a moment the first time (the index is built
+  once); serving rows before the index is complete is planned.
 
 ## Not yet tested on a real deck
 
 Not yet confirmed on real hardware:
 
-- **KEY SHIFT sound quality.** Our own engine runs on the real decks; how it sounds, especially at large shifts,
-  has not been judged yet.
 - **KEY SYNC with a CDJ-3000 master**, tested against a CDJ-3000 emulator, not a real CDJ-3000.
 - **Touch Cue** (preview from the overview strip) has no dedicated test on a real deck yet.
 - **The KEY SYNC BUTTON pad lamp:** its exact colour on a real deck is not yet confirmed.
 - **Artwork of the loaded track:** on the deck it depends on a backup method that is not yet confirmed.
 
 ## KEY SHIFT and KEY SYNC
+**Switched off in Cueline 2.2.** KEY SHIFT, KEY SYNC and the KEY SYNC BUTTON are hidden and held off in 2.2; they
+return in 2.3 with a new engine. The notes below describe 2.1 / 2.1.1.
+
 
 - About **23 ms of extra latency** while a key shift is active.
 - Large shifts can sound **"phasey"**.

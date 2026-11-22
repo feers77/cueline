@@ -1,4 +1,7 @@
 # Pro DJ Link compatibility
+
+> **Cueline 2.2:** KEY SHIFT and KEY SYNC are switched off in this release (back in 2.3), and a 2.2 deck sends the
+> stock status packet to every device. The KEY SYNC notes below describe 2.1 / 2.1.1 and will apply again in 2.3.
 - **How Cueline appears on the network:** exactly like a stock CDJ-2000NXS2 (model name `CDJ-2000NXS2`,
   firmware 1.87, the stock keep-alive packet). The only exception is the optional players 5 / 6 support.
 - **Status packets per device.** Cueline sends each device the status format that device understands:

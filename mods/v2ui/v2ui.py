@@ -39,6 +39,12 @@ TEXT_SLOTS = (0x1C0008D0, 0x1C0008E0)
 FLIP_SLEEP_LIT = 0x0E509230         # the stock flip's sleep(ms) literal (vsync wait; P9 early present)
 SLEEP = 0x0E52EA70   # the text renderers 0x0E50B6E8 / 0x0E50C9BC (r4 = window)
 WAVE_LIT = 0x1C00B268               # the frame's direct call of the centre-waveform renderer 0x1C009AB4
+# F2 the compose gate: the flush's window loop tests "composited" (+7 bit 3) here and composes the window.
+# These 12 bytes (bld.b #3,@(7,r14) ; bf.s ; mov #0,r13 ; mov.l @(28,r14),r10 ; mov r14,r11) become a jump to
+# entry +32 (entry.S comp_e), which asks v2_compose_hide() at the moment of composing.
+COMP_AT = 0x0E509A1C
+COMP_STOCK = bytes.fromhex('3e3930078f42ed005ae76be3')
+COMP_ENTRY = 32
 
 
 def apply(data, blob_path=BLOB):
@@ -123,6 +129,17 @@ def apply(data, blob_path=BLOB):
     if os.environ.get('V2_EARLY') == '1':
         struct.pack_into('>I', img.d, off, V2_BASE + 28)
         print('v2ui: flip sleep literal %#x -> %#x' % (FLIP_SLEEP_LIT, V2_BASE + 28))
+    # F2 the compose gate: movi20 #(entry >> 16),r3 ; shll16 r3 ; add #(entry & 0xFFFF),r3 ; jmp @r3 ; nop
+    ent = V2_BASE + COMP_ENTRY
+    if (ent & 0xFFFF) > 0x7F or (ent >> 16) > 0x7FFF:
+        raise SystemExit('v2ui: the compose gate cannot reach %#x with movi20 / shll16 / add' % ent)
+    off = img.off_of(COMP_AT)
+    if bytes(img.d[off:off + 12]) != COMP_STOCK:
+        raise SystemExit('v2ui: %#x does not hold the stock window loop (%s)'
+                         % (COMP_AT, bytes(img.d[off:off + 12]).hex()))
+    img.d[off:off + 12] = struct.pack('>HHHHHH', 0x0300, ent >> 16, 0x4328,    # movi20's top 4 bits (word 0, 7:4) = 0
+                                      0x7300 | (ent & 0xFF), 0x432B, 0x0009)
+    print('v2ui: compose gate at %#x -> %#x' % (COMP_AT, ent))
     # the two filters: draw-callback slot and the per-frame clear's rect-fill literal
     mark = blob.find(struct.pack('>I', 0x56325052))          # "V2PR"
     if mark < 0 or mark % 4:

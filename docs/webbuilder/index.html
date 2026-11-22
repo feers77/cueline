@@ -64,6 +64,15 @@
   .warnbox { color: var(--warn); font-weight: 600; }
   .prerelease { border: 1px solid var(--warn); background: rgba(242, 184, 75, .08); border-radius: 6px; padding: 10px 12px; margin: 0 0 16px; font-size: 15px; }
   .prerelease strong { color: var(--warn); }
+  .intro { margin: 0 0 20px; }
+  .intro h2 { font-size: 18px; margin: 18px 0 8px; }
+  .intro ul { padding-left: 20px; margin: 8px 0; }
+  .intro li { margin: 0 0 5px; }
+  .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0 4px; }
+  .shots img { width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); display: block; }
+  .shots figure { margin: 0; }
+  .shots figcaption { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  @media (max-width: 560px) { .shots { grid-template-columns: 1fr; } }
   footer { color: var(--muted); font-size: 13px; margin-top: 24px; }
   footer a { color: var(--muted); }
   [hidden] { display: none !important; }
@@ -76,9 +85,26 @@
   <p class="lead">Make the <strong id="ver">Cueline</strong> firmware update for the CDJ-2000NXS2 from <em>your own</em> official Pioneer 1.87 update file.</p>
   <p class="es" lang="es">Bienvenido: elegí tu C2KNXS2.UPD oficial 1.87 y el navegador arma el update de Cueline. Tu archivo nunca sale de tu computadora.</p>
   <p class="privacy">Everything runs <strong>in this browser tab</strong>. Your file is never uploaded: the only things this page downloads are its own files and the Python runtime (Pyodide, from cdn.jsdelivr.net). No analytics, no cookies.</p>
-  <p class="disclaimer" id="knownissues"><strong>Known issues in 2.1.1 &mdash; a fix is in progress.</strong> Two display problems are reproduced and being worked on: the <strong>INFO panel in browse</strong> can render as a blank white panel, and <strong>heavy browsing</strong> can leave bands of corrupted pixels on screen. Both are display-only &mdash; playback is not affected, the deck cannot be damaged, and a power cycle clears the pixels. Several bugs that appear only with <strong>two Cueline decks on Pro DJ Link</strong> (Touch Cue previewing the other deck's track, the other deck's cues and artwork, Link Cue audio breaking up) are fixed but not yet released. If any of this gets in your way, wait for the next release or go back to the official 1.87 firmware &mdash; Cueline never prevents that. The next release fixes the cause of these redraw problems properly instead of patching each case; no date, it ships when it is right.</p>
-  <p class="disclaimer es" lang="es"><strong>Problemas conocidos en 2.1.1, ya en arreglo.</strong> Dos fallas de pantalla reproducidas: el panel <strong>INFO</strong> del browse puede salir en blanco, y navegar mucho puede dejar franjas de p&iacute;xeles corruptos. Son solo de pantalla: no afectan la reproducci&oacute;n, no da&ntilde;an el equipo y se limpian apagando y prendiendo. Tambi&eacute;n hay varios errores que aparecen solo con <strong>dos decks Cueline en Pro DJ Link</strong> (Touch Cue sonando el track del otro deck, cues y artwork del otro deck, Link Cue cortado) ya arreglados pero todav&iacute;a sin publicar. Si algo de esto te molesta, esper&aacute; la pr&oacute;xima versi&oacute;n o volv&eacute; al firmware oficial 1.87.</p>
   <noscript>This builder needs JavaScript.</noscript>
+
+  <section class="intro" id="intro">
+    <h2>What is Cueline?</h2>
+    <p>Cueline is a free, unofficial firmware for the Pioneer <strong>CDJ-2000NXS2</strong> that gives it screens in the style of the CDJ-3000: a new player screen with smooth 60 fps scrolling waveforms (RGB, 3BAND or BLUE), a touch browser with mini waveforms and BPM / KEY columns, SOURCE and LINK lists, INFO, SHORT CUT and UTILITY in the 3000 layout, a phase meter that can show the master deck's waveform, track preview from the list, and a light theme. Your music, your rekordbox USB sticks and Pro DJ Link keep working as before.</p>
+    <p class="es" lang="es">Cueline es un firmware gratuito y no oficial para el CDJ-2000NXS2 con pantallas al estilo del CDJ-3000: ondas a 60 fps, browser t&aacute;ctil con mini ondas, medidor de fase con la onda del master, preview desde la lista y tema claro. Tu m&uacute;sica, tus pendrives de rekordbox y Pro DJ Link siguen funcionando igual.</p>
+    <div class="shots">
+      <figure><img src="../images/8_player_3band.png" alt="Cueline player screen with a 3BAND waveform" loading="lazy" onerror="this.parentNode.hidden=true"><figcaption>Player (screenshot from 2.1: the KEY SHIFT tile is grey in 2.2)</figcaption></figure>
+      <figure><img src="../images/2_browse.png" alt="Cueline browse screen with mini waveforms, BPM and KEY columns" loading="lazy" onerror="this.parentNode.hidden=true"><figcaption>Browse: mini waveforms, BPM and KEY</figcaption></figure>
+    </div>
+    <h2>What to expect from the update</h2>
+    <ul>
+      <li><strong>It installs like an official update</strong> from a USB stick and takes a few minutes. Coming from the official firmware you keep your deck settings.</li>
+      <li><strong>After it, the deck looks different but plays the same:</strong> new screens and waveforms; the audio, the jog, the pads and your libraries are untouched. UTILITY &rarr; INFO &rarr; BUILD shows the Cueline build, and the deck's version reads 2.12.</li>
+      <li><strong>This version (2.2) is a stability release</strong>, tested on real decks. KEY SHIFT and KEY SYNC are switched off in it and return in 2.3, the next release. <strong>If you run Cueline 2.1 or 2.1.1, update to 2.2:</strong> it fixes their display bugs and installs straight over them.</li>
+      <li><strong>You can always go back</strong> to the official firmware with the official 1.87 update (steps at the end of this page).</li>
+      <li><strong>It is unofficial:</strong> it can have bugs. Try it at home before a gig, and keep the official 1.87 file. Menus are in English and Spanish only; Link Cue preview on headphones needs a DJM-A9.</li>
+    </ul>
+    <p class="es" lang="es">Qu&eacute; esperar: se instala como un update oficial en pocos minutos; la deck se ve distinta pero suena y se toca igual; 2.2 es una versi&oacute;n de estabilidad probada en decks reales (KEY SHIFT y KEY SYNC vuelven en 2.3, la pr&oacute;xima versi&oacute;n; si ten&eacute;s 2.1 o 2.1.1, actualiz&aacute; a 2.2); siempre pod&eacute;s volver al firmware oficial con el update 1.87; es no oficial, probalo en casa antes de tocar.</p>
+  </section>
 
   <section class="step" id="s-disclaimer">
     <h2>1 &middot; Disclaimer</h2>
@@ -117,7 +143,8 @@
     <ol class="install">
       <li>Copy this file <strong>alone</strong> to the root of a <strong>small FAT32 USB stick</strong> and update the deck as with an official update.</li>
       <li><strong>Coming from the official firmware?</strong> That is all &mdash; no factory reset needed.</li>
-      <li><strong>Only if the deck already runs Cueline</strong> (or any custom build): first unplug the Pro DJ Link (LAN) cable &mdash; while LINK is active the player does not allow it &mdash; then <strong>UTILITY &rarr; DUPLICATION &rarr; DEFAULT</strong>, which erases the deck settings. Without it the deck can skip the update when the installed version is not older.</li>
+      <li><strong>Coming from Cueline 2.1 or 2.1.1?</strong> The same &mdash; no factory reset needed.</li>
+      <li><strong>Only if the deck runs a build with the same or a higher version</strong> (a DEV or test build, another custom firmware): first unplug the Pro DJ Link (LAN) cable &mdash; while LINK is active the player does not allow it &mdash; then <strong>UTILITY &rarr; DUPLICATION &rarr; DEFAULT</strong> (factory reset: it erases the deck settings), or the update is skipped.</li>
       <li class="warnbox">Never switch the deck off during the update.</li>
     </ol>
     <p>Back to stock: unplug the LAN cable, UTILITY &rarr; DUPLICATION &rarr; DEFAULT, then install the official 1.87 (<a id="stock" href="#">details</a>).</p>

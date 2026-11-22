@@ -55,6 +55,7 @@
 	.equ	KILLB, 0x080141E0	!   layout.inc KILLB, patch_main place_modsmenu asserts it)
 	.endif
 
+	.include "ownstat.inc"
 	.text
 	.global	ks_base
 ks_base:
@@ -74,7 +75,10 @@ ks_onv:	.long	0
 	.long	0x4B534654		! "KSFT"
 ksy_on:	.long	0			! +48
 	.long	0, 0, 0, 0		! +52 .. +64
-tl_v:	.long	2			! +68 V4n: UTILITY TEST LOG (0 OFF, 1 USB, 2 RED; default RED while
+	.ifndef	TLDEF			! CDJ_TESTLOG_DEFAULT=1 (keyshift.py): a DEV build whose TEST LOG starts at USB,
+	.set	TLDEF, 2		! for an unattended deck pass -- the setting is not saved, so RED (the network,
+	.endif				! no stick) would need a hand on UTILITY at every boot
+tl_v:	.long	TLDEF			! +68 V4n: UTILITY TEST LOG (0 OFF, 1 USB, 2 RED; default RED while
 					!     developing; not saved: back to the default each boot)
 ksy_btn: .long	0			! +72 UTILITY KEY SYNC BUTTON (0 OFF = stock pads, 1 ON); saved:
 					!     HISTORY tail bit 6 (modsmenu)
@@ -89,7 +93,10 @@ hc_prev: .long	0			! +88 the D/H pad's last level
 	nop
 	bra	hc_lamp			! +96
 	nop
-kx_on:	.long	1			! +100 V4n33 KEY SYNC over LINK: our status packet carries the CDJ-3000's
+	.ifndef	TONEOFF			! Cueline 2.2 (keyshift.py CDJ_NOTONE): 0 = the stock 292-byte status packet
+	.set	TONEOFF, 0		! (no KEY SYNC over LINK in this release)
+	.endif
+kx_on:	.long	1 - TONEOFF		! +100 V4n33 KEY SYNC over LINK: our status packet carries the CDJ-3000's
 					!      key fields (0 = the stock 0x124-byte packet; poke for A/B on the rig)
 	bra	kc_mst			! +104 modsmenu v3e_pub2: r0 = the LINK master's key code from the DB cache
 	nop
@@ -283,11 +290,16 @@ gw_gui:
 
 ! own_ld: r0 = the own loaded track (status +0x28 ^ +0x2C). Clobbers r1, r2.
 own_ld:
-	mov.l	L_stat,r1
-	mov.l	@(0x28,r1),r0
-	mov.l	@(0x2C,r1),r2
-	rts
-	xor	r2,r0
+	own_rec	r1, r2			! F1 (ownstat.inc): OUR record -- the fixed slot is the other deck's
+	mov.l	@(0x28,r1),r0		! status with two decks on the LINK, so ITS loads ended our KEY SYNC
+	mov.l	@(0x2C,r1),r1
+	tst	r2,r2
+	bf	ol_nat
+	swap.b	r1,r1			! the slot's id is in network order: the same key in both forms
+	swap.w	r1,r1
+	swap.b	r1,r1
+ol_nat:	rts
+	xor	r1,r0
 
 ! mt_now: T = MASTER TEMPO off (heartbeat +0x20, V4n33: was +0x23 = the word's top byte, always 0). Clobbers r0, r1.
 mt_now:
@@ -507,7 +519,6 @@ W_mtset: .short	1000
 	.p2align 2
 L_mtset: .long	0x084E171C		! stock MASTER TEMPO setter
 L_rx:	.long	0xA9072B38 + 0xFF0	! MAIN's RX slot 0 (+ slot << 14), the GUI word's place
-L_stat:	.long	0x0B53D828		! the own status packet
 L_mt:	.long	0x0B568C9C + 0x20	! heartbeat +0x20 (the GUI's BE byte +0x23): MASTER TEMPO
 L_boot:	.long	0x0A35DF3C		! MAIN boot state (1 = normal boot)
 L_base:	.long	ks_base
@@ -718,14 +729,14 @@ kc_code:
 	mov	#0x49,r1
 	shll2	r1			! 0x124
 	mulu.w	r4,r1
-	mov.l	K_tab,r2
+	mov.l	K_tabc,r2
 	sts	macl,r1
 	add	r1,r2
 	mov.l	@r2,r3
 	shll8	r3
 	shlr8	r3			! the tid word (24 bits)
 	mov.l	@(4,r2),r5		! the rbid
-	mov.l	K_kc,r1
+	mov.l	K_kcc,r1
 	mov	#8,r2
 1:	mov.l	@r1,r0
 	cmp/eq	r3,r0
@@ -746,6 +757,9 @@ kc_code:
 	add	#16,r1
 kc_none: rts
 	mov	#0,r0
+	.p2align 2
+K_tabc:	.long	LINK_TAB + 0x28	! (kc_code's own near copies of K_tab / K_kc: the far pool is out of
+K_kcc:	.long	0x081E0000 + 0x1E0C0	!  mov.l range now that kx_send carries the claim stamp)
 	.p2align 1
 K_dkc:	.short	0x444B			! "DK"
 
@@ -1038,6 +1052,28 @@ kx_l2:	mov	#0x22,r0		! the length field: 0x180 / 0x480 - 0x24
 	add	#1,r0
 	mov.b	r2,@(r0,r10)
 1:
+	! LINKCLAIM (R22A, re/LINK_CUE.md): to another Cueline deck (class 2) the spare tail of our 0x180-byte
+	! status carries this deck's Link Cue claim: 0x170 'CLC1', 0x174 = ms since the press that engaged it
+	! (big-endian, 0 = this deck does not claim the mixer's Link Cue slot), published by touch_audio's ca_pub
+	! at RAMB + 0x1E780. The other deck's ks3k reads it and the newest press owns slot 17 -- both decks use
+	! that one slot, so the mixer's T field cannot tell them apart. Class 2 only: a CDJ-3000, a DJM or
+	! rekordbox never sees these bytes (nothing outside 0x170..0x177, which no stock field uses).
+	mov.l	K_cur,r0
+	mov.l	@r0,r0
+	cmp/eq	#2,r0
+	bf	1f
+	mov.w	K_170,r0
+	mov	r10,r1
+	add	r0,r1
+	mov.l	K_clc,r0
+	mov.l	r0,@r1			! 'C' 'L' 'C' '1' in wire order
+	mov.l	K_clm,r0
+	mov.l	@r0,r2
+	swap.b	r2,r2			! big-endian, as the key fields
+	swap.w	r2,r2
+	swap.b	r2,r2
+	mov.l	r2,@(4,r1)
+1:
 	mov	#0x24,r0
 	mov.b	@(r0,r10),r4		! this deck's player number
 	bsr	kc_code
@@ -1254,6 +1290,7 @@ K_124:	.short	0x124
 K_180:	.short	0x180
 K_92:	.short	0x92
 K_150:	.short	0x150
+K_170:	.short	0x170			! LINKCLAIM (R22A): the claim stamp in our status packet's spare tail
 K_154:	.short	0x154
 K_158:	.short	0x158
 K_16b:	.short	0x16B
@@ -1263,11 +1300,13 @@ K_dk:	.short	0x444B			! "DK"
 K_boot:	.long	0x0A35DF3C
 K_base:	.long	ks_base
 K_hb:	.long	0x0B568C9C		! the heartbeat model
-K_tab:	.long	0x0A371D3C + 0x28	! the LINK status table, + 0x28
+K_tab:	.long	LINK_TAB + 0x28	! the LINK status table, + 0x28
 K_kc:	.long	0x081E0000 + 0x1E0C0	! w8cap's key cache (RAMB + 0x1E0C0, mods/w8fetch/w8.inc KC)
 K_mt:	.long	0x0B568C9C + 0x20	! heartbeat +0x20 (LE; the GUI's +0x23): MASTER TEMPO
 K_eng:	.long	0x08122800		! the KEY SHIFT engine: +0 on, +4 semitones
 K_send:	.long	0x085117CA		! stock UDP send (buffer, descriptor)
+K_clc:	.long	0x31434C43		! LINKCLAIM (R22A): 'CLC1' as the four bytes at 0x170
+K_clm:	.long	0x081E0000 + 0x1E780	! LINKCLAIM: touch_audio's claim age (RAMB + 0x1E600 + 0x180)
 K_buf:	.long	kx_buf
 K_cls:	.long	0x081E0000 + 0x1E848	! COMPAT: ks3k's class table (RAMB + 0x1E848 + player)
 K_cur:	.long	kx_cur

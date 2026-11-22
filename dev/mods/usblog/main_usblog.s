@@ -1461,8 +1461,8 @@ us_rec:
 	bsr	add_rec
 	nop
 	lds.l	@r15+,pr
-	rts
-	nop
+	bra	f3_rec			! F3 measurement: a 'V3F3' record beside every V3US (the same size as the
+	nop				! rts it replaces: the mov.w pools around us_rec are at their reach)
 	.p2align 2
 us_arc:		.long RAMB+0x15030
 us_cc:		.long RAMB+0x15010
@@ -1486,6 +1486,32 @@ fl_open:	.long	0x08501CB0		! fm_open(path16, mode, tag)
 fl_write:	.long	0x08502862		! fm_write(buf, 1, n, fh) + tag on the stack
 fl_close_f:	.long	0x08502224		! fm_close(fh, tag)
 fl_cap:		.long	U_CAP
+
+! f3_rec: w0 'V3F3', w1 tick, w2.. the 14 words of touch_audio's F3LOG (RAMB+0x1FEC0: medium switches, their
+! callers, the TchAud loop's longest gap -- main_touchaudio.s set_medium). us_rec's tail. Clobbers r0-r3.
+f3_rec:
+	sts.l	pr,@-r15
+	bsr	scr_clear
+	nop
+	mov.l	f3_mag,r0
+	mov.l	r0,@r1
+	mov.l	r9,@(4,r1)
+	mov.l	f3_src,r2
+	mov	#14,r3
+	add	#8,r1
+1:	mov.l	@r2+,r0
+	mov.l	r0,@r1
+	dt	r3
+	bf/s	1b
+	add	#4,r1
+	bsr	add_rec
+	nop
+	lds.l	@r15+,pr
+	rts
+	nop
+	.p2align 2
+f3_mag:		.long	0x33463356		! "V3F3"
+f3_src:		.long RAMB+0x1FEC0
 
 ! boot_rec (V4n36 trace): the 'V3HB' boot record, once per boot (U_BOOTED) -- on the stick at the first mount
 ! with the file (USB) and over the network (RED): w1 tick, w2 drops, w3 file size (r14; RED -1), w4..w5 the MAIN
@@ -1541,10 +1567,13 @@ br_ver:		.long	0x08000740
 br_bld:		.long	BLDID			! layout.inc: modsmenu's build record (patch_main fills it)
 br_mag:		.long	0x31444C42		! "BLD1"
 
-! hg_take (V4n36 trace, #51): the record hg_hook caught, when newer than the last one taken (gui_take reads the
-! RX slots, which MAIN's gui_comm has usually cleared by the time this 250-ms poll looks: on the deck whole boots
-! had no HUD record at all). Records skipped between two catches count as drops. r8 = block, r9 = now. Clobbers
-! r0-r7, r11, r14.
+! hg_take (V4n36 trace, #51; R22A ring): every record hg_hook staged that is newer than the last one taken
+! (gui_take reads the RX slots, which MAIN's gui_comm has usually cleared by the time this 250-ms poll looks: on
+! the deck whole boots had no HUD record at all). Before R22A the hook kept ONE record (hg_rec), so a deck run
+! lost ~95 % of the GUI records (work/r21/DECKKIT_DONE: 2 795 of 2 920 on deck A); the hook now stages the GUI's
+! whole 15-slot ring (hg_ring, same seq % 15 mapping) and this drains it the way gui_take drains the live block.
+! Only records the ring could no longer hold (> 15 behind) count as drops, plus any single record that is torn or
+! was overwritten while being copied. r8 = block, r9 = now. Clobbers r0-r7, r11, r14.
 hg_take:
 	sts.l	pr,@-r15
 	mova	hg_head,r0
@@ -1553,8 +1582,38 @@ hg_take:
 	mov.l	@(U_LAST,r8),r6
 	cmp/hi	r6,r5
 	bf	ht_out			! nothing newer
-	mov	r7,r0
-	add	#8,r0			! hg_rec
+	mov	r5,r0			! first = max(last + 1, head - 14)
+	sub	r6,r0
+	mov	#15,r1
+	cmp/hi	r1,r0
+	bf	2f
+	tst	r6,r6			! nothing taken yet: not a drop
+	bt	1f
+	add	#-15,r0			! records the staging ring could not hold: lost
+	mov.l	@(U_DROP,r8),r1
+	add	r0,r1
+	mov.l	r1,@(U_DROP,r8)
+1:	mov	r5,r6
+	add	#-15,r6			! last = head - 15
+2:	mov	r6,r11
+	add	#1,r11			! r11 = seq to take
+ht_loop:
+	mov	r11,r0			! slot = seq % 15
+	mov.l	ht_inv15,r1
+	dmulu.l	r0,r1
+	sts	mach,r1
+	shlr2	r1
+	shlr	r1			! q = seq / 15
+	mov	r1,r2
+	shll2	r2
+	shll2	r2
+	sub	r1,r2			! q * 15
+	sub	r2,r0			! r0 = slot
+	shll8	r0
+	shlr	r0			! slot * 128
+	mov	r0,r2
+	mova	hg_ring,r0
+	add	r2,r0			! r0 = the record in the staging ring
 	mov	r8,r1
 	add	#U_SCR,r1
 	mov	#32,r2
@@ -1568,14 +1627,11 @@ hg_take:
 4:	dt	r2
 	bf/s	3b
 	add	#4,r1
-	mov.l	@r7,r0			! the hook caught another one meanwhile: next poll
-	cmp/eq	r0,r5
-	bf	ht_out
 	mov	r8,r1
 	add	#U_SCR,r1
 	mov.l	@r1,r0
-	cmp/eq	r0,r5			! its seq
-	bf	ht_out
+	cmp/eq	r0,r11			! its seq
+	bf	ht_skip
 	mov.l	ht_x5a,r0
 	xor	r0,r14
 	mov.l	ht_m31,r0
@@ -1583,16 +1639,8 @@ hg_take:
 	add	#64,r1
 	mov.l	@(60,r1),r0		! w31
 	cmp/eq	r0,r14
-	bf	ht_out
-	tst	r6,r6			! skipped since the last one taken (not before the first)
-	bt	5f
-	mov	r5,r0
-	sub	r6,r0
-	add	#-1,r0
-	mov.l	@(U_DROP,r8),r1
-	add	r0,r1
-	mov.l	r1,@(U_DROP,r8)
-5:	bsr	stamp
+	bf	ht_skip
+	bsr	stamp
 	nop
 	mov	r8,r1
 	add	#U_SCR,r1
@@ -1600,20 +1648,31 @@ hg_take:
 	mov.l	r0,@(56,r1)		! w30 = the autotest stamp
 	bsr	add_rec
 	nop
-	mov.l	r5,@(U_LAST,r8)
+	bra	ht_next
+	nop
+ht_skip:				! torn, or the hook overwrote it while we copied: counted, not retried
+	mov.l	@(U_DROP,r8),r1
+	add	#1,r1
+	mov.l	r1,@(U_DROP,r8)
+ht_next:
+	mov.l	r11,@(U_LAST,r8)
+	cmp/eq	r11,r5
+	bf/s	ht_loop
+	add	#1,r11
 ht_out:	lds.l	@r15+,pr
 	rts
 	nop
 	.p2align 2
 ht_x5a:		.long	0x5A5A5A5A
 ht_m31:		.long	0x7FFFFFFF
+ht_inv15:	.long	0x88888889		! ceil(2^35 / 15)
 
 ! hg_hook (V4n36 trace, #51): memset(r4, r5, r6) of MAIN's gui_comm (the literal 0x0838EAEC, its two calls: the
 ! RX slot it has just parsed, 0x4000 bytes, and the TX one). On a normal boot only (*0x0A35DF3C == 1), for an RX
 ! slot (0xA9072B38 + slot << 14, slot 0..2) whose HUD block (+0x800, usblog.inc) is consistent (magic, tail ==
-! head) with a head newer than the last caught: its newest record (slot head % 15) is copied into hg_rec, then
-! hg_head = head. ~240 calls a second, one record copied a second. Then the memset itself (r4-r7 untouched).
-! Uses r0-r3 (saved: mach, macl, r7).
+! head) with a head newer than the last caught: the block's whole 15-record ring is copied into hg_ring (R22A:
+! one record was kept before, and the deck lost ~95 % of them -- see hg_take), then hg_head = head. ~240 calls a
+! second, one 1 920-byte copy a second. Then the memset itself (r4-r7 untouched). Uses r0-r3 (saved: r7).
 hg_hook:
 	mov.l	hk_boot,r0
 	mov.l	@r0,r0
@@ -1646,45 +1705,28 @@ hk_found:
 	mov.l	@r0,r2
 	cmp/hi	r2,r3
 	bf	hk_go			! not newer
-	sts.l	mach,@-r15
-	sts.l	macl,@-r15
 	mov.l	r7,@-r15
 	mov	r0,r7			! r7 = &hg_head
-	mov	r3,r0			! slot = head % 15
-	mov.l	hk_inv,r2
-	dmulu.l	r0,r2
-	sts	mach,r2
-	shlr2	r2
-	shlr	r2
-	mov	r2,r0
+	add	#16,r1			! r1 = the GUI ring's record 0
+	mova	hg_ring,r0
+	mov	r0,r2			! r2 = our staging ring (same seq % 15 slots)
+	mov	#30,r0
 	shll2	r0
-	shll2	r0
-	sub	r2,r0			! q * 15
-	mov	r3,r2
-	sub	r0,r2			! r2 = slot
-	shll8	r2
-	shlr	r2			! slot * 128
-	add	#16,r2
-	add	r1,r2			! r2 = the record
-	mov	r7,r1
-	add	#8,r1			! r1 = hg_rec
-	mov	#32,r0
+	shll2	r0			! 480 longs = 15 * 128 B
 	mov.l	r0,@-r15
-1:	mov.l	@r2+,r0
-	mov.l	r0,@r1
+1:	mov.l	@r1+,r0
+	mov.l	r0,@r2
 	mov.l	@r15,r0
 	dt	r0
 	mov.l	r0,@r15
 	bf/s	1b
-	add	#4,r1
+	add	#4,r2
 	add	#4,r15
 	mov.l	r3,@r7			! hg_head last
 	mov.l	@(4,r7),r0
 	add	#1,r0
 	mov.l	r0,@(4,r7)		! hg_n
 	mov.l	@r15+,r7
-	lds.l	@r15+,macl
-	lds.l	@r15+,mach
 hk_go:	mov.l	hk_mset,r0
 	jmp	@r0
 	nop
@@ -1736,8 +1778,8 @@ hk_mag:		.long	HUD_MAGIC
 hk_w2:		.long	15 | 32 << 16		! HUDOFF: the block's w2 (usblog.inc UL_NREC | UL_W << 16)
 hg_off:		.long	0x800			! HUDOFF: the HUD block's offset in an RX slot (found by hk_scan)
 hg_scn:		.long	0			! HUDOFF: hk_scan's cursor
-hk_inv:		.long	0x88888889		! ceil(2^35 / 15)
 hk_mset:	.long	0x08533D50		! memset (the literal's stock target)
 hg_head:	.long	0			! the head caught last (0 none)
 hg_n:		.long	0			! records caught (V3US w29)
-hg_rec:		.space	128			! the newest record caught
+	.p2align 2
+hg_ring:	.space	15 * 128		! R22A: the GUI ring staged here, slot = seq % 15 (hg_take drains it)

@@ -32,6 +32,7 @@
 ! kept.
 
 	.include "layout.inc"
+	.include "ownstat.inc"
 	.include "w8.inc"
 
 	.text
@@ -641,7 +642,7 @@ k_432:	.short	0x0432
 	.p2align 2
 k_boot:	.long	0x0A35DF3C
 k_hb:	.long	0x0B568C9C		! the heartbeat model
-k_tab:	.long	0x0A371D3C + 0x28	! the LINK status table, + 0x28
+k_tab:	.long	LINK_TAB + 0x28	! the LINK status table, + 0x28
 k_kc:	.long	KC
 k_tick:	.long	0x0B0C5258		! 1 ms tick
 k_ctx:	.long	0x09437CD0		! -> the DB client context

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # build.sh -- one-command build of the CDJ-2000NXS2 "CDJ-3000 UI" firmware update, both profiles.
 #
-#   ./build.sh /path/to/official/C2KNXS2.UPD [options]               -> the RELEASE build (= V4r211e)
+#   ./build.sh /path/to/official/C2KNXS2.UPD [options]               -> the RELEASE build (= R22R2r)
 #   PROFILE=dev ./build.sh /path/to/official/C2KNXS2.UPD [options]   -> the DEV build for contributors (dev/README.md)
 #
 # Input : YOUR OWN copy of the official CDJ-2000NXS2 update 1.87 (MAIN 1.87 / GUI 1.81), unchanged (sha256 checked).
@@ -26,11 +26,11 @@ ROBOTO_SHA=a9603db0f52e244064de480253ab7f48e6c21c22e24528207cab06d39abc7bb7
 REF_TOOLS="sh4-linux-gnu-gcc 13.3.0 / binutils 2.42 (Ubuntu 24.04), Python 3.12, Pillow 12.1.1, numpy, fontTools 4.61.1"
 
 # ---- the two reference builds (same sources, same toolchain) ---------------------------------------------------
-# release = V4r211e  (labels MAIN 2.11 / GUI 2.05 = bump 24)
-REL_TAG=V4r211e;  REL_BUMP=24; REL_ID="Cueline-2.1.1 20261120-2037 1c1a45f3"
-REL_SHA=765790f583f1365ef42d7bfd5ad09af4736a730e0edbfe888337ec5929755650
-DEV_TAG=V4n211e; DEV_BUMP=24; DEV_ID="V4n211e 20261120-2040 1c1a45f3"
-DEV_SHA=8083b74901b611f5950bc6e9cfeba2d6d6cc92f883ab0a6570f4abb21557d835
+# release = R22R2r  (labels MAIN 2.12 / GUI 2.06 = bump 25)
+REL_TAG=R22R2r;  REL_BUMP=25; REL_ID="Cueline-2.2 20261122-0208 7c0049ef"
+REL_SHA=3a295ac2552b1d83edb55c0bd58db311c5adba496c7d3f4d2505786ff0bad548
+DEV_TAG=R22R2n; DEV_BUMP=25; DEV_ID="R22R2n 20261122-0210 7c0049ef"
+DEV_SHA=d4a58b482e13ed8c8ca54b441b6b206959b72e484f11923585d9f112bbeae2e9
 
 # the recipe (both profiles share every feature; dev adds the tooling: see the README / DEV_TOOLS.md)
 FEAT_MODS="touchaudio touchaudioip touchaudiotouch tadec modsmenu wav32 rowwave three_band ui3000x bootname
@@ -167,6 +167,9 @@ step "players 5/6 cave (call-site tables generated from YOUR stock MAIN; never s
 ( cd "$W/mods/player56" && STOCK_MAIN="$W/stock_main.bin" sh build.sh ) >> "$L" 2>&1 || { tail -5 "$L"; die "player56 build failed (see $L)"; }
 
 export CDJ_PROFILE=$PROFILE CDJ_BUILD_ID="$BUILD_ID" V2_CFLAGS CDJ_STOCK_UPD="$UPD"
+# Cueline 2.2: KEY SHIFT / KEY SYNC are hidden and held off (they return in 2.3). The code and the MAIN layout stay
+# as tested on the decks; only the UTILITY rows and the switches are gone (mods/patch_main.py, NOTONE).
+export CDJ_NOTONE=1
 export CDJ_V2_FONTTRIM=1
 if [ $FONT_MODE = tree ]; then unset CDJ_V2_TTF CDJ_FONT3000_TTF CDJ_FONT3000_FALLBACK
 else export CDJ_V2_TTF="$FONT" CDJ_FONT3000_TTF="$FONT" CDJ_FONT3000_FALLBACK="$FALLBACK"; fi

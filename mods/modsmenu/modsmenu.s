@@ -38,6 +38,7 @@
 ! word is found from its label pointer (+0), since the entries may be
 ! copied into another table.
 
+	.include "ownstat.inc"
 	.text
 	.global	entries, mods_off, lc_off, w32_off, diag_off, diag_txt
 	.global	it_fmt, it_commit, mods_load, mods_save, entries2, mm_publish, mm_copy, light_v, bpmd_v, wave_v, pos_v
@@ -71,7 +72,11 @@ bld_u16: .short	'-', 0
 ! V4n36 trace: the kill switches (base + 0x1E0, layout.inc KILLB), 1 ON = the feature, 0 OFF = its stock path,
 ! checked at each feature's entry; UTILITY items after VERSION No. (DEV: shown while TEST LOG is not OFF; RELEASE =
 ! no TEST LOG item: always shown, kl_reveal), not saved.
+	.ifdef	NOTONE			! Cueline 2.2 (patch_main CDJ_NOTONE): no KEY SYNC -- its stock path, and no row
+kill_v:	.long	0			! +0  KEY SYNC: OFF for good in this release
+	.else
 kill_v:	.long	1			! +0  KEY SYNC (mods/keyshift ksy_tap / hc_set / hc_lamp)
+	.endif
 	.long	1			! +4  MASTER WAVE NFS (mods/w8fetch w8send's NFS lookup)
 	.long	1			! +8  MASTER WAVEFORM (display: the phase meter WAVEFORM view's master wave)
 	.long	1			! +12 HW BAND LAYER (display: the GR2 hardware band, else the software band)
@@ -438,6 +443,12 @@ mods_load:
 	mov.l	r4,@-r15
 	bsr	st_load			! r0 = W from the record r14 (validated, versioned)
 	nop
+	.ifdef	NOTONE			! Cueline 2.2: a saved KEY SHIFT ON (W bit 11) / KEY SYNC BUTTON ON (bit 13) is
+	mov	#0x28,r1		! dropped -- neither has a UTILITY row here, so nothing could switch it off
+	shll8	r1			! again; with the engine's on word 0 the DSP path is its exact bypass
+	not	r1,r1
+	and	r1,r0
+	.endif
 	mov	r0,r4
 	bsr	st_put			! every field clamped into its word
 	nop
@@ -1060,14 +1071,20 @@ mm_publish:
 	bt	3f
 	mov.w	p_b8,r0
 	or	r0,r4			! bit 8 playing
-3:	mov.l	p_own,r1		! this deck's own status: +0x28 player, +0x29 slot, +0x2C id (BE)
-	mov	#0x28,r0
-	mov.w	@(r0,r1),r5
+3:	own_rec	r1, r5			! F1 (ownstat.inc): OUR record, r5 != 0 = the table's (id native).
+	tst	r5,r5			! The fixed slot is the LAST status seen: with a second deck on the
+	mov	#0x2C,r0		! LINK it is ITS status, so the master was compared against itself
+	mov.l	@(r0,r1),r5		! and bit 9 ("same track") was set for every track; the GUI then
+	bt	6f			! drew OUR buffers in the master's strip (v2.c master_mini).
+	swap.b	r5,r5			! our id in the form the master's reversed copy below is compared
+	swap.w	r5,r5			! in: the slot's is already big-endian, the table's is native
+	swap.b	r5,r5
+6:	mov	#0x28,r0		! +0x28 player | slot << 8 (the medium)
+	mov.w	@(r0,r1),r1
 	mov.w	@(r0,r3),r0
-	cmp/eq	r0,r5
+	cmp/eq	r0,r1
 	bf	8f
 	mov	#0x2C,r0
-	mov.l	@(r0,r1),r5
 	mov.l	@(r0,r3),r0		! the table's id is little-endian: byte-reverse it
 	swap.b	r0,r0
 	swap.w	r0,r0
@@ -1114,8 +1131,7 @@ p_pos:	.long	pos_v
 p_magic: .long	0x4C000000
 p_word:	.long	0x0B568C9C + 0x54
 p_blk:	.long	0x0B568C9C
-p_tab:	.long	0x0A371D3C
-p_own:	.long	0x0B53D828
+p_tab:	.long	LINK_TAB
 p_tog:	.long	mm_tog
 p_pmc:	.long	pm_c
 p_tx:	.long	0x0B06C774
@@ -3034,7 +3050,7 @@ vp_tab:	.long	RAMB + 0x10000		! the rowwave table ("RWV3", want[n] at +0x10 + 4n
 vp_rwv3: .long	0x52575633
 vp_med:	.long	RAMB + 0x1F700		! touch_audio MED: +0 the medium key, +64 the row preview
 vp_own:	.long	0x0A35F680		! own player number
-vp_stat: .long	0x0A371D3C		! LINK status records (stride 0x124, by player)
+vp_stat: .long	LINK_TAB		! LINK status records (stride 0x124, by player)
 vp_magic: .long	0xE0000000		! (bits 29-31 = 7)
 vp_ute:	.long	vt_ute
 vp_word: .long	0x0B568C9C + 0xE8
@@ -3996,8 +4012,8 @@ v32_pub:
 	mov	#32,r0
 	shll16	r0
 	or	r0,r2
-5:	mov.l	v32_st,r1		! bits 22-24 / 25-26: the loaded track's source player / slot (own status
-	mov	#0x28,r0		! 0x0B53D828 +0x28 / +0x29; the SOURCE screen's "Loaded" tag)
+5:	own_rec	r1, r0			! bits 22-24 / 25-26: the loaded track's source player / slot (OUR status
+	mov	#0x28,r0		! record, ownstat.inc, +0x28 / +0x29; the SOURCE screen's "Loaded" tag)
 	mov.b	@(r0,r1),r0
 	and	#7,r0
 	shll16	r0
@@ -4024,7 +4040,6 @@ v32_pub:
 	nop
 	.p2align 2
 v32_kf:	.long	kf_v
-v32_st:	.long	0x0B53D828
 v32_z6:	.long	zm_v
 v32_hcc: .long	0x0A35F704
 v32_own: .long	0x0A35F680

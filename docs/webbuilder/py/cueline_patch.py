@@ -130,10 +130,11 @@ def build(upd_path, out_path, delta_path, log=print):
     with open(out_path, 'wb') as f:
         f.write(out)
     log('wrote %s\n  sha256 %s == release %s (%s)' % (out_path, osha, meta['release'], meta['build_id']))
-    log('Install: 1) unplug the Pro DJ Link (LAN) cable (while LINK is active the player does not allow '
-        'DUPLICATION > DEFAULT); 2) UTILITY > DUPLICATION > DEFAULT (factory reset: it erases the deck settings, '
-        'and without it the update can be skipped); 3) copy this file ALONE to the root of a small FAT32 USB stick '
-        'and update the deck as with an official update. Never switch the deck off during the update.')
+    log('Install: copy this file ALONE to the root of a small FAT32 USB stick and update the deck as with an '
+        'official update. Never switch the deck off during the update. Only if the deck runs a build with the same '
+        'or a higher version number (a DEV or test build, another custom firmware) do this first, or the update is '
+        'skipped: unplug the Pro DJ Link (LAN) cable (while LINK is active the player does not allow it), then '
+        'UTILITY > DUPLICATION > DEFAULT (factory reset: it erases the deck settings).')
     log('Back to stock: unplug the LAN cable, UTILITY > DUPLICATION > DEFAULT, then install the official 1.87.')
     return osha
 

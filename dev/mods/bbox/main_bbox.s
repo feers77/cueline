@@ -35,6 +35,7 @@
 ! up to 7 events), from touch_audio's endpoint, <= 4 a 250-ms poll.
 
 	.include "layout.inc"
+	.include "ownstat.inc"
 
 	.equ	NEV, 512		! events in the ring (power of 2)
 	.equ	NW, 19			! watch entries (wt_tab)
@@ -72,6 +73,7 @@
 	.equ	F_KSB, 8		! only with mods/keyshift in the build (KSB magic)
 	.equ	F_BYTE, 16		! a byte (masked by the entry's mask when not 0)
 	.equ	F_AUX, 32		! c = the word before the address instead of the old value
+	.equ	F_OWN, 64		! the address is an offset into OUR status record (ownstat.inc)
 
 	.equ	T_BOOT, 1		! c, d = the MAIN version string
 	.equ	T_PMODE, 2		! play mode 0x0A35F7A0 (2 load, 3 play, 4 loop, 5 pause, 6 cue..)
@@ -311,7 +313,12 @@ sm_loop:
 	tst	#F_TA,r0
 	bt	2f
 	add	r12,r1
-2:	mov	r0,r2			! r2 = flags | mask << 8
+2:	mov	#0,r5			! r5 != 0: a word of the table's record (native)
+	tst	#F_OWN,r0
+	bt	sm_abs
+	own_rec	r6, r5			! F1: OUR record, not the fixed slot (the other deck's with two decks)
+	add	r6,r1
+sm_abs:	mov	r0,r2			! r2 = flags | mask << 8
 	tst	#F_BYTE,r0
 	bt	3f
 	mov.b	@r1,r7
@@ -323,6 +330,11 @@ sm_loop:
 	bra	4f
 	and	r0,r7
 3:	mov.l	@r1,r7			! r7 = new
+	tst	r5,r5
+	bt	4f
+	swap.b	r7,r7			! the table's word in the slot's network order: the log's format
+	swap.w	r7,r7			! (decode_bbox.py) does not depend on which structure answered
+	swap.b	r7,r7
 4:	mov	r13,r0
 	shll2	r0
 	add	#B_LAST,r0
@@ -1011,8 +1023,8 @@ ns_snd:		.long	0x08233CF6		! udp_snd_dat
 	.p2align 2
 wt_tab:
 	.long	0x0A35F7A0, T_PMODE | F_BYTE << 8			!  0 play mode
-	.long	0x0B53D828 + 0x2C, T_LOAD | F_AUX << 8			!  1 own status rbid (+0x28 in c)
-	.long	0x0B53D828 + 0x89, T_FLAGS | F_BYTE << 8 | 0x38 << 16	!  2 own status flags
+	.long	0x2C, T_LOAD | (F_AUX | F_OWN) << 8			!  1 own status rbid (+0x28 in c)
+	.long	0x89, T_FLAGS | (F_BYTE | F_OWN) << 8 | 0x38 << 16	!  2 own status flags
 	.long	0x0A35F39C, T_MASTER | F_BYTE << 8			!  3 tempo master player
 	.long	KSB + 48, T_KSYNC | F_KSB << 8				!  4 KEY SYNC on
 	.long	KSB + 64, T_KSREF | F_KSB << 8				!  5 KEY SYNC refusal tick

@@ -10,7 +10,7 @@
 ! 0x084E19DC(0, 1, col), skipped while mem32[0x0A35F3CC] == 2 (INFO on a listed track)
 ! and while Touch Cue owns the strip: UTILITY > LINK CUE includes CUE (LCV bit
 ! 1, the setting the TchAud task honours too) and the deck plays (0x0A35F7A0 =
-! 3 or 4) a rekordbox track (its status packet at 0x0B53D828, +0x2A = 1). With
+! 3 or 4) a rekordbox track (our own status record, ownstat.inc, +0x2A = 1). With
 ! LINK CUE at OFF or PREVIEW a touch while playing is the stock one again (the
 ! NEEDLE LOCK pop-up, no jump). The stock needle search is locked while playing
 ! anyway, and its handler running on every touch report slows the TchAud
@@ -19,6 +19,7 @@
 ! In: r4 = touch x (pixels). r0-r7 clobbered.
 
 	.include "layout.inc"
+	.include "ownstat.inc"
 
 	.text
 touchaudiotouch:
@@ -75,7 +76,7 @@ touchaudiotouch:
 	bt	4f
 	cmp/eq	#4,r0
 	bf	5f
-4:	mov.l	tt_stat,r1		! playing a rekordbox track: Touch Cue's
+4:	own_rec	r1, r0			! playing a rekordbox track: Touch Cue's (F1: OUR record)
 	mov	#0x2a,r0
 	mov.b	@(r0,r1),r0
 	cmp/eq	#1,r0
@@ -97,7 +98,6 @@ tt_zone:	.long 0xA81010A0	! zone 0 of the touch table: x0, y0, w, h
 tt_info:	.long 0x0A35F3CC	! display mode: 2 = INFO pop-up on a listed track
 tt_needle:	.long 0x084E19DC	! needle search (r4 = 0, r5 = 1, r6 = column)
 tt_pmode:	.long 0x0A35F7A0	! play mode: 3 playing, 4 looping
-tt_stat:	.long 0x0B53D828	! the deck's own status packet
 tt_kill:	.long RAMB+0x1F7F0
 tt_nomo:	.long 0x4F4D4F4E	! "NOMO": mods off
 tt_lcv:		.long LCV		! UTILITY > LINK CUE: 0 OFF, 1 PREVIEW, 2 CUE, 3 BOTH

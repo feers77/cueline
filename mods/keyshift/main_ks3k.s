@@ -94,6 +94,42 @@ kc_w:	mov.l	k_cls,r4
 kc_c:	mov.l	k_cue,r4
 	add	r3,r4
 	mov.b	r0,@r4
+	! LINKCLAIM (R22A): a Cueline peer's status tail {0x170 'CLC1', 0x174 its Link Cue claim age in ms BE,
+	! 0 = no claim} -> LCP + player * 8 {the age as sent, the tick it arrived}, read by touch_audio's sa_claim:
+	! both decks announce the same slot 17, so the deck with the newest press (smallest age) keeps it and the
+	! other goes silent within one status period. Peers without the stamp (2.1.x) leave the entry untouched.
+	mov.l	r1,@-r15		! r1 = the length field, r2 = the key entry, r3 = the player: all kept
+	mov.l	r2,@-r15
+	mov.l	r3,@-r15
+	tst	r0,r0
+	bt	kc_cl9			! not a Cueline peer
+	mov.w	k_off,r0		! its packet must reach past 0x170 (length field >= 0x15C = 0x180 B)
+	cmp/hs	r0,r1
+	bf	kc_cl9
+	mov.w	k_170,r0
+	mov	r0,r4
+	bsr	ks_be32			! r3 = the magic
+	nop
+	mov.l	k_clc,r0
+	cmp/eq	r0,r3
+	bf	kc_cl9
+	mov.w	k_174,r0
+	mov	r0,r4
+	bsr	ks_be32			! r3 = its claim age
+	nop
+	mov.l	k_lcp,r1
+	mov.l	@r15,r0			! the player (saved)
+	shll2	r0
+	shll	r0
+	add	r0,r1			! r1 = its entry
+	mov.l	r3,@r1
+	mov.l	k_tick,r0
+	mov.l	@r0,r0
+	mov.l	r0,@(4,r1)
+kc_cl9:
+	mov.l	@r15+,r3
+	mov.l	@r15+,r2
+	mov.l	@r15+,r1
 	mov.w	k_min,r0
 	cmp/hs	r0,r1			! a 3000's packet carries the extension
 	bf	9f
@@ -217,6 +253,8 @@ k_16c:	.short	0x016C
 k_160:	.short	0x0160
 k_168:	.short	0x0168
 k_2400:	.short	2400
+k_170:	.short	0x170			! LINKCLAIM (R22A): the claim stamp a Cueline peer sends
+k_174:	.short	0x174
 	.p2align 2
 k_boot:	.long	0x0A35DF3C
 k_magic: .long	0x74707351	! "Qspt"
@@ -224,3 +262,6 @@ k_tab:	.long	RAMB+0x1E800
 k_dbg:	.long	RAMB+0x1E840
 k_cls:	.long	RAMB+0x1E848	! COMPAT: the senders' classes (kx_send)
 k_cue:	.long	RAMB+0x1E600+0x20	! LINK0B: Cueline flags (mods/link0b/link0b.inc L0B_CUE)
+k_clc:	.long	0x434C4331		! LINKCLAIM: 'CLC1' big-endian at 0x170
+k_lcp:	.long	RAMB+0x1E600+0x1A0	! LINKCLAIM: the peers' claims, + player * 8 {age, arrival tick}
+k_tick:	.long	0x0B0C5258		! the 1 ms tick

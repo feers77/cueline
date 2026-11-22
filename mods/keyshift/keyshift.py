@@ -45,7 +45,15 @@ def build_blob():
     patch_main.check_delay_slots(src)
     with tempfile.TemporaryDirectory() as tmp:
         obj, elf, out = (os.path.join(tmp, n) for n in ('k.o', 'k.elf', 'k.bin'))
-        subprocess.run(['sh4-linux-gnu-as', '--isa=sh4', '-little', '-o', obj, src], check=True)
+        tl = os.environ.get('CDJ_TESTLOG_DEFAULT')     # DEV: the TEST LOG the deck boots with (1 USB, 2 RED = default)
+        if tl not in (None, '', '0', '1', '2'):
+            raise SystemExit('keyshift: CDJ_TESTLOG_DEFAULT=%s: 0 OFF, 1 USB or 2 RED' % tl)
+        if tl and tl != '2' and patch_main.build_profile() == 'release':
+            raise SystemExit('keyshift: CDJ_TESTLOG_DEFAULT is a DEV setting (a release build has no TEST LOG item)')
+        subprocess.run(['sh4-linux-gnu-as', '--isa=sh4', '-little', '-I', os.path.dirname(HERE)]
+                       + (['--defsym', 'TLDEF=%s' % tl] if tl else [])
+                       + (['--defsym', 'TONEOFF=1'] if os.environ.get('CDJ_NOTONE') == '1' else [])
+                       + ['-o', obj, src], check=True)
         subprocess.run(['sh4-linux-gnu-ld', '-Ttext=%#x' % KSB, '-e', 'ks_base', '-o', elf, obj], check=True)
         subprocess.run(['sh4-linux-gnu-objcopy', '-O', 'binary', '-j', '.text', elf, out], check=True)
         syms = {}

@@ -1,8 +1,11 @@
 ! SPDX-License-Identifier: Apache-2.0
 !
 ! touch_audio: Link Cue for the CDJ-2000NXS2 MAIN firmware (SH7724, SH-4,
-! little-endian, v1.87). The deck joins a DJM-A9's LINK CUE as a CDJ-3000
-! Touch Audio source: a track the browser highlights (INFO open, or a browse
+! little-endian, v1.87). The deck joins a DJM-A9's LINK CUE the way REKORDBOX
+! does (device number 17, the name string "CDJ-3000": our wire protocol was
+! copied from a rekordbox Link Monitor capture, re/LINK_CUE.md -- a real
+! CDJ-3000 sends as its own player number and never uses 17,
+! re/LINKCUE_3000_COMPARE.md): a track the browser highlights (INFO open, or a browse
 ! row with the rowwave mod) or the loaded track while it plays (Touch Cue) is
 ! streamed to the mixer's headphones from the point a finger holds on the
 ! overview strip. See README.md for the use, the firmware facts and the
@@ -10,7 +13,7 @@
 !
 ! The hook (DJCONT_PASS, shared with other mods) creates the task "TchAud"
 ! (priority 9, 4 KB stack + buffers from the firmware's malloc) once. The task:
-!   1. announces a device-17 "CDJ-3000" keepalive to the mixer (unicast, 200 ms)
+!   1. announces a device-17 keepalive named "CDJ-3000" (rekordbox's number) to the mixer (unicast, 200 ms)
 !      and takes its timing packets (type 0x20, 7 ms) on UDP 50004;
 !   2. resolves the track: its rekordbox id -> export.pdb row (an index of the
 !      track table, built a few pages a pass) -> file path and ANLZ (PWAV for
@@ -31,6 +34,7 @@
 ! fw r1-r3) and must never sit in a delay slot (patch_main --assemble checks).
 !
 	.include "layout.inc"
+	.include "ownstat.inc"
 
 	.equ	D_ACRE, 4
 	.equ	D_STA, 8
@@ -452,6 +456,28 @@ l_hdrb:		.word D_HDR
 4:
 3:	mov.l	@(D_TICK,r8),r3
 	mov.l	@r3,r13			! now
+	.ifndef	RELEASE			! F3: how long the loop stays away (everything Link Cue does waits that long)
+	mov.l	t_f3,r1
+	mov.l	@(0x24,r1),r0
+	mov.l	r13,@(0x24,r1)
+	tst	r0,r0
+	bt	t_f3x
+	mov	r13,r2
+	sub	r0,r2
+	mov.l	@(0x28,r1),r0
+	cmp/hi	r0,r2
+	bf	t_f3a
+	mov.l	r2,@(0x28,r1)
+t_f3a:	mov	#125,r0
+	shll2	r0
+	shll	r0			! 1000 ms
+	cmp/hi	r0,r2
+	bf	t_f3x
+	mov.l	@(0x2C,r1),r0
+	add	#1,r0
+	mov.l	r0,@(0x2C,r1)
+t_f3x:
+	.endif
 
 	bsr	touch_preview		! INFO + touch on the strip -> D_PREVIEW, seeks
 	nop
@@ -476,31 +502,22 @@ lp_diag:
 	mov.l	@(D_TICK,r8),r3
 	mov.l	@r3,r13			! now (touch_preview may have read files)
 
-	ld	r0,D_PREVIEW		! 2.1.1 (two Cueline decks, one mixer slot): we only OCCUPY the
-	mov	r0,r1			! mixer's Link Cue slot while the user has this deck engaged, plus
-	mov.w	ca_pws,r0		! a hold; an idle deck announces nothing, so it can never collide
-	mov.l	@(r0,r8),r2		! with the other one. r1 = engaged now, r2 = on the previous pass.
-	mov.l	r1,@(r0,r8)
-	tst	r1,r1
-	bt	1f
-	mov.w	ca_clm,r0		! engaged: hold the slot
-	mov.l	r13,@(r0,r8)
-	tst	r2,r2
-	bf	2f
-	mov.w	ca_edg,r0		! and, on the press itself, open the window in which we ask the
-	mov.l	r13,@(r0,r8)		! mixer for the slot (sa_eng_ok): the newest press wins it
-	bra	2f
-	nop
-1:	mov.w	ca_clm,r0		! not engaged: keep the slot for the hold, then let it go
-	mov.l	@(r0,r8),r1
-	tst	r1,r1
+	bsr	ca_pub			! R22A: D_CLAIM / D_EDGE bookkeeping and our Link Cue claim age,
+	nop				! which the status packet carries to the other Cueline deck
+	mov.l	ca_lcv,r0		! R22B: LINK CUE OFF -> never occupy the mixer's slot at all.
+	mov.l	@r0,r0
+	tst	r0,r0
 	bt	5f
-	mov	r13,r2
-	sub	r1,r2
-	mov.l	ca_hold,r0
-	cmp/hs	r0,r2
-	bt	5f
-2:	ld	r1,D_NEXTST			! every 200 ms: device-17 keepalive
+	mov.l	ca_lcl2,r0		! And announce ONLY while WE hold the claim (state 1 = engaged, plus
+	mov.l	@(4,r0),r0		! cb_hold after the lift) -- 2.1.1's rule. An idle deck (state 0) and
+	cmp/eq	#1,r0			! a deck waiting for the slot (state 2) announce nothing, so two
+	bf	5f			! Cueline decks are never both alive on slot 17.
+					! R22A announced whenever LINK CUE was not OFF, to make the hand-over
+					! free; on the owner's decks that chopped the audio, because a REAL
+					! mixer elects on the announcement, not on who sends the audio. The
+					! two-deck emu rig cannot see this (its A9 elects nothing), so the
+					! announcement window must stay engage-bounded. See R22A_DECKFAIL.md.
+	ld	r1,D_NEXTST			! every 200 ms: device-17 keepalive
 	mov	r13,r2
 	sub	r1,r2
 	cmp/pz	r2
@@ -611,6 +628,9 @@ t_bbx:		.long 0			!   the bbox entry (0 = none)
 t_thb:		.long test_hooks - t_thb
 .endif
 t_cnt:		.long RAMB+0x1FE80	! counters (README: diag)
+	.ifndef	RELEASE
+t_f3:		.long RAMB+0x1FEC0	! F3LOG
+	.endif
 ca_hold:	.long 3000		! 2.1.1: ms we keep the mixer's slot after the finger lifts
 t_owner:	.long RAMB+0x1F7F8	! 1 while our waveform is in the strip
 t_med:		.long MED
@@ -633,8 +653,10 @@ l_bka:		.word D_BCAST
 	.p2align 2
 t_pool:		.long data - t_pool
 t_shared:	.long RAMB+0x1F800
+ca_lcv:		.long LCV		! UTILITY > LINK CUE: 0 OFF (no keepalive at all)
+ca_lcl2:	.long RAMB+0x1E600+0x180	! LINKCLAIM: the claim block (ca_pub; the far pool is out of range)
 
-! Sends the device-17 "CDJ-3000" keepalive, unicast to the A9:50000. This is
+! Sends the device-17 keepalive named "CDJ-3000" (rekordbox's identity, not a real 3000's), unicast to the A9:50000. This is
 ! what makes the A9 treat us as a Touch Audio peer (the election happens via
 ! this keepalive plus the 0x1e engage, not via any 0x29/0x30/0x31 handshake).
 send_keepalive:
@@ -927,25 +949,41 @@ sa_gain:	.word D_GAIN
 	.p2align 2
 sa_cnt:		.long RAMB+0x1FE80	! counters: +0 SENT, +4 PCM, +8 ZERO, +0x18 SND_ERR
 
-! sa_engaged: T = the A9 elected us (E == 1 && T == 0x11). Clobbers r0, r2.
+! sa_engaged: T = the A9 elected us (E == 1 && T == 0x11) AND this deck holds the inter-deck claim.
+! Clobbers r0, r2-r7 (r1 preserved: sa_cont holds B_TX there).
 ! 2.1.1: the number stays 17. It is not a device type but the Pro DJ Link slot the mixer registered for a Link
 ! Monitor source (re/LINK_CUE.md, captures against the real DJM-A9): the A9 elects ONE source (T in its timing
 ! packet) and ignores a number it has not registered -- per-deck numbers (0x12, 0x13) got no timing at all on the
-! owner's rig. Two decks must therefore take turns: UTILITY > LINK CUE = OFF on the one that is not the source.
+! owner's rig. R22A: because BOTH decks use 17, both read "T == 0x11 = I am elected" when both are engaged (that
+! is the owner's "the two interleave for a few seconds"), so the inter-deck claim (ca_pub / sa_silent) decides;
+! the deck that does not hold it sends nothing at all.
 sa_engaged:
+	sts.l	pr,@-r15
+	mov.l	r1,@-r15
 	ld	r2,D_E
 	mov	#1,r0
 	cmp/eq	r0,r2
-	bf	1f
+	bf	se_no
 	ld	r2,D_T
 	mov	#0x11,r0
 	cmp/eq	r0,r2
-1:	rts
+	bf	se_no
+	bsr	sa_silent
+	nop
+	tst	r0,r0			! T = 1: elected and the claim is ours
+	bt	se_out
+se_no:	mov	#1,r0
+	tst	r0,r0			! T = 0
+se_out:	mov.l	@r15+,r1
+	lds.l	@r15+,pr
+	rts
 	nop
 
 ! sa_eng_ok (2.1.1): r0 = 1 while the press window after the last engagement is open, i.e. while this deck may
-! ask the mixer for the Link Cue slot. Uses r0-r2.
+! ask the mixer for the Link Cue slot; R22A: and only while this deck holds the inter-deck claim, so a deck
+! touched while the other one is previewing never asks for the slot at all. Uses r0-r7.
 sa_eng_ok:
+	sts.l	pr,@-r15
 	mov.w	ca_edg2,r0
 	mov.l	@(r0,r8),r1
 	tst	r1,r1
@@ -956,14 +994,214 @@ sa_eng_ok:
 	mov.l	ca_win2,r0
 	cmp/hs	r0,r2
 	bt	1f
+	bsr	sa_silent
+	nop
+	tst	r0,r0
+	bf	1f			! the other deck holds the slot: do not even ask
+	lds.l	@r15+,pr
+	rts
+	mov	#1,r0
+1:	lds.l	@r15+,pr
+	rts
+	mov	#0,r0
+
+! ca_pub (R22A): the press bookkeeping (D_PWAS edge -> D_EDGE, D_CLAIM while the deck is engaged) and this
+! deck's Link Cue CLAIM on the mixer's slot 17, kept at CA_LCLM for mods/keyshift kx_send, which puts it in the
+! spare tail of our 0x180-byte status packet (0x170 'CLC1', 0x174 = the age big-endian).
+!
+! Policy (owner's decision): THE HOLDER KEEPS IT. A deck may take the claim only while no other Cueline deck
+! holds one; if another deck holds it, this deck stays completely silent even with a finger down, so an
+! accidental touch on the idle deck can never cut the preview the DJ is listening to. To switch decks you lift
+! and touch the other one. The holder releases cb_hold ms after the lift, and then the first deck to ask takes
+! it.
+! The claim never sticks: a peer's claim counts only while its status keeps arriving (ca_stale, see ca_scan), so
+! a deck that is powered off, unplugged, crashed or simply gone from the LINK loses it by itself.
+! CA_LCLM: +0 the age in ms since WE took the claim (0 = we do not hold it; what goes on the wire), +4 the state
+! (0 idle, 1 we hold it, 2 we want it but another deck holds it -- sa_silent and the DIAG's C field read this),
+! +8 the tick we took it.
+! r13 = now. Clobbers r0-r7.
+ca_pub:
+	sts.l	pr,@-r15
+	ld	r1,D_PREVIEW
+	mov.w	cb_pws,r0
+	mov.l	@(r0,r8),r2		! r2 = engaged on the previous pass
+	mov.l	r1,@(r0,r8)
+	tst	r1,r1
+	bt	cp_idle
+	mov.w	cb_clm,r0		! engaged: we want the slot
+	mov.l	r13,@(r0,r8)
+	tst	r2,r2
+	bf	cp_want
+	mov.w	cb_edg,r0		! the press edge itself (sa_eng_ok's ask window)
+	mov.l	r13,@(r0,r8)
+	bra	cp_want
+	nop
+cp_idle:
+	mov.w	cb_clm,r0		! not engaged: we keep wanting it for cb_hold past the lift
+	mov.l	@(r0,r8),r1
+	tst	r1,r1
+	bt	cp_rel
+	mov	r13,r2
+	sub	r1,r2
+	cmp/pz	r2
+	bf	cp_rel
+	mov.l	cb_hold,r0
+	cmp/hs	r0,r2
+	bf	cp_want
+cp_rel:					! we want nothing: release, the slot is free for the other deck
+	mov.l	ca_lclm,r1
+	mov	#0,r0
+	mov.l	r0,@r1
+	mov.l	r0,@(4,r1)
+	mov.l	r0,@(8,r1)
+	lds.l	@r15+,pr
+	rts
+	nop
+cp_want:
+	mov.l	ca_lclm,r1
+	mov.l	@r1,r4			! r4 = our claim age (0 = we do not hold it)
+	tst	r4,r4
+	bf	cp_hold
+	bsr	ca_scan			! we want it and do not hold it: only if nobody else does
+	nop
+	tst	#1,r0			! bit 0 = a Cueline peer holds a live claim
+	bf	cp_wait
+	mov.l	ca_lclm,r1		! free: take it
+	mov.l	r13,@(8,r1)
+	mov	#1,r0
+	mov.l	r0,@r1			! age 1 ms (never 0: 0 means "no claim")
+	mov.l	r0,@(4,r1)
+	lds.l	@r15+,pr
+	rts
+	nop
+cp_wait:
+	mov.l	ca_lclm,r1		! another deck holds it: nothing of ours goes on the wire
+	mov	#0,r0
+	mov.l	r0,@r1
+	mov	#2,r0
+	mov.l	r0,@(4,r1)
+	lds.l	@r15+,pr
+	rts
+	nop
+cp_hold:
+	mov.l	@(8,r1),r2		! we hold it: refresh the age
+	mov	r13,r0
+	sub	r2,r0
+	cmp/pz	r0
+	bt	1f
+	mov	#0,r0			! the tick wrapped
+	mov.l	r13,@(8,r1)
+1:	add	#1,r0
+	mov	r0,r4			! r4 = our age, for ca_scan
+	mov.l	r0,@r1
+	mov	#1,r0
+	mov.l	r0,@(4,r1)
+	bsr	ca_scan			! two decks can only hold it at once if they took it in the same
+	nop				! instant, or if one booted before it had heard the other: bit 1 =
+	tst	#2,r0			! that peer's claim wins (the older one, or the lower player number)
+	bf	cp_rel
+	lds.l	@r15+,pr
+	rts
+	nop
+
+! ca_scan (R22A): r4 = our claim age (0 = we hold no claim) -> r0 bit 0 = a Cueline peer holds a live claim,
+! bit 1 = a peer's claim beats ours. mods/keyshift ks3k stores every peer's claim at CA_LCP + player * 8 {the
+! age as sent, the tick it arrived}; a peer's age is corrected by the time since that packet arrived, so both
+! decks compare the same quantity without a shared clock. A claim whose last status is older than ca_stale does
+! not count -- that is the timeout that keeps the slot from sticking. "Beats ours" = its claim is OLDER than
+! ours by more than ca_tie (the holder keeps it), or the two are within ca_tie of each other (they took it in
+! the same instant) and its player number is lower, which both decks decide identically. Uses r0-r3, r5-r7.
+ca_scan:
+	mov	#0,r3			! r3 = the flags
+	mov.l	@(D_TICK,r8),r0
+	mov.l	@r0,r5			! r5 = now
+	mov.l	ca_own,r0
+	mov.b	@r0,r0
+	extu.b	r0,r6			! r6 = our player number
+	mov.l	ca_lcp,r7
+	mov	#1,r2			! r2 = the player being looked at
+cs_loop:
+	mov	r2,r0
+	cmp/eq	r0,r6
+	bt	cs_next			! ourselves
+	mov	r2,r0
+	shll2	r0
+	shll	r0			! player * 8
+	add	r7,r0			! r0 = its entry
+	mov.l	r0,@-r15
+	mov.l	@(4,r0),r1		! the tick its claim arrived (0 = never heard)
+	tst	r1,r1
+	bt	cs_pop
+	neg	r1,r1
+	add	r5,r1			! r1 = ms since it arrived
+	cmp/pz	r1
+	bf	cs_pop
+	mov.w	cs_ttl,r0
+	cmp/hs	r0,r1
+	bt	cs_pop			! its status stopped: no claim (the timeout)
+	mov.l	@r15,r0
+	mov.l	@r0,r0			! its claim age as sent
+	tst	r0,r0
+	bt	cs_pop			! it holds no claim
+	add	r0,r1			! r1 = its age now
+	mov	#1,r0
+	or	r0,r3			! bit 0: a peer holds the slot
+	tst	r4,r4
+	bt	cs_pop			! we hold none: nothing to compare
+	mov	r4,r0
+	sub	r1,r0			! our age - its age (negative: its claim is older)
+	mov.w	cs_tie,r1
+	neg	r1,r1
+	cmp/ge	r1,r0
+	bf	cs_beat			! its claim is clearly older: it keeps the slot
+	mov.w	cs_tie,r1
+	cmp/gt	r1,r0
+	bt	cs_pop			! ours is clearly older: we keep it
+	mov	r2,r0			! the same instant: the lower player number wins
+	cmp/hi	r0,r6
+	bf	cs_pop
+cs_beat:
+	mov	#2,r0
+	or	r0,r3
+cs_pop:
+	add	#4,r15
+cs_next:
+	add	#1,r2
+	mov	#7,r0
+	cmp/eq	r0,r2
+	bf	cs_loop
+	rts
+	mov	r3,r0
+
+! sa_silent (R22A): r0 = 1 while this deck does not hold the Link Cue claim, i.e. while it must put nothing on
+! the wire (no audio, no engage packet, no keepalive while another deck holds the slot). ca_pub keeps the state
+! word every TchAud pass, so this is one load. Uses r0.
+sa_silent:
+	mov.l	ca_lclm,r0
+	mov.l	@(4,r0),r0
+	cmp/eq	#1,r0
+	bt	1f
 	rts
 	mov	#1,r0
 1:	rts
 	mov	#0,r0
+
+	.p2align 1
+cs_ttl:		.word 1500		! ms without a status from a peer after which its claim does not count
+cs_tie:		.word 250		!   ms inside which two claims count as taken in the same instant
 	.p2align 1
 ca_edg2:	.word D_EDGE
+cb_pws:		.word D_PWAS		! (ca_pub's own near pool: the loop's is out of mov.w range here)
+cb_clm:		.word D_CLAIM
+cb_edg:		.word D_EDGE
 	.p2align 2
 ca_win2:	.long 2000
+cb_hold:	.long 3000		! ms the claim outlives the lift (= ca_hold)
+! LINKCLAIM (R22A): the claim words in the link0b block (mods/link0b/link0b.inc L0B = RAMB + 0x1E600, 512 B;
+! link0btx clears it once at boot). CA_LCLM = our age for kx_send, CA_LCP + p * 8 = what ks3k heard from peer p.
+ca_lclm:	.long RAMB+0x1E600+0x180	! +0 our claim age, +4 the state, +8 the tick we took it
+ca_lcp:		.long RAMB+0x1E600+0x1A0
+ca_own:		.long 0x0A35F680	! this deck's player number (1..6)
 
 ! apply_gain: the Link Cue ramps (as the CDJ-3000's 480-sample ones): gain g
 ! (0..512) steps one per frame toward 512 while a finger previews, toward 0
@@ -1040,10 +1278,15 @@ hold_last:
 ! player, slot, type) and +0x2C (rekordbox id) changed. Latched until the
 ! finger leaves the row, so a held finger does not restart it. Clobbers r0-r3.
 lc_onload:
-	mov.l	lo_st,r1
-	mov.l	@(0x28,r1),r2
-	mov.l	@(0x2C,r1),r3
-	xor	r3,r2
+	own_rec	r1, r3			! F1 (ownstat.inc): OUR record -- the fixed slot is the other deck's
+	mov.l	@(0x28,r1),r2		! status with two decks on the LINK, so ITS loads stopped our preview
+	mov.l	@(0x2C,r1),r1
+	tst	r3,r3
+	bf	lo_nat
+	swap.b	r1,r1			! the slot's id is in network order: the same key in both forms
+	swap.w	r1,r1
+	swap.b	r1,r1
+lo_nat:	xor	r1,r2
 	mov.w	lo_key,r0
 	mov.l	@(r0,r8),r3
 	cmp/eq	r2,r3
@@ -1066,7 +1309,6 @@ ag_last:	.word 335 * 4
 lo_key:		.word D_LDKEY
 lo_lat:		.word D_LATCH
 	.p2align 2
-lo_st:		.long 0x0B53D828	! the deck's own status packet
 
 ! readpcm: fills B_TX + 0x2c with 336 s16 stereo frames at 48 kHz from the
 ! open WAV (16/24-bit, mono/stereo, 44.1/48 kHz), linearly interpolated: S
@@ -2212,6 +2454,12 @@ ck_ownusb:	.long 0x0A35F80C + 3 * 0xA8	! the own USB's media record
 ! letter and asks for the index to be rebuilt. r9 = TP state. Keeps r9-r14.
 set_medium:
 	sts.l	pr,@-r15
+	.ifndef	RELEASE			! F3 measurement (DEV; re/F3_INDEX_DESIGN.md §3), F3LOG = RAMB+0x1FEC0:
+	mov.l	sm_f3,r1		!   +0x00 real medium switches (= index rebuilds asked)
+	mov.l	@(0x30,r1),r0		!   +0x04 4 x {the caller's pr, old key << 16 | new key}, slot = switch & 3
+	add	#1,r0			!   +0x24 tick of the TchAud loop's last pass   +0x28 its longest gap, ms
+	mov.l	r0,@(0x30,r1)		!   +0x2C passes that came more than 1 s after the one before
+	.endif				!   +0x30 set_medium calls (same medium included)   +0x34 tick of the last switch
 	bsr	canon_key		! one key per medium (the own USB is "player
 	nop				! 0, slot 3" whoever names it)
 	mov.l	r4,@-r15
@@ -2229,7 +2477,26 @@ set_medium:
 	mov.l	@(4,r2),r0
 	cmp/eq	r1,r0
 	bt	sm_ok
-1:	mov	#TP_PDB,r0		! a change: a LINKed medium's pdb is closed
+1:
+	.ifndef	RELEASE			! F3: a real switch -- who asked, from which medium to which
+	mov.l	sm_f3,r3
+	mov.l	@r3,r0
+	add	#1,r0
+	mov.l	r0,@r3
+	add	#-1,r0
+	and	#3,r0
+	shll2	r0
+	shll	r0
+	add	#4,r0
+	add	r0,r3
+	mov.l	@r15,r0			! (our caller: the pr saved at entry is on top here)
+	mov.l	r0,@r3
+	mov.l	@r2,r0
+	shll16	r0
+	or	r4,r0
+	mov.l	r0,@(4,r3)
+	.endif
+	mov	#TP_PDB,r0		! a change: a LINKed medium's pdb is closed
 	mov.l	@(r0,r9),r3
 	tst	r3,r3
 	bt	2f
@@ -2294,6 +2561,9 @@ sm_fail:
 sm_bpdbp:	.word B_PDBP
 	.p2align 2
 sm_med:		.long MED
+	.ifndef	RELEASE
+sm_f3:		.long RAMB+0x1FEC0	! F3LOG
+	.endif
 sm_tail:	.short ':', '/', 'P', 'I', 'O', 'N', 'E', 'E', 'R', '/'
 		.short 'r', 'e', 'k', 'o', 'r', 'd', 'b', 'o', 'x', '/'
 		.short 'e', 'x', 'p', 'o', 'r', 't', '.', 'p', 'd', 'b', 0
@@ -5327,6 +5597,13 @@ diag_text:
 	add	#8,r4
 4:	bsr	dg_num
 	nop
+	mov	#'C',r0			! R22A: the Link Cue claim -- 0 this deck does not want the slot,
+	mov.w	r0,@r6			! 1 it holds it, 2 it wants it but the other Cueline deck holds it
+	add	#2,r6
+	mov.l	dg_lclm,r1
+	mov.l	@(4,r1),r4
+5:	bsr	dg_num
+	nop
 	mov.l	dg_med,r0		! the medium's letter (C own USB, D.. LINKed)
 	mov.l	@(4,r0),r0
 	mov.w	r0,@r6
@@ -5396,6 +5673,7 @@ dg_999:		.word 999
 dg_cnt:		.long RAMB+0x1FE80
 dg_txt:		.long DIAGT
 dg_lbl:		.long DIAGL
+dg_lclm:	.long RAMB+0x1E600+0x180	! LINKCLAIM: +0 our claim age, +4 the claim state (ca_pub)
 dg_med:		.long MED
 dg_btp:		.long B_TP
 dg_info:	.long 0x0A35F3CC	! display mode: 2 = INFO pop-up on a listed track
@@ -7009,42 +7287,13 @@ cp_ctl:		.long RAMB+0x15010
 cp_buf:		.long RAMB+0x14000
 cp_mag:		.ascii	"PCO2"
 
-! rq_get: r4 / r5 = the own deck's loaded track (+0x28 source player | slot << 8 | type << 16, +0x2C rbid).
-! The own status packet is only filled once the LINK is up (empty in the emu / USB-only): then the MAIN
-! status table's entry of the own player (0x0A371D3C + (n-1) * 0x124, same +0x28 / +0x2C fields) answers.
-! Clobbers r0-r2.
+! rq_get: r4 / r5 = the own deck's loaded track (+0x28 source player | slot << 8 | type << 16, +0x2C rbid,
+! native). F1: the one accessor, ownstat.inc (our own record of the LINK status table; the fixed slot only
+! while we have no player number). Clobbers r0, r1.
 rq_get:
-	mov.l	rq_st,r1		! V4n22: the status table entry FIRST (verified path, also with a LINK
-	mov.l	@(0x28,r1),r4		!   cable); the packet's words stay the answer when the entry is not ours
-	mov.l	@(0x2C,r1),r5
-	swap.b	r5,r5			! V4n25 (deck netlog RC1: CC_RB 0x02000000): the packet's rbid is
-	swap.w	r5,r5			!   big-endian (network order) -- the table entry's is native
-	swap.b	r5,r5
-	mov.l	rq_own,r0
-	mov.l	@r0,r0
-	tst	r0,r0
-	bf	2f
-	mov	#1,r0			! no number before the LINK: player 1's entry
-2:	mov	r0,r2
-	add	#-1,r0
-	mov	#0x24,r1		! * 0x124 = (n-1) << 8 + (n-1) * 0x24
-	mulu.w	r0,r1
-	sts	macl,r1
-	shll8	r0
-	add	r0,r1
-	mov.l	rq_tab,r0
-	add	r0,r1
-	mov.l	@(0x28,r1),r0
-	extu.b	r0,r0
-	cmp/eq	r2,r0			! the entry belongs to the own player
-	bf	1f
-	mov.l	@(0x28,r1),r4
-	mov.l	@(0x2C,r1),r5
-1:	rts
+	own_loaded
+	rts
 	nop
-	.p2align 2
-rq_own:		.long 0x0A35F680
-rq_tab:		.long 0x0A371D3C
 
 ! rv_cue (V4b1, from row_waves' tail, r9 = TP state): the deck's own loaded track changed (status +0x28 /
 ! +0x2C, as lc_onload): an empty cue block for the new rbid is published at once (the display drops the old
@@ -7161,7 +7410,6 @@ rq_1s:		.word 1000
 rq_boot:	.long 0x0A35DF3C
 rq_ctl:		.long RAMB+0x15010
 rq_arc:		.long RAMB+0x15030
-rq_st:		.long 0x0B53D828
 rq_med:		.long MED
 rq_tp:		.long tp_resolve - rq_tp
 rq_ck:		.long canon_key - rq_ck

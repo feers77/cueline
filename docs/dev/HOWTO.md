@@ -115,7 +115,7 @@ No runtime code writes to the DSP: code is loaded by the stock boot path only.
 Maintainers only. A release has one RELEASE and one DEV reference build from the same sources.
 
 1. **Freeze and tag.** All changes merged; update `CHANGELOG.md` and the release notes; choose the tag
-   (`V4r211e` / `V4n211e` style) and the bump (above every previous release).
+   (`R22R2r` / `R22R2n` style) and the bump (above every previous release).
 2. **Rebuild from a clean clone**, both profiles, with the reference toolchain (`REF_TOOLS` in `build.sh`):
    ```
    git clone <repository> cueline && cd cueline

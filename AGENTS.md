@@ -37,8 +37,8 @@ Reference versions: binutils 2.42, Python 3.12, Pillow 12.1.1, fontTools 4.61.1.
 python3 builder/cueline_patch.py /path/to/C2KNXS2.UPD          # writes Cueline/C2KNXS2.UPD next to the input
 ```
 It verifies the input sha256, applies `builder/cueline.delta` (our prebuilt patch data; `builder/cueline.delta`
-sha256 `6809d72584d8e16576a4252f6cb63a67904079ebc239854eb6b081939e59c55d`), repacks, and checks the output sha256 equals `765790f583f1365ef42d7bfd5ad09af4736a730e0edbfe888337ec5929755650`. On Windows the same tool is
-`CuelineBuilder.exe` (release asset, sha256 `c38f86e3f3dafc0d9fab7ff5dc980b4e5fda0ea5fb606817c66c8010d04413d7`; unsigned: SmartScreen may warn). On macOS it is `CuelineBuilder-macOS.zip` (release asset, sha256 `b4b51ea319e7f9324372d617be474d2d7bae99e14276a361494be828f62674f3`; universal app, not notarized: the first time, System Settings -> Privacy & Security -> Open Anyway). In a browser: the Cueline Web Builder (https://feers77.github.io/cueline/webbuilder/), same output.
+sha256 `b9d05e7aa686b39be7ed033ef968446b98e230ad43cb4b3eee2bc88879f5799b`), repacks, and checks the output sha256 equals `3a295ac2552b1d83edb55c0bd58db311c5adba496c7d3f4d2505786ff0bad548`. On Windows the same tool is
+`CuelineBuilder.exe` (release asset, sha256 `cc110f45afbf3a4d1c54b5b2786f51473da708f962e5b29601def797c3b7b1c5`; unsigned: SmartScreen may warn). On macOS it is `CuelineBuilder-macOS.zip` (release asset, sha256 `9e0e813c4a045255a08c9f6b65ac59217522e183ec6084a65bd4eb13a1189a8f`; universal app, not notarized: the first time, System Settings -> Privacy & Security -> Open Anyway). In a browser: the Cueline Web Builder (https://feers77.github.io/cueline/webbuilder/), same output.
 
 ## 3. Build from source (paranoid path)
 From the repository root:
@@ -47,11 +47,11 @@ From the repository root:
 ```
 Takes a few minutes. Expected end of the output:
 ```
-build.sh: wrote .../out-release/C2KNXS2.UPD  [profile release, build ID "Cueline-2.1.1 20261120-2037 1c1a45f3"]
-  sha256    765790f583f1365ef42d7bfd5ad09af4736a730e0edbfe888337ec5929755650
+build.sh: wrote .../out-release/C2KNXS2.UPD  [profile release, build ID "Cueline-2.2 20261122-0208 7c0049ef"]
+  sha256    3a295ac2552b1d83edb55c0bd58db311c5adba496c7d3f4d2505786ff0bad548
   verify    verify_update: all checks passed
   bootcheck PASS  ...
-  == V4r211e reference build, byte-identical (sha256 765790f583f1365ef42d7bfd5ad09af4736a730e0edbfe888337ec5929755650)
+  == R22R2r reference build, byte-identical (sha256 3a295ac2552b1d83edb55c0bd58db311c5adba496c7d3f4d2505786ff0bad548)
 ```
 Exit codes: 0 = identical to the reference; 2 = built and checked, but the sha differs (other tool versions:
 acceptable if verify and bootcheck passed); 1 = error (do not install).
@@ -69,13 +69,13 @@ autotest). Only for testing; see dev/README.md.
 1. Save MY SETTINGS with rekordbox if they use them (the next step erases the deck settings).
 2. Disconnect the Pro DJ Link (LAN) cable (while LINK is active the player does not allow DUPLICATION -> DEFAULT),
    then UTILITY -> DUPLICATION -> DEFAULT (factory reset). This clears the installed version, so the update is not
-   skipped (not needed over Cueline 2.1, since 2.1.1 has the higher version; needed over a build with the same or a
+   skipped (not needed over Cueline 2.1 / 2.1.1, since 2.2 has the higher version; needed over a build with the same or a
    higher version number, such as a DEV build).
 3. Copy `out-release/C2KNXS2.UPD` alone to the root of a small FAT32 USB stick.
 4. Deck off, insert the stick, start the update as in Pioneer's official CDJ-2000NXS2 update guide, wait for
    complete, power-cycle. Never switch off during the update.
-5. UTILITY > INFO > BUILD shows `Cueline-2.1.1 1c1a45f3`.
-6. Tell them 2.1.1 is the current stable release (2.1, confirmed on real decks, plus the Link Cue fix), but it is unofficial: test at home before a gig, keep the
+5. UTILITY > INFO > BUILD shows `Cueline-2.2 7c0049ef`.
+6. Tell them 2.2 is the current stable release (a stability release confirmed on real decks; KEY SHIFT / KEY SYNC are switched off until 2.3), but it is unofficial: test at home before a gig, keep the
    official 1.87 on a stick, report bugs in GitHub Issues.
 7. Back to stock (explain all of it):
    a. Why: Cueline has a higher version number, so the deck skips the official 1.87 until the installed version is

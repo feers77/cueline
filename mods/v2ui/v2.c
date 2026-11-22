@@ -4804,6 +4804,18 @@ HOT static int master_mini(int cx, int lx, int rx, s32 mph, u32 mbar, u32 bl_rea
 			}
 			x0 += k;
 		}
+		{	/* A14 (owner's deck photo, LIGHT MODE): the tick lanes of the CPU-drawn part get the colour the GR1
+			 * layer gives them (g1_col's c->blk). Only the wave's 29 rows were painted here, so in LIGHT the
+			 * lanes showed the light panel for the first MM_FADE px and black from there on. Rows as mm_tick /
+			 * g1_col: cy - 26 .. cy - 15 and cy + 15 .. cy + 25. Normal and FULL: the colour already there. */
+			int iw = in_wave;
+			u16 lane;
+			in_wave = 0; lane = dm(C_BLACK); in_wave = iw;
+			if (MM_RX > lx) {
+				fill(lx, cy - 26, MM_RX - lx, 12, lane);
+				fill(lx, cy + 15, MM_RX - lx, 11, lane);
+			}
+		}
 		/* HALFBLUE (B11): the CDJ-3000's master waveform widget::GradationShader (: a 60-px
 		 * wide child at the widget's left, ColourGradient::horizontal(0x67C2950 @0 -> 0x67C29F0 @60) 0x1D17070):
 		 * the master wave fades in over its first 60 px -- x 0.625 here (the UI scaling rule) = 38 px */
@@ -5980,7 +5992,8 @@ static void text_u16_mq(const struct font *f, int x, int y, const volatile u8 *s
 	text_u16(f, x - off + tw + gap, y, s, n, xmax, fg, bg);
 	clip_x0 = 0;
 }
-/* V4n10: the tracks previewed this session (the 3000 keeps their rows dark green) -- rowwave track ids */
+/* V4n10: the tracks previewed this session. NOT shown any more: the 3000's skin has no "previewed" colour (the
+ * dark green these rows had is its PLAYED colour); kept for the row hash only */
 static u32 pv_ids[64], pv_n;
 static int pv_seen(u32 id)
 {
@@ -5997,8 +6010,12 @@ static void pv_note(u32 id)
 	if (id && !pv_seen(id))
 		pv_ids[pv_n++ & 63] = id;
 }
-/* V4n26 (user, CDJ-3000): every track loaded on this deck this session (incl. CONTINUE / track search loads,
- * as MAIN's cue block names them) keeps its row green in the browser */
+/* Row colours as the CDJ-3000's skin has them (re/LINKCUE_3000_COMPARE.md): "playing" #00FF00 and
+ * "played" #168B16 (#3EB33E on the cursor row); there is NO colour for a row that was only previewed. A track is
+ * "played" once it was loaded on this deck AND played (owner: a preview alone must not mark it; V4n26 registered
+ * every LOAD, and the previewed rows took the played colour's dark green). */
+#define C_PLAYED 0x1462		/* #168B16 */
+#define C_PLAYED_CUR 0x3D87	/* #3EB33E */
 static u32 pl_ids[64], pl_n;
 static int pl_seen(u32 id)
 {
@@ -6027,6 +6044,8 @@ static void pl_track(void)
 	u32 rb = cue_rbid(), h;
 	int n;
 	if (!rb || rb == pl_last_rb)
+		return;
+	if (!deck_playing())		/* loaded is not played: asked again every frame until it plays */
 		return;
 	n = main_title(t);
 	if (n <= 0)
@@ -6078,12 +6097,10 @@ static void track_row(int sid, int k, int y, int h, int x1, u32 sid1, int unfocu
 	u32 num = row_no(k);
 	u16 bg = V3E_PROW == k && !cursor ? C_PRESS : cursor ? (unfocus ? C_UNF : C_SEL) : (k & 1) ? C_ROW2 : C_BLACK;
 	u16 fg = (flags & 1) && !cursor ? C_DIM : C_WHITE;
-	if (V3E_PV_ROW == k + 1)
-		fg = 0x07E0;		/* V4n10 (3000): the row being previewed: bright green */
-	else if ((pl_track(), pl_seen(row_th(sl))))
-		fg = C_GREEN;		/* V4n26: already played on this deck (3000) */
-	else if (pv_seen(row_th(sl)))
-		fg = 0x1462;		/* #168B16: already previewed */
+	/* the row being previewed keeps its WHITE text on the 3000 (seen running, re/LINKCUE_3000_LIVE_1121.md: its
+	 * small waveform is greyed with a green line at the playing point; R22D1 still had bright green text here) */
+	if (pl_seen(row_th(sl)))
+		fg = cursor ? C_PLAYED_CUR : C_PLAYED;	/* loaded and played on this deck this session */
 	fill(RAIL_W, y, x1 - RAIL_W, h, bg);
 	if (!n && !id)
 		return;
@@ -6125,7 +6142,7 @@ static void track_row(int sid, int k, int y, int h, int x1, u32 sid1, int unfocu
 		x += icon_id(0x0F, x, y + h / 2, C_GREEN, bg) + 6;
 	else if (id == 0x2F || id == 0x5A || id == 0x31 || id == 0x3C) {
 		icon_scaled(V2A_TITLE_TRACK, x, y + h / 2 - 9, 12, 18,
-			    id == 0x5A || (!cursor && pl_seen(row_th(sl))) ? C_GREEN : C_WHITE, bg);
+			    id == 0x5A ? C_GREEN : pl_seen(row_th(sl)) ? (cursor ? C_PLAYED_CUR : C_PLAYED) : C_WHITE, bg);
 		x += 18;
 	} else if (id)
 		x += icon_id(id, x, y + h / 2, C_WHITE, bg) + 6;
@@ -7770,8 +7787,8 @@ static void browse(void)
 			h = hmix(hmix(hmix(h, u32be(sl + 0x0C)), u16be(sl + 0x14)), u32be(sl + 0x1C));
 			h = hmix(h, (u32)(V3E_PROW == k) + 2 * (u32)KF_CLASSIC);	/* V4n6: the pressed row; V4n36 KEY FORMAT */
 			if (V3E_PV_ROW == k + 1)
-				pv_note(row_th(sl));	/* V4n10: previewed -> dark green afterwards */
-			h = hmix(h, (u32)pv_seen(row_th(sl)));
+				pv_note(row_th(sl));
+			h = hmix(h, (u32)pl_seen(row_th(sl)));	/* redraw when the row becomes "played" */
 			if (u32be(sl + 0x1C)) {
 				const volatile u16 *a = SMALL_ART(k + 1);
 				h = hmix(h, a[0] ^ a[561] << 16);
@@ -7895,6 +7912,7 @@ static int trans_frames;
 static u32 trans_t0;	/* D1: now_ms() of the first held frame (the hold is timed, not counted) */
 static u32 now_ms(void);
 u32 v2_trans_held;
+u32 v2_trans_curms, v2_trans_maxms;	/* R22F1: ms the browse list has been empty on a screen we hold; the longest since boot */
 static int screen_mode(void)
 {
 	int sid;
@@ -7923,11 +7941,13 @@ static int screen_mode(void)
 		/* D1 (emu stress, Mac display model: stock's own empty browse frame for ~0.5 s, 2.25 s after closing
 		 * SHORT CUT over a browse whose list was slow to come): the 120-frame hold ran out at 60 fps -- it is
 		 * timed now, 4 s (the MAIN-busy one below 15 s, was 900 frames) */
-		if (trans_from != M_NONE && (!trans_frames || now_ms() - trans_t0 < 4000))
-			return M_BROWSE;
-		/* V3e1: header byte 3 bit 4 = MAIN busy (seen for seconds after a Link Cue row preview, then a
-		 * BACK): stock would show its own empty frame -- keep ours (rail, empty rows, the spinner) */
-		if (trans_from != M_NONE && (MODEL[3] & 0x10) && (!trans_frames || now_ms() - trans_t0 < 15000))
+		/* R22F1 (kit dry run, poisoned emulator: 45 s of never-drawn surface over a stale pop-up, the track
+		 * playing -- the owner's "stuck screen"): the hold used to run out (4 s; 15 s with MAIN busy) and the
+		 * screen went to stock. But for stock nothing had changed -- same screen id, its windows "drawn" (we had
+		 * skipped every draw) -- so it redrew nothing and composed surfaces nobody ever painted, until the next
+		 * screen change. A browse screen we were painting is never handed back: empty rows, the rail and the
+		 * spinner stay ours for as long as the list takes. (v2_trans_held still counts the held frames.) */
+		if (trans_from != M_NONE)
 			return M_BROWSE;
 	}
 	return M_NONE;
@@ -7946,9 +7966,12 @@ static int own_now, own_mode;
  * under-bar, playhead...) are wholly ours while we own the screen: their "composited" bit (+7
  * bit 3, tested by the flush) is cleared so the flush neither copies nor composes them, and
  * restored on leaving -- except z 54/57/59 while INFO (screen 6) is up, which ui3000x hides. */
-static volatile u8 *hidden[32];
-static int hidden_z[32];
+#define N_HIDDEN 64	/* F2 audit: was 32. Full = a window is not taken over this frame (it stays out of the panel: the
+			 * compose gate asks per window, not this list), counted in v2_hid_full */
+static volatile u8 *hidden[N_HIDDEN];
+static int hidden_z[N_HIDDEN];
 static int n_hidden;
+u32 v2_hid_full;
 static int hidden_has(volatile u8 *w)
 {
 	int k;
@@ -7994,11 +8017,11 @@ static const struct orule { u8 modes, zlo, zhi, act; } orules[] = {
 	 * window, O_OWN here only when no stock-drawn pop-up is up (2.01-a, see oclass) */
 	{ V2_OWN_TOP, 128, 134, O_OWN },
 	{ V2_OWN_TOP, 136, 137, O_OWN },
-	{ MB(M_BROWSE) | MB(M_SHORTCUT) | MB(M_PINFO), 64, 79, O_OWN },
+	{ MB(M_BROWSE) | MB(M_SHORTCUT) | MB(M_PINFO), 64, 79, O_OWN },	/* list rows, title marquee, INFO artwork
+										 * (F2 audit: two O_KEEP rules for the same modes
+										 * and z stood below this one, never reached) */
 	{ M_ALL, 128, 134, O_KEEP },		/* the top windows (one per screen) */
 	{ M_ALL, 136, 137, O_KEEP },
-	{ M_ALL & ~MB(M_PLAYER), 64, 79, O_KEEP },	/* list rows, title marquee, INFO artwork */
-	{ MB(M_PINFO), 78, 78, O_KEEP },
 };
 static int oclass(volatile u8 *w)
 {
@@ -8085,6 +8108,30 @@ static int ours_w(volatile u8 *w)	/* stock neither draws, clears nor composes th
 static int hide_win(volatile u8 *w)	/* kept out of the composition on the screen we own */
 {
 	return own_mode != M_NONE && u32be(w + 28) == LAYER0 && oclass(w) != O_KEEP;
+}
+/* F2 the compose gate (entry.S comp_e, from the flush's window loop 0x0E509A1C): 1 = this window is not composed.
+ * manage() / ovl_scan() take a window out of the composition by clearing its "composited" bit, but only once they
+ * have SEEN it: a window stock creates and composes in the same pass reached the frame buffer first -- and where
+ * it is ours (O_OWN: stock never draws it) that is a surface nobody ever drew. Black in the emulator (QEMU RAM is
+ * zeros), white or coloured garbage on the deck: the INFO white panel and the corrupted bands (emu, CDJ_GUI_POISON:
+ * one field of 800 x 294 / 800 x 430 / the 600 x 40 preview strip / the needle marker). The screen we own is read
+ * NOW, not from the frame's cached own_mode, so the first flush of a screen change is covered too. Not owned (stock
+ * screens, update mode: screen_mode() = M_NONE) = stock, untouched. The bit itself is left alone: ovl_scan still
+ * finds the window "composed", takes it over and repaints as before. */
+u32 v2_comp_hid, v2_comp_n;
+static void frame_tick_late(void);
+int v2_compose_hide(u32 win)
+{
+	volatile u8 *w = (volatile u8 *)win;
+	int keep = own_mode, r;
+	v2_comp_n++;
+	own_mode = screen_mode();
+	frame_tick_late();		/* A10: the tick that does not depend on stock drawing a window */
+	r = !w || !(w[7] & 8) || hide_win(w);	/* stock's own test first: not "composited" = not composed */
+	if (w && (w[7] & 8) && r)
+		v2_comp_hid++;
+	own_mode = keep;
+	return r;
 }
 static int info_z(int z) { return z == 54 || z == 57 || z == 59; }
 /* 2.01-a (R21D3, coordinator: REMOVE ALL TRACKS' selected option was light text on the white cursor bar): the
@@ -8211,7 +8258,7 @@ static void manage(void)
 	n_hidden = j;
 	if (!own_now)
 		return;
-	for (i = 0; i < 256 && n_hidden < 32; i++) {
+	for (i = 0; i < 256; i++) {
 		volatile u8 *w = WPOOL + 160 * i;
 		if (!(u32be(w) & 0x40000000) || u32be(w + 28) != LAYER0)
 			continue;
@@ -8219,6 +8266,10 @@ static void manage(void)
 			continue;
 		if (!(w[7] & 8))
 			continue;
+		if (n_hidden >= N_HIDDEN) {
+			v2_hid_full++;
+			break;
+		}
 		w[7] &= ~8;
 		hidden[n_hidden] = w;
 		hidden_z[n_hidden++] = wz(w);
@@ -8319,10 +8370,11 @@ static int ovl_scan(void)
 			}
 			for (k = 0; k < n_hidden; k++)
 				known |= hidden[k] == w;
-			if (!known && n_hidden < 32) {
+			if (!known && n_hidden < N_HIDDEN) {
 				hidden[n_hidden] = w;
 				hidden_z[n_hidden++] = wz(w);
-			}
+			} else if (!known)
+				v2_hid_full++;
 		}
 		if (oclass(w) == O_OVL && n_ovl < 4 && hidden_has(w))
 			ovl[n_ovl++] = w;
@@ -8637,6 +8689,7 @@ static int inputs_changed(void)
 	return 0;
 }
 
+static void frame_inputs(void);
 static void frame_check(void)
 {
 #ifdef V2_HWBAND
@@ -8658,6 +8711,24 @@ static void frame_check(void)
 		seen_epoch = v2_epoch;
 		manage();
 	}
+	frame_inputs();
+}
+/* the screen's inputs, sampled (at most every 8 ms): a change keeps the flush flipping, so our paint runs.
+ * F2 audit (A10, owner: the whole screen stuck under a playing deck, updating only now and then): this used to
+ * run from stock's draw / clear callbacks alone -- a pass in which stock drew none of its windows sampled nothing,
+ * and a screen that had stopped flipping stayed asleep whatever MAIN sent. It is now also called from the flush's
+ * window loop (v2_compose_hide), which every flush runs through. */
+/* ... but only as the FALLBACK, when the callbacks have not sampled for 100 ms. R22C4 sampled from both places
+ * every pass. In normal use it never acts, so the paint pacing is exactly what it was. (Measured, work/r22/base.sh,
+ * 4 x 6 s a state, DEV builds: R22C3n before and R22C5n after show the same two rates, ~60 and ~95 flips a second,
+ * in every state -- the emulator's own bimodal pacing, which is also all that play3's 59.0 vs 76.6 was.) */
+static void frame_tick_late(void)
+{
+	if (now_ms() - det_ms >= 100)
+		frame_inputs();
+}
+static void frame_inputs(void)
+{
 	if (own_mode != M_NONE) {
 		int c = inputs_changed();
 		static u32 chg_t;
@@ -9051,7 +9122,7 @@ static void kit_push(u32 t)
 		k[i] = 0;
 	k[0] = 0x4B495431u;	/* 'KIT1' */
 	k[1] = (u32)MODEL[7] | (u32)(screen_mode() & 0xFF) << 8 | (u32)pop_on() << 16 | (u32)pop_ours() << 17 |
-	       (u32)pst_on << 18 | (u32)pop_nosync << 19 | (MODEL[0x0F] ? 1u : 0u) << 20 | (ga_tch ? 1u : 0u) << 21 |
+	       (u32)pst_on << 18 | 0u << 19 /* pop_nosync: the variable went with R21D5 (the bit stays 0) */ | (MODEL[0x0F] ? 1u : 0u) << 20 | (ga_tch ? 1u : 0u) << 21 |
 	       (own_now ? 1u : 0u) << 22 | (V3E_PROW >= 0 ? 1u : 0u) << 23;
 	for (i = 0; i < 16; i++) {	/* side-1 slot 0 = the pop-up's title (ASCII, 16 chars) */
 		u32 c = (int)i < n ? u16be(tt + 0x2A + 2 * i) : 0;
@@ -9097,7 +9168,10 @@ static void kit_push(u32 t)
 	k[22] = smk_ck;
 	k[23] = kit_sdraw; kit_sdraw = 0;
 	k[24] = kit_pblit; kit_pblit = 0;
-	k[25] = 1;		/* KIT record version */
+	/* KIT record version (bits 0..7); R22F1: a list of ours standing empty -- bits 8..19 the longest since boot
+	 * (16 ms units, 65 s cap), bits 20..30 now (64 ms units, 131 s cap) */
+	k[25] = 1 | ((v2_trans_maxms >> 4) > 0xFFF ? 0xFFF : (v2_trans_maxms >> 4)) << 8 |
+	        ((v2_trans_curms >> 6) > 0x7FF ? 0x7FF : (v2_trans_curms >> 6)) << 20;
 	usblog_push(k, t);
 }
 #endif
@@ -9157,6 +9231,7 @@ static int paint_frame(u32 base)
 #endif
 	read_flags();
 	det_track();
+	pl_track();	/* "played" is registered while the deck plays, whatever screen is up (was: when a row was drawn) */
 	lg_poll();		/* V4n30a: the load gate */
 	{	/* LOADFIX (deck V4n44: TRACK SEARCH on a paused deck -- no band / overview / time until PLAY): the
 		 * gate opens on TIMED conditions (art "none" 250 ms after the title, no cue block 400 ms after the
@@ -9214,10 +9289,16 @@ static int paint_frame(u32 base)
 			if (building) {
 				if (!trans_frames++)
 					trans_t0 = now_ms();
+				else {	/* R22F1: how long a list of ours has stood empty (the kit's report reads the max) */
+					v2_trans_curms = now_ms() - trans_t0;
+					if (v2_trans_curms > v2_trans_maxms)
+						v2_trans_maxms = v2_trans_curms;
+				}
 				v2_trans_held++;
 				pend = 1;
 			} else {
 				trans_frames = 0;
+				v2_trans_curms = 0;
 				trans_from = m;
 			}
 		}
@@ -9649,8 +9730,12 @@ static int paint_frame(u32 base)
 				int x;
 				for (x = 0; x < W / 2; x++)
 					if (a[x] != c[x]) {
-						sm_pend[0] |= 1u << q;
-						sm_pend[1] |= 1u << q;
+						/* F2 audit: something else wrote this GR3 buffer. One foreign row means
+						 * the buffer is not what we painted -- the whole canvas again to both
+						 * buffers and keep painting, not this one band (4 rows a frame at one
+						 * frame a second took minutes to clear a stuck artifact) */
+						sm_pend[0] = sm_pend[1] = SM_ALL;
+						pend = 1;
 						v2_heal++;
 						v2_heal_y = (u32)y;
 						break;
@@ -9659,7 +9744,8 @@ static int paint_frame(u32 base)
 			}
 			sh_row = sh_row + 7 >= 120 ? sh_row + 7 - 120 : sh_row + 7;
 		}
-		pm = sm_pend[tb];
+		pm = sm_pend[tb] & SM_ALL;	/* F2 audit: bands 0..29 only -- a stray bit 30 / 31 would spin the loop below
+						 * for ever (b stops at 30, nothing clears it): a dead GUI under a live MAIN */
 #ifdef V2_SM_CHECK
 		{	/* gate-only: every band NOT pending must already match the canvas in this buffer (a miss
 			 * = a primitive that wrote the canvas without dmark, or stock writing a GR3 buffer) */

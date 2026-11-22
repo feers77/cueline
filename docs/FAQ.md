@@ -24,7 +24,7 @@ See also: `USER_GUIDE.md` (every feature) and `KNOWN_LIMITS.md` (what does not w
 3. Switch the deck off. Insert the stick.
 4. Start the update exactly as Pioneer DJ's official CDJ-2000NXS2 update guide describes.
 5. Wait until the update reaches 100 % and says it is complete. Then switch the deck off and on.
-6. Check UTILITY > INFO > **BUILD**. It must show `Cueline-2.1.1 1c1a45f3`.
+6. Check UTILITY > INFO > **BUILD**. It must show `Cueline-2.2 7c0049ef`.
 
 **Never switch the deck off, and never pull the stick, while the update runs.**
 
@@ -153,12 +153,18 @@ Pioneer files, and never flash anything itself.
 
 ### Where do I see which version I run?
 
-UTILITY > INFO > **BUILD** shows the build, for example `Cueline-2.1.1 1c1a45f3`. UTILITY > VERSION No. shows the version
+UTILITY > INFO > **BUILD** shows the build, for example `Cueline-2.2 7c0049ef`. UTILITY > VERSION No. shows the version
 number.
+
+### Where are KEY SHIFT and KEY SYNC?
+
+They are switched off in Cueline 2.2. The engine of 2.1 did not sound right on its own, so 2.2 hides the UTILITY
+rows and holds both off; the grey KEY SHIFT tile stays in the header. They return in 2.3 with a new engine. We
+recommend updating to 2.2 anyway (2.1.1 has display bugs that 2.2 fixes); 2.3, with both back, is the next release.
 
 ### Some of my settings go back to default after power-off.
 
-- WAVEFORM (FULL / HALF), KEY FORMAT, KEY SHIFT, KEY SYNC BUTTON and the BEAT JUMP value are saved with the
+- WAVEFORM (FULL / HALF), KEY FORMAT and the BEAT JUMP value are saved with the
   HISTORY NAME. They are only kept if your **HISTORY NAME is 29 characters or fewer**. Shorten it in UTILITY >
   SYSTEM > HISTORY NAME.
 - The kill switches, BEAT NUMBERS and GRID ADJUST are **never** saved. They are ON at every power-on. This is on
@@ -210,7 +216,7 @@ If the problem stays, go back to stock (see above) and play your gig on the offi
 
 ### How do I report a bug?
 
-1. Note UTILITY > INFO > **BUILD** (for example `Cueline-2.1.1 1c1a45f3`).
+1. Note UTILITY > INFO > **BUILD** (for example `Cueline-2.2 7c0049ef`).
 2. If you run the DEV build, try the matching kill switch. If the problem goes away, say which one.
 3. Open an issue on the project's GitHub page. Include:
    - the BUILD id;

@@ -109,7 +109,10 @@ repaints every couple of seconds under emulation.
   deck elected), packets per second (143 while previewing; 0 when idle), the
   export.pdb index state X (0 not started, 1 building, 2 ready, 3 failed --
   retried every 10 s), S = state bits (1 finger down, 2 track resolved, 4 the
-  strip shows our waveform, 8 INFO on a track: 9 = INFO + finger). Label
+  strip shows our waveform, 8 INFO on a track: 9 = INFO + finger), C = the
+  inter-deck Link Cue claim (R22A: 0 this deck does not want the mixer's
+  slot, 1 it holds the claim, 2 it wants it but the other Cueline deck holds
+  it, so this deck is silent). Label
   column (the task rewrites the item's label): `M0 Y0 W0 A0` = election
   timeouts (M: one per preview the mixer let go, benign), pacer resyncs (Y:
   stalls over 84 ms), strip redraws (W: the deck overwrote the preview
@@ -142,10 +145,41 @@ repaints every couple of seconds under emulation.
 - A short read (the end of the track) is silence, never the stale buffer;
   a preview ends where the track ends (no wrap).
 - While elected and idle (no finger down) the task sends nothing (the
-  behaviour proven on the deck; a CDJ-3000 keeps sending zero packets with
-  I=0 -- a later step). Without a timing packet for 1 s it counts itself not
+  behaviour proven on the deck). A CDJ-3000, observed running
+  (re/LINKCUE_3000_LIVE_1121.md): nothing before its first request, even
+  when already elected; after a request it answers EVERY timing packet for
+  as long as it keeps the channel, with zero PCM when no preview sounds --
+  a later step for us. Without a timing packet for 1 s it counts itself not
   elected again (the zero packets then carry I=1, the engage request);
   timing is taken only from the mixer's ip (the one its keepalive announced).
+- **Two Cueline decks, one Link Cue slot (R22A).** The device byte 17 is the
+  Pro DJ Link slot the mixer registered as a Link Monitor source, so both
+  decks use it and both read the mixer's `T == 0x11` as "I am elected" -- with
+  both engaged at once they interleaved their audio. The decks therefore
+  arbitrate between themselves, and the rule (the owner's) is **the holder
+  keeps it**: while one deck holds the claim the other one does not take it
+  even if its user engages it, it simply stays silent, so an accidental touch
+  on the other deck can never cut the preview you are listening to. To switch
+  you lift and touch the other deck.
+  `ca_pub` keeps this deck's claim at `RAMB + 0x1E780`: `+0` the ms since we
+  took it (0 = we hold nothing, and this is what goes on the wire), `+4` the
+  state (0 idle, 1 we hold it, 2 we want it but the other deck holds it),
+  `+8` the tick we took it. `mods/keyshift` `kx_send` puts
+  `{'CLC1', the age big-endian}` at `0x170` of our own 0x180-byte status
+  packet, but only towards another Cueline deck (class 2), and `ks3k` stores
+  each peer's `{age, arrival tick}` at `RAMB + 0x1E7A0 + player * 8`.
+  `ca_scan` decides: a peer's claim counts only while its status keeps
+  arriving (**1 500 ms**, ~5 status periods -- a deck that is powered off,
+  unplugged, crashed or off the LINK loses the slot by itself, which is why
+  it can never stick), the holder keeps the slot, and two claims taken within
+  250 ms of each other (the same instant, or one deck booting before it had
+  heard the other) go to the lower player number, which both decks decide
+  identically. `sa_silent` is the single word every sender reads: a deck that
+  does not hold the claim sends no audio and no engage packet, and while it
+  *wants* the slot that the other deck holds it stops its keepalive too. An
+  idle deck keepalives as in 2.1, so the slot stays registered with the mixer
+  and a hand-over costs no re-registration -- the delay the owner reported in
+  2.1.1.
 - Formats are refused rather than overrun: MP3/FLAC above 48 kHz (a packet's
   source frames would not fit the raw buffer) and M4A/AAC (by the export
   row's file type; dr_mp3 would scan the whole file for a sync).

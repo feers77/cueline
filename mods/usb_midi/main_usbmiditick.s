@@ -56,6 +56,7 @@
 ! State: the nine words after the first 8 bytes, which main_usbmidi.s reaches
 ! from its own end (patch_main places this file right after it).
 ! The routine touches r0-r7 and r8-r10 (saved).
+	.include "ownstat.inc"
 
 	.text
 	.global usbmiditick
@@ -240,7 +241,7 @@ out:
 
 	.p2align 2
 p_device:	.long 0x0AB84CFA
-p_record1:	.long 0x0A371D3C + 0x124	! the record of player 1
+p_record1:	.long LINK_TAB + LINK_STRIDE	! the record of player 1
 p_period:	.long 250000
 p_gate:		.long 0x10DE1FA4
 p_lens:		.long 0x0BD4B0F4	! committed length per buffer

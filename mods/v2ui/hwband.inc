@@ -855,6 +855,9 @@ static int hb_frame(int mlab, u32 bpm10)
 				}
 			}
 		}
+		if (U < 0)	/* F2 audit: cannot happen while hb_disp is -1 / 0 / 1 (the ring off the panel is always
+				 * usable); if it ever is not, the software band this frame -- never hbr[-1] */
+			return 0;
 		V = us[1 - U] ? 1 - U : -1;
 		joint = V >= 0 && hbr[U].lo == hbr[V].lo && hbr[U].hi == hbr[V].hi;
 		if (joint && hbr[U].ph) {

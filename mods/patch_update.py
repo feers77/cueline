@@ -59,6 +59,7 @@ sys.path.insert(0, FIRMWARE)
 
 import patch_gui
 import patch_main
+import check_ownstat
 import lang8
 from font3000 import font3000     # mods/font3000/font3000.py
 from v2ui import v2ui             # mods/v2ui/v2ui.py (V2 UI renderer)
@@ -380,6 +381,7 @@ def main():
     if len(args) < 2:
         raise SystemExit(__doc__)
     in_path, out_path = args[0], args[1]
+    check_ownstat.check()       # F1: one accessor for the deck's own status (mods/ownstat.inc)
     check_committed_bins()
 
     # A row's name wins over a patch of the same name: `osc` is the whole osc

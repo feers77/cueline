@@ -27,6 +27,7 @@
 ! Update safety: only on *0x0A35DF3C == 1; no malloc, no task; r8-r13 saved.
 
 	.include "layout.inc"
+	.include "ownstat.inc"
 	.include "link0b.inc"
 
 	.equ	HB, 0x0B568C9C		! the heartbeat model (copied to the GUI every frame)
@@ -453,7 +454,7 @@ t_one20: .long	0x100000
 t_div10: .long	0xCCCCCCCD		! x / 10 = (x * this) >> 35
 t_len:	.long	0x0B5125E8		! the track length, s
 t_pos:	.long	0x09947488		! the play position, ms (DJcont, recomputed just before this hook)
-t_recs:	.long	0x0A371D3C
+t_recs:	.long	LINK_TAB
 t_cls:	.long	RAMB + 0x1E848		! ks3k KCLS (3 = CDJ-3000 / 3000X)
 t_devt:	.long	0x0A35F80C		! the device table (+0 the address)
 t_wrap:	.long	0x085113EC		! the Pro DJ Link beat packet's send wrapper

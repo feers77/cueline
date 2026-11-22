@@ -86,6 +86,7 @@
 	jsr	@r1
 	lds	r3,fpscr
 	.endm
+	.include "ownstat.inc"
 
 	.text
 	.global tcnetdata
@@ -250,7 +251,7 @@ k_metrics:	.word metrics_pkt - data
 	.p2align 2
 pool:		.long data - pool
 k_device:	.long 0x0AB84CFA
-k_records:	.long 0x0A371D3C
+k_records:	.long LINK_TAB
 k_tick:		.long 0x0B0C5258
 
 ! Handles the datagram of r0 bytes in the receive buffer, sent from the

@@ -26,6 +26,7 @@
 !
 ! Mod state, written at run time inside this file: the deck clock and the
 ! layer state of the last Time packet, the state -1 before the first.
+	.include "ownstat.inc"
 
 	.text
 	.global tcnettime
@@ -135,7 +136,7 @@ c_record:	.word 0x124
 o_inbar:	.word 0xA6
 c_length:	.word 162
 	.p2align 2
-p_records:	.long 0x0A371D3C
+p_records:	.long LINK_TAB
 p_position:	.long 0x09947488
 p_length:	.long 0x0B5125E8
 p_port:		.long 60001

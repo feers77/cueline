@@ -45,6 +45,37 @@ v2_entry:
 	nop
 	bra	sleep_e
 	nop
+	bra	comp_e
+	nop
+
+! +32 comp: the flush's window loop (F2, re/V2_OVERLAYS.md "the compose gate"). Stock at 0x0E509A1C:
+!		bld.b #3,@(7,r14) ; bf.s next ; mov #0,r13 ; mov.l @(28,r14),r10 ; mov r14,r11
+!	(r14 = the window; bit 3 of +7 = "composited"). v2ui.py replaces those 12 bytes by a jump here. A
+!	window stock would compose is composed only if v2_compose_hide() says it is not one we keep off the
+!	screen we own -- asked at the moment of composing, so a window born this very frame (its surface never
+!	drawn: white / garbage on the deck) can no longer reach the panel before manage() has seen it.
+!	r0-r7 are dead here in stock (all reloaded after 0x0E509A28 / 0x0E509AA8).
+comp_e:					! (stock's own bit test is in v2_compose_hide: every window
+	sts.l	pr,@-r15		!  of the loop comes through, so the call is also our tick)
+	sts.l	mach,@-r15
+	sts.l	macl,@-r15
+	mov.l	l_chide,r0
+	jsr	@r0
+	mov	r14,r4
+	lds.l	@r15+,macl
+	lds.l	@r15+,mach
+	lds.l	@r15+,pr
+	tst	r0,r0
+	bf	comp_skip
+	mov	#0,r13
+	mov.l	@(28,r14),r10
+	mov.l	l_cgo,r0
+	jmp	@r0
+	mov	r14,r11
+comp_skip:
+	mov.l	l_cskip,r0
+	jmp	@r0
+	mov	#0,r13
 
 paint_e:
 	sts.l	pr,@-r15
@@ -212,6 +243,9 @@ l_tskip:	.long	v2_text_skip
 l_vdc:		.long	0x0E526626
 l_sleep:	.long	0x0E52EA70
 l_fsleep:	.long	v2_flip_sleep
+l_chide:	.long	v2_compose_hide
+l_cgo:		.long	0x0E509A28		! the loop body, after the five replaced instructions
+l_cskip:	.long	0x0E509AA8		! the loop's next window
 		.long	0x56325052		! "V2PR"
 l_prevdraw:	.long	0
 l_prevrect:	.long	0

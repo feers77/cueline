@@ -37,6 +37,7 @@
 ! reloaded right after it), r8-r14 kept.
 
 	.include "layout.inc"
+	.include "ownstat.inc"
 	.include "w8.inc"
 
 	.text
@@ -440,7 +441,7 @@ l_boot:		.long 0x0A35DF3C	! MAIN boot state (1 = normal boot)
 l_s:		.long	W8S
 l_magic:	.long	0x31463857		! 'W8F1'
 l_hb:		.long	0x0B568C9C		! the heartbeat model (message 0x03)
-l_tab:		.long	0x0A371D3C+0x28		! LINK status table, + 0x28
+l_tab:		.long	LINK_TAB+0x28		! LINK status table, + 0x28
 l_budget:	.long	0x09A30330		! the frame's bytes left
 l_pos:		.long	0x09A2FAAC		! the frame's write position (words); +4 the counts
 l_bi:		.long	0x10DC151E		! which frame buffer

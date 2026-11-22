@@ -1,5 +1,35 @@
 # CHANGELOG
 
+## 2.2 -- 2026-11-22: RELEASE `R22R2r` / DEV `R22R2n` (labels MAIN 2.12 / GUI 2.06, source hash `7c0049ef`)
+Stability and performance release, no new features. Changes since 2.1.1:
+- **Screen stuck with garbage (bug fix):** after closing SHORT CUT over a browse list the rows sometimes did not
+  come back, and a few seconds later the screen showed areas that had never been drawn and stopped reacting until
+  the next screen change, while audio and transport kept working. A list Cueline draws now stays Cueline's: at
+  worst you see empty rows with the wait spinner, and one turn of the rotary brings the page back.
+- **Blank white INFO panel and corrupted bands (bug fix):** a window could reach the panel before it had been
+  drawn. Windows are now hidden at the moment the deck composes them.
+- **Display that almost stopped updating (hardened):** drawing no longer depends on the original firmware drawing
+  something first; one foreign row on the canvas repaints the whole canvas.
+- **Two Cueline decks on Pro DJ Link (bug fixes):** every place that needs "this deck's status" reads the deck's
+  own record instead of the last status packet that arrived. Touch Cue no longer previews the other deck's loaded
+  track, the other deck's cues and artwork are no longer shown, and the mixer's Link Monitor slot is announced only
+  while the deck actually holds it.
+- **Row colours as on the CDJ-3000:** playing = bright green, already played = dark green (only once the track was
+  loaded *and* played), previewed = no mark.
+- **Phase meter WAVEFORM view in LIGHT MODE:** the first part of the master's mini waveform has the same
+  background as the rest.
+- **KEY SHIFT and KEY SYNC are switched off in 2.2.** They are hidden in UTILITY and held off; the grey KEY SHIFT
+  tile in the header stays. The 2.1 engine did not sound right on its own; they return in 2.3 with a new engine.
+- **Tested on real decks:** two CDJ-2000NXS2 on Pro DJ Link ran a 33-minute unattended script (seven file formats,
+  every pop-up, preview gestures, UTILITY and SHORT CUT settings, SYNC / MASTER, a 22-minute load / play / seek
+  soak) with the screen painted every second throughout, then a power cycle with every setting kept.
+- **Versioning:** MAIN 2.12 / GUI 2.06 (DEV and RELEASE alike); UTILITY > INFO > BUILD shows `Cueline-2.2 <hash>`.
+  2.2 installs over 2.1 and 2.1.1 without a factory reset.
+
+Known issues: the first preview over LINK from another deck's USB can take a moment (the index is built once).
+After SHORT CUT over a list the rows can need one turn of the rotary to come back (not seen in 24 tries on real
+decks). The WAVEFORM meter may sit 1 pixel row off vertically.
+
 ## 2.1.1 -- 2026-11-20: RELEASE `V4r211e` / DEV `V4n211e` (labels MAIN 2.11 / GUI 2.05, source hash `1c1a45f3`)
 Link Cue fix release: 2.1 plus the changes below, nothing else. Changes since 2.1:
 - **Link Cue with two Cueline decks (bug fix):** the mixer keeps a *single* Link Monitor slot and plays one source

@@ -9,8 +9,8 @@ Every mod in the RELEASE and DEV recipes: purpose, entry points, files. The reci
 
 | profile | MAIN / GUI mod list (in build order) |
 |---|---|
-| RELEASE (V4r211e) | `touchaudio touchaudioip touchaudiotouch tadec modsmenu wav32 rowwave three_band ui3000x bootname font3000 v2ui v2needle lang2 usbkey keyshift reclaim guitrim_cjk w8send w8cap w8recv ks3k ownks` + players 5/6 (`--p56=proven`) |
-| DEV (V4n211e) | the same + `autotest usblog` (after `usbkey`) + `bbox` (before `ownks`); the Link Cue task becomes `touchaudiot` |
+| RELEASE (R22R2r) | `touchaudio touchaudioip touchaudiotouch tadec modsmenu wav32 rowwave three_band ui3000x bootname font3000 v2ui v2needle lang2 usbkey keyshift reclaim guitrim_cjk w8send w8cap w8recv ks3k ownks` + players 5/6 (`--p56=proven`) |
+| DEV (R22R2n) | the same + `autotest usblog` (after `usbkey`) + `bbox` (before `ownks`); the Link Cue task becomes `touchaudiot` |
 | `--no-keyshift` | without `keyshift ks3k ownks`; `stock` layout, tadec at 0x08140000 |
 
 Every MAIN entry point below that can run at boot tests `*0x0A35DF3C == 1` (normal boot) first.
