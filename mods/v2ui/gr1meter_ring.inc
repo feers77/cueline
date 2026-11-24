@@ -71,8 +71,11 @@
 #define G1_X WAVE_X0			/* 18 */
 #define G1_WIN WAVE_N			/* 764: x 18..781 */
 #define G1_WW (G1_WIN + 4)		/* 768 read from the aligned slot (window moved left by 0..3) */
-#define G1_Y 66
-#define G1_H 52				/* y 66..117 */
+/* PLAYERSCALE phase 3: the meter's WAVEFORM row centred where the 3000's is (its PHASE lines 128 / 161 and the
+ * wave between them: 146.5 x 0.667 = 98, was 92) -- the window 6 rows lower and 2 rows shorter, so it still ends
+ * above the band's GR2 window (y 122) */
+#define G1_Y 72
+#define G1_H 50				/* y 72..121 = cy - 26 .. cy + 23 */
 #define G1_S (4 * G1_N)			/* 3584 B a ring row */
 #define G1_RS (2 * G1_N)		/* u16 a ring row */
 #define G1_PHYS 0x0C960000u		/* .. 0x0C98D800 */
@@ -90,6 +93,7 @@ static int g1_seen;		/* this frame wants GR1 (master_mini in a METERDIRECT WAVEF
 static int g1_key_now;		/* this frame's strip holds the key (ring complete for it) */
 static int g1_half;		/* MSUB: this frame shows the half-phase view (master_mini) */
 static int g1_kprev;
+static int g1_age;		/* GR1LINGER: commits since the layer's setup (the key only from the 4th: scaler 0 settled) */
 #ifdef V2_GR1CAL
 /* DEV-only flag, off by default (-DV2_GR1CAL). m3 calibration (deck m1 / m2 green): for G1_CAL_MS after every GR1 setup the ring holds 48-px colour bars
  * instead of the wave -- BLACK, RED, GREEN, BLUE, WHITE, YELLOW, CYAN, MAGENTA (repeating, scrolling with the
@@ -200,7 +204,7 @@ static void g1_col(const struct g1ctx *c, s32 a, int mk)	/* PRECOMP: the 4 shift
 #endif
 		if (dy >= -14 && dy <= 14)
 			col[i] = MMC[(dy < 0 ? -dy : dy) * MMC_N + sl];
-		else if ((dy >= -24 && dy < -14) || (dy >= 15 && dy < 25))
+		else if ((dy >= -23 && dy < -14) || (dy >= 15 && dy < 24))
 			col[i] = tw;
 		else
 			col[i] = c->blk;
@@ -239,7 +243,7 @@ static void g1_col(const struct g1ctx *c, s32 a, int mk)
 			int ad = dy < 0 ? -dy : dy;
 			v = MMC[ad * MMC_N + sl];
 			h = ph_blend(v, MMC[ad * MMC_N + sl1], 2);
-		} else if ((dy >= -24 && dy < -14) || (dy >= 15 && dy < 25)) {
+		} else if ((dy >= -23 && dy < -14) || (dy >= 15 && dy < 24)) {
 			v = tw;
 			h = th;
 		} else
@@ -323,6 +327,8 @@ static int g1_frame(const struct g1ctx *c, int kx, int rx, u32 rkey)
 			g1_hi = g1_lo + G1_N;
 	}
 	if (g1_lo > A0 || g1_hi < A1)
+		return 0;
+	if (g1_age < 4)		/* GR1LINGER: not through a scaler that may still be stock's (see g1_commit) */
 		return 0;
 	g1_a0 = A0;
 	g1_a1 = A1;

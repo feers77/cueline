@@ -4,17 +4,17 @@
 
 /* TM_<ID>_R = x, y, w, h as drawn (fill(TM_X_R, c)); TM_<ID>_HR = the touch rect (+6 px slop under 48 px,
  * quantised as MAIN stores it); TM_<ID>_PID = the press-feedback id */
-#define TM_P_LOOP_TILE_R             561, 0, 76, 60	/* button */
-#define TM_P_LOOP_TILE_HR            560, 0, 80, 60
+#define TM_P_LOOP_TILE_R             561, 0, 71, 60	/* button */
+#define TM_P_LOOP_TILE_HR            560, 0, 72, 60
 #define TM_P_LOOP_TILE_PID           1
-#define TM_P_KS_TILE_R               641, 0, 76, 60	/* button */
-#define TM_P_KS_TILE_HR              640, 0, 80, 60
+#define TM_P_KS_TILE_R               639, 0, 71, 60	/* button */
+#define TM_P_KS_TILE_HR              636, 0, 76, 60
 #define TM_P_KS_TILE_PID             2
-#define TM_P_BJ_TILE_R               721, 0, 76, 60	/* button */
-#define TM_P_BJ_TILE_HR              720, 0, 80, 60
+#define TM_P_BJ_TILE_R               716, 0, 71, 60	/* button */
+#define TM_P_BJ_TILE_HR              716, 0, 72, 60
 #define TM_P_BJ_TILE_PID             3
-#define TM_P_INFO_R                  276, 30, 280, 26	/* button: sub-line key + the (i) disc */
-#define TM_P_INFO_HR                 276, 24, 280, 34
+#define TM_P_INFO_R                  290, 30, 266, 26	/* button: sub-line key + the (i) disc */
+#define TM_P_INFO_HR                 288, 24, 268, 34
 #define TM_P_INFO_PID                4
 #define TM_P_METER_R                 204, 60, 428, 60	/* area: tap cycles PHASE / WAVEFORM / 4 BARS (pm_tap) */
 #define TM_P_METER_HR                204, 60, 428, 60
@@ -22,590 +22,593 @@
 #define TM_P_OVERVIEW_R              79, 405, 640, 75	/* area: needle search (paused) / Touch Cue (playing, LINK CUE with CUE: TchAud tc_check reads zone 0) */
 #define TM_P_OVERVIEW_HR             76, 404, 644, 76
 #define TM_P_OVERVIEW_PID            6
-#define TM_P_LOOP_PAD0_R             58, 258, 72, 44	/* button */
-#define TM_P_LOOP_PAD0_HR            56, 252, 76, 56
+#define TM_P_LOOP_PAD0_R             72, 252, 72, 52	/* button */
+#define TM_P_LOOP_PAD0_HR            72, 252, 72, 52
 #define TM_P_LOOP_PAD0_PID           7
-#define TM_P_BJ_PAD0_R               58, 258, 72, 44	/* button */
-#define TM_P_BJ_PAD0_HR              56, 252, 76, 56
+#define TM_P_BJ_PAD0_R               72, 252, 72, 52	/* button */
+#define TM_P_BJ_PAD0_HR              72, 252, 72, 52
 #define TM_P_BJ_PAD0_PID             8
-#define TM_P_LOOP_PAD1_R             138, 258, 72, 44	/* button */
-#define TM_P_LOOP_PAD1_HR            136, 252, 76, 56
+#define TM_P_LOOP_PAD1_R             153, 252, 72, 52	/* button */
+#define TM_P_LOOP_PAD1_HR            152, 252, 76, 52
 #define TM_P_LOOP_PAD1_PID           9
-#define TM_P_BJ_PAD1_R               138, 258, 72, 44	/* button */
-#define TM_P_BJ_PAD1_HR              136, 252, 76, 56
+#define TM_P_BJ_PAD1_R               153, 252, 72, 52	/* button */
+#define TM_P_BJ_PAD1_HR              152, 252, 76, 52
 #define TM_P_BJ_PAD1_PID             10
-#define TM_P_LOOP_PAD2_R             218, 258, 72, 44	/* button */
-#define TM_P_LOOP_PAD2_HR            216, 252, 76, 56
+#define TM_P_LOOP_PAD2_R             234, 252, 72, 52	/* button */
+#define TM_P_LOOP_PAD2_HR            232, 252, 76, 52
 #define TM_P_LOOP_PAD2_PID           11
-#define TM_P_BJ_PAD2_R               218, 258, 72, 44	/* button */
-#define TM_P_BJ_PAD2_HR              216, 252, 76, 56
+#define TM_P_BJ_PAD2_R               234, 252, 72, 52	/* button */
+#define TM_P_BJ_PAD2_HR              232, 252, 76, 52
 #define TM_P_BJ_PAD2_PID             12
-#define TM_P_LOOP_PAD3_R             298, 258, 72, 44	/* button */
-#define TM_P_LOOP_PAD3_HR            296, 252, 76, 56
+#define TM_P_LOOP_PAD3_R             315, 252, 72, 52	/* button */
+#define TM_P_LOOP_PAD3_HR            312, 252, 76, 52
 #define TM_P_LOOP_PAD3_PID           13
-#define TM_P_BJ_PAD3_R               298, 258, 72, 44	/* button */
-#define TM_P_BJ_PAD3_HR              296, 252, 76, 56
+#define TM_P_BJ_PAD3_R               315, 252, 72, 52	/* button */
+#define TM_P_BJ_PAD3_HR              312, 252, 76, 52
 #define TM_P_BJ_PAD3_PID             14
-#define TM_P_LOOP_PAD4_R             378, 258, 72, 44	/* button */
-#define TM_P_LOOP_PAD4_HR            376, 252, 76, 56
+#define TM_P_LOOP_PAD4_R             397, 252, 72, 52	/* button */
+#define TM_P_LOOP_PAD4_HR            396, 252, 76, 52
 #define TM_P_LOOP_PAD4_PID           15
-#define TM_P_BJ_PAD4_R               378, 258, 72, 44	/* button */
-#define TM_P_BJ_PAD4_HR              376, 252, 76, 56
+#define TM_P_BJ_PAD4_R               397, 252, 72, 52	/* button */
+#define TM_P_BJ_PAD4_HR              396, 252, 76, 52
 #define TM_P_BJ_PAD4_PID             16
-#define TM_P_LOOP_PAD5_R             458, 258, 72, 44	/* button */
-#define TM_P_LOOP_PAD5_HR            456, 252, 76, 56
+#define TM_P_LOOP_PAD5_R             478, 252, 72, 52	/* button */
+#define TM_P_LOOP_PAD5_HR            476, 252, 76, 52
 #define TM_P_LOOP_PAD5_PID           17
-#define TM_P_BJ_PAD5_R               458, 258, 72, 44	/* button */
-#define TM_P_BJ_PAD5_HR              456, 252, 76, 56
+#define TM_P_BJ_PAD5_R               478, 252, 72, 52	/* button */
+#define TM_P_BJ_PAD5_HR              476, 252, 76, 52
 #define TM_P_BJ_PAD5_PID             18
-#define TM_P_LOOP_PAD6_R             538, 258, 72, 44	/* button */
-#define TM_P_LOOP_PAD6_HR            536, 252, 76, 56
+#define TM_P_LOOP_PAD6_R             559, 252, 72, 52	/* button */
+#define TM_P_LOOP_PAD6_HR            556, 252, 76, 52
 #define TM_P_LOOP_PAD6_PID           19
-#define TM_P_BJ_PAD6_R               538, 258, 72, 44	/* button */
-#define TM_P_BJ_PAD6_HR              536, 252, 76, 56
+#define TM_P_BJ_PAD6_R               559, 252, 72, 52	/* button */
+#define TM_P_BJ_PAD6_HR              556, 252, 76, 52
 #define TM_P_BJ_PAD6_PID             20
-#define TM_P_LOOP_PAD7_R             618, 258, 72, 44	/* button */
-#define TM_P_LOOP_PAD7_HR            616, 252, 76, 56
+#define TM_P_LOOP_PAD7_R             640, 252, 72, 52	/* button */
+#define TM_P_LOOP_PAD7_HR            640, 252, 72, 52
 #define TM_P_LOOP_PAD7_PID           21
-#define TM_P_BJ_PAD7_R               618, 258, 72, 44	/* button */
-#define TM_P_BJ_PAD7_HR              616, 252, 76, 56
+#define TM_P_BJ_PAD7_R               640, 252, 72, 52	/* button */
+#define TM_P_BJ_PAD7_HR              640, 252, 72, 52
 #define TM_P_BJ_PAD7_PID             22
-#define TM_P_KS_M1_R                 180, 258, 96, 44	/* button */
-#define TM_P_KS_M1_HR                180, 252, 96, 56
+#define TM_P_KS_M1_R                 180, 252, 96, 52	/* button */
+#define TM_P_KS_M1_HR                180, 252, 96, 52
 #define TM_P_KS_M1_PID               23
-#define TM_P_KS_RESET_R              353, 258, 96, 44	/* button */
-#define TM_P_KS_RESET_HR             352, 252, 100, 56
+#define TM_P_KS_RESET_R              353, 252, 96, 52	/* button */
+#define TM_P_KS_RESET_HR             352, 252, 100, 52
 #define TM_P_KS_RESET_PID            24
-#define TM_P_KS_P1_R                 524, 258, 96, 44	/* button */
-#define TM_P_KS_P1_HR                524, 252, 96, 56
+#define TM_P_KS_P1_R                 524, 252, 96, 52	/* button */
+#define TM_P_KS_P1_HR                524, 252, 96, 52
 #define TM_P_KS_P1_PID               25
-#define TM_P_KS_SYNC_R               656, 258, 96, 44	/* button */
-#define TM_P_KS_SYNC_HR              656, 252, 96, 56
+#define TM_P_KS_SYNC_R               656, 252, 96, 52	/* button */
+#define TM_P_KS_SYNC_HR              656, 252, 96, 52
 #define TM_P_KS_SYNC_PID             26
-#define TM_G_SNAP_R                  197, 258, 72, 44	/* button */
-#define TM_G_SNAP_HR                 196, 252, 76, 56
+#define TM_G_SNAP_R                  197, 252, 72, 52	/* button */
+#define TM_G_SNAP_HR                 196, 252, 76, 52
 #define TM_G_SNAP_PID                27
-#define TM_G_SHIFT_R                 282, 258, 72, 44	/* button */
-#define TM_G_SHIFT_HR                280, 252, 76, 56
+#define TM_G_SHIFT_R                 282, 252, 72, 52	/* button */
+#define TM_G_SHIFT_HR                280, 252, 76, 52
 #define TM_G_SHIFT_PID               28
-#define TM_G_HALF_BACK_R             367, 258, 72, 44	/* button */
-#define TM_G_HALF_BACK_HR            364, 252, 76, 56
+#define TM_G_HALF_BACK_R             367, 252, 72, 52	/* button */
+#define TM_G_HALF_BACK_HR            364, 252, 76, 52
 #define TM_G_HALF_BACK_PID           29
-#define TM_G_HALF_NEXT_R             446, 258, 72, 44	/* button */
-#define TM_G_HALF_NEXT_HR            444, 252, 76, 56
+#define TM_G_HALF_NEXT_R             446, 252, 72, 52	/* button */
+#define TM_G_HALF_NEXT_HR            444, 252, 76, 52
 #define TM_G_HALF_NEXT_PID           30
-#define TM_G_RESET_R                 531, 258, 72, 44	/* button */
-#define TM_G_RESET_HR                528, 252, 76, 56
+#define TM_G_RESET_R                 531, 252, 72, 52	/* button */
+#define TM_G_RESET_HR                528, 252, 76, 52
 #define TM_G_RESET_PID               31
 #define TM_P_ZOOMGRID_R              708, 296, 86, 18	/* button: stock GRID ADJUST mode on / off */
 #define TM_P_ZOOMGRID_HR             708, 290, 88, 30
 #define TM_P_ZOOMGRID_PID            32
+#define TM_P_ZOOMGRID_UP_R           708, 232, 86, 16	/* button: the same label above the pad row while it is up (modsmenu vt_hit gates 15/5 and 15/7 on the pad row) */
+#define TM_P_ZOOMGRID_UP_HR          708, 226, 88, 24
+#define TM_P_ZOOMGRID_UP_PID         33
 #define TM_LPT_TITLE_R               457, 60, 343, 30	/* display */
 #define TM_LPT_PANE_R                457, 90, 343, 320	/* area: va_touch: the row from y (40 px from y 90) */
 #define TM_LPT_PANE_HR               456, 90, 344, 320
-#define TM_LPT_PANE_PID              33
+#define TM_LPT_PANE_PID              34
 #define TM_LPT_ROW0_R                457, 90, 343, 39	/* sub: tap = cursor there; on the cursor = PUSH (load) */
-#define TM_LPT_ROW0_PID              34
+#define TM_LPT_ROW0_PID              35
 #define TM_LPT_ROW1_R                457, 130, 343, 39	/* sub: tap = cursor there; on the cursor = PUSH (load) */
-#define TM_LPT_ROW1_PID              35
+#define TM_LPT_ROW1_PID              36
 #define TM_LPT_ROW2_R                457, 170, 343, 39	/* sub: tap = cursor there; on the cursor = PUSH (load) */
-#define TM_LPT_ROW2_PID              36
+#define TM_LPT_ROW2_PID              37
 #define TM_LPT_ROW3_R                457, 210, 343, 39	/* sub: tap = cursor there; on the cursor = PUSH (load) */
-#define TM_LPT_ROW3_PID              37
+#define TM_LPT_ROW3_PID              38
 #define TM_LPT_ROW4_R                457, 250, 343, 39	/* sub: tap = cursor there; on the cursor = PUSH (load) */
-#define TM_LPT_ROW4_PID              38
+#define TM_LPT_ROW4_PID              39
 #define TM_LPT_ROW5_R                457, 290, 343, 39	/* sub: tap = cursor there; on the cursor = PUSH (load) */
-#define TM_LPT_ROW5_PID              39
+#define TM_LPT_ROW5_PID              40
 #define TM_LPT_ROW6_R                457, 330, 343, 39	/* sub: tap = cursor there; on the cursor = PUSH (load) */
-#define TM_LPT_ROW6_PID              40
+#define TM_LPT_ROW6_PID              41
 #define TM_LPT_ROW7_R                457, 370, 343, 39	/* sub: tap = cursor there; on the cursor = PUSH (load) */
-#define TM_LPT_ROW7_PID              41
+#define TM_LPT_ROW7_PID              42
 #define TM_PI_ART_R                  18, 76, 166, 166	/* display */
 #define TM_B_SRC_R                   0, 0, 56, 60	/* button */
 #define TM_B_SRC_HR                  0, 0, 56, 60
-#define TM_B_SRC_PID                 42
+#define TM_B_SRC_PID                 43
 #define TM_B_BACK_R                  74, 14, 32, 32	/* button */
 #define TM_B_BACK_HR                 68, 8, 44, 44
-#define TM_B_BACK_PID                43
+#define TM_B_BACK_PID                44
 #define TM_B_INFO_R                  712, 12, 80, 36	/* button */
 #define TM_B_INFO_HR                 712, 6, 80, 48
-#define TM_B_INFO_PID                44
-#define TM_B_PREVIEW_R               562, 6, 72, 48	/* button: 3000 PREVIEW tile: Link Cue on the rows, a tap = on / off (kill_v +24) */
-#define TM_B_PREVIEW_HR              560, 6, 76, 48
-#define TM_B_PREVIEW_PID             45
+#define TM_B_INFO_PID                45
+#define TM_B_PREVIEW_R               561, 0, 71, 60	/* button: 3000 PREVIEW tile: Link Cue on the rows, a tap = on / off (kill_v +24) */
+#define TM_B_PREVIEW_HR              560, 0, 72, 60
+#define TM_B_PREVIEW_PID             46
 #define TM_B_FILTER_R                640, 16, 64, 28	/* button */
 #define TM_B_FILTER_HR               640, 10, 64, 40
-#define TM_B_FILTER_PID              46
+#define TM_B_FILTER_PID              47
 #define TM_B_COLHDR_R                184, 60, 616, 28	/* button: column header -> stock SORT */
-#define TM_B_COLHDR_HR               184, 54, 616, 36
-#define TM_B_COLHDR_PID              47
+#define TM_B_COLHDR_HR               184, 60, 616, 30
+#define TM_B_COLHDR_PID              48
 #define TM_B_COLHDR_I_R              184, 60, 268, 28	/* button */
 #define TM_B_COLHDR_I_HR             184, 54, 268, 36
-#define TM_B_COLHDR_I_PID            48
+#define TM_B_COLHDR_I_PID            49
 #define TM_B_ROWS_R                  56, 90, 744, 320	/* area: 8 rows x 40: tap = cursor, tap on cursor = open / LOAD */
 #define TM_B_ROWS_HR                 56, 90, 744, 320
-#define TM_B_ROWS_PID                49
+#define TM_B_ROWS_PID                50
 #define TM_B_ROWS_I_R                56, 90, 396, 320	/* area */
 #define TM_B_ROWS_I_HR               56, 90, 396, 320
-#define TM_B_ROWS_I_PID              50
+#define TM_B_ROWS_I_PID              51
 #define TM_B_ROWS_ROOT_R             56, 90, 744, 320	/* display: root: dim preview of the cursor category (3000: the rail is the root) */
 #define TM_B_LOAD0_R                 675, 92, 123, 36	/* sub: cursor track row only (V4n30a: x 675..797, modsmenu x / 4 >= 168) */
-#define TM_B_LOAD0_PID               51
+#define TM_B_LOAD0_PID               52
 #define TM_B_LOAD1_R                 675, 132, 123, 36	/* sub: cursor track row only (V4n30a: x 675..797, modsmenu x / 4 >= 168) */
-#define TM_B_LOAD1_PID               52
+#define TM_B_LOAD1_PID               53
 #define TM_B_LOAD2_R                 675, 172, 123, 36	/* sub: cursor track row only (V4n30a: x 675..797, modsmenu x / 4 >= 168) */
-#define TM_B_LOAD2_PID               53
+#define TM_B_LOAD2_PID               54
 #define TM_B_LOAD3_R                 675, 212, 123, 36	/* sub: cursor track row only (V4n30a: x 675..797, modsmenu x / 4 >= 168) */
-#define TM_B_LOAD3_PID               54
+#define TM_B_LOAD3_PID               55
 #define TM_B_LOAD4_R                 675, 252, 123, 36	/* sub: cursor track row only (V4n30a: x 675..797, modsmenu x / 4 >= 168) */
-#define TM_B_LOAD4_PID               55
+#define TM_B_LOAD4_PID               56
 #define TM_B_LOAD5_R                 675, 292, 123, 36	/* sub: cursor track row only (V4n30a: x 675..797, modsmenu x / 4 >= 168) */
-#define TM_B_LOAD5_PID               56
+#define TM_B_LOAD5_PID               57
 #define TM_B_LOAD6_R                 675, 332, 123, 36	/* sub: cursor track row only (V4n30a: x 675..797, modsmenu x / 4 >= 168) */
-#define TM_B_LOAD6_PID               57
+#define TM_B_LOAD6_PID               58
 #define TM_B_LOAD7_R                 675, 372, 123, 36	/* sub: cursor track row only (V4n30a: x 675..797, modsmenu x / 4 >= 168) */
-#define TM_B_LOAD7_PID               58
+#define TM_B_LOAD7_PID               59
 #define TM_B_RAIL0_R                 0, 60, 56, 40	/* button: ARTIST */
 #define TM_B_RAIL0_HR                0, 60, 56, 40
-#define TM_B_RAIL0_PID               59
+#define TM_B_RAIL0_PID               60
 #define TM_B_RAIL1_R                 0, 100, 56, 40	/* button: ALBUM */
 #define TM_B_RAIL1_HR                0, 100, 56, 40
-#define TM_B_RAIL1_PID               60
+#define TM_B_RAIL1_PID               61
 #define TM_B_RAIL2_R                 0, 140, 56, 40	/* button: TRACK */
 #define TM_B_RAIL2_HR                0, 140, 56, 40
-#define TM_B_RAIL2_PID               61
+#define TM_B_RAIL2_PID               62
 #define TM_B_RAIL3_R                 0, 180, 56, 40	/* button: KEY */
 #define TM_B_RAIL3_HR                0, 180, 56, 40
-#define TM_B_RAIL3_PID               62
+#define TM_B_RAIL3_PID               63
 #define TM_B_RAIL4_R                 0, 220, 56, 40	/* button: PLAYLIST */
 #define TM_B_RAIL4_HR                0, 220, 56, 40
-#define TM_B_RAIL4_PID               63
+#define TM_B_RAIL4_PID               64
 #define TM_B_RAIL5_R                 0, 260, 56, 40	/* button: HISTORY */
 #define TM_B_RAIL5_HR                0, 260, 56, 40
-#define TM_B_RAIL5_PID               64
+#define TM_B_RAIL5_PID               65
 #define TM_B_RAIL6_R                 0, 300, 56, 40	/* button: SEARCH */
 #define TM_B_RAIL6_HR                0, 300, 56, 40
-#define TM_B_RAIL6_PID               65
+#define TM_B_RAIL6_PID               66
 #define TM_B_RAIL7_R                 0, 340, 56, 40	/* button: MATCHING */
 #define TM_B_RAIL7_HR                0, 340, 56, 40
-#define TM_B_RAIL7_PID               66
+#define TM_B_RAIL7_PID               67
 #define TM_B_RAIL8_R                 0, 380, 56, 40	/* button: FOLDER */
 #define TM_B_RAIL8_HR                0, 380, 56, 46
-#define TM_B_RAIL8_PID               67
+#define TM_B_RAIL8_PID               68
 #define TM_B_INFO_LOAD_R             604, 372, 184, 36	/* button */
 #define TM_B_INFO_LOAD_HR            604, 366, 184, 48
-#define TM_B_INFO_LOAD_PID           68
+#define TM_B_INFO_LOAD_PID           69
 #define TM_K_R1_0_R                  40, 302, 60, 46	/* button */
 #define TM_K_R1_0_HR                 40, 296, 60, 56
-#define TM_K_R1_0_PID                69
+#define TM_K_R1_0_PID                70
 #define TM_K_R1_1_R                  106, 302, 60, 46	/* button */
 #define TM_K_R1_1_HR                 104, 296, 64, 56
-#define TM_K_R1_1_PID                70
+#define TM_K_R1_1_PID                71
 #define TM_K_R1_2_R                  172, 302, 60, 46	/* button */
 #define TM_K_R1_2_HR                 172, 296, 60, 56
-#define TM_K_R1_2_PID                71
+#define TM_K_R1_2_PID                72
 #define TM_K_R1_3_R                  238, 302, 60, 46	/* button */
 #define TM_K_R1_3_HR                 236, 296, 64, 56
-#define TM_K_R1_3_PID                72
+#define TM_K_R1_3_PID                73
 #define TM_K_R1_4_R                  304, 302, 60, 46	/* button */
 #define TM_K_R1_4_HR                 304, 296, 60, 56
-#define TM_K_R1_4_PID                73
+#define TM_K_R1_4_PID                74
 #define TM_K_R1_5_R                  370, 302, 60, 46	/* button */
 #define TM_K_R1_5_HR                 368, 296, 64, 56
-#define TM_K_R1_5_PID                74
+#define TM_K_R1_5_PID                75
 #define TM_K_R1_6_R                  436, 302, 60, 46	/* button */
 #define TM_K_R1_6_HR                 436, 296, 60, 56
-#define TM_K_R1_6_PID                75
+#define TM_K_R1_6_PID                76
 #define TM_K_R1_7_R                  502, 302, 60, 46	/* button */
 #define TM_K_R1_7_HR                 500, 296, 64, 56
-#define TM_K_R1_7_PID                76
+#define TM_K_R1_7_PID                77
 #define TM_K_R1_8_R                  568, 302, 60, 46	/* button */
 #define TM_K_R1_8_HR                 568, 296, 60, 56
-#define TM_K_R1_8_PID                77
+#define TM_K_R1_8_PID                78
 #define TM_K_R1_9_R                  634, 302, 60, 46	/* button */
 #define TM_K_R1_9_HR                 632, 296, 64, 56
-#define TM_K_R1_9_PID                78
+#define TM_K_R1_9_PID                79
 #define TM_K_R2_0_R                  73, 357, 60, 46	/* button */
 #define TM_K_R2_0_HR                 72, 352, 64, 54
-#define TM_K_R2_0_PID                79
+#define TM_K_R2_0_PID                80
 #define TM_K_R2_1_R                  139, 357, 60, 46	/* button */
 #define TM_K_R2_1_HR                 136, 352, 64, 54
-#define TM_K_R2_1_PID                80
+#define TM_K_R2_1_PID                81
 #define TM_K_R2_2_R                  205, 357, 60, 46	/* button */
 #define TM_K_R2_2_HR                 204, 352, 64, 54
-#define TM_K_R2_2_PID                81
+#define TM_K_R2_2_PID                82
 #define TM_K_R2_3_R                  271, 357, 60, 46	/* button */
 #define TM_K_R2_3_HR                 268, 352, 64, 54
-#define TM_K_R2_3_PID                82
+#define TM_K_R2_3_PID                83
 #define TM_K_R2_4_R                  337, 357, 60, 46	/* button */
 #define TM_K_R2_4_HR                 336, 352, 64, 54
-#define TM_K_R2_4_PID                83
+#define TM_K_R2_4_PID                84
 #define TM_K_R2_5_R                  403, 357, 60, 46	/* button */
 #define TM_K_R2_5_HR                 400, 352, 64, 54
-#define TM_K_R2_5_PID                84
+#define TM_K_R2_5_PID                85
 #define TM_K_R2_6_R                  469, 357, 60, 46	/* button */
 #define TM_K_R2_6_HR                 468, 352, 64, 54
-#define TM_K_R2_6_PID                85
+#define TM_K_R2_6_PID                86
 #define TM_K_R2_7_R                  535, 357, 60, 46	/* button */
 #define TM_K_R2_7_HR                 532, 352, 64, 54
-#define TM_K_R2_7_PID                86
+#define TM_K_R2_7_PID                87
 #define TM_K_R2_8_R                  601, 357, 60, 46	/* button */
 #define TM_K_R2_8_HR                 600, 352, 64, 58
-#define TM_K_R2_8_PID                87
+#define TM_K_R2_8_PID                88
 #define TM_K_R3_0_R                  106, 410, 60, 46	/* button */
 #define TM_K_R3_0_HR                 104, 406, 64, 56
-#define TM_K_R3_0_PID                88
+#define TM_K_R3_0_PID                89
 #define TM_K_R3_1_R                  172, 410, 60, 46	/* button */
 #define TM_K_R3_1_HR                 172, 406, 60, 56
-#define TM_K_R3_1_PID                89
+#define TM_K_R3_1_PID                90
 #define TM_K_R3_2_R                  238, 410, 60, 46	/* button */
 #define TM_K_R3_2_HR                 236, 406, 64, 56
-#define TM_K_R3_2_PID                90
+#define TM_K_R3_2_PID                91
 #define TM_K_R3_3_R                  304, 410, 60, 46	/* button */
 #define TM_K_R3_3_HR                 304, 406, 60, 56
-#define TM_K_R3_3_PID                91
+#define TM_K_R3_3_PID                92
 #define TM_K_R3_4_R                  370, 410, 60, 46	/* button */
 #define TM_K_R3_4_HR                 368, 406, 64, 56
-#define TM_K_R3_4_PID                92
+#define TM_K_R3_4_PID                93
 #define TM_K_R3_5_R                  436, 410, 60, 46	/* button */
 #define TM_K_R3_5_HR                 436, 406, 60, 56
-#define TM_K_R3_5_PID                93
+#define TM_K_R3_5_PID                94
 #define TM_K_R3_6_R                  502, 410, 60, 46	/* button */
 #define TM_K_R3_6_HR                 500, 406, 64, 56
-#define TM_K_R3_6_PID                94
+#define TM_K_R3_6_PID                95
 #define TM_K_BKSP_R                  717, 302, 65, 46	/* button */
 #define TM_K_BKSP_HR                 716, 296, 68, 56
-#define TM_K_BKSP_PID                95
+#define TM_K_BKSP_PID                96
 #define TM_K_CLEAR_R                 693, 357, 89, 46	/* button */
 #define TM_K_CLEAR_HR                692, 352, 92, 54
-#define TM_K_CLEAR_PID               96
+#define TM_K_CLEAR_PID               97
 #define TM_K_123_R                   18, 410, 65, 46	/* button */
 #define TM_K_123_HR                  16, 406, 68, 56
-#define TM_K_123_PID                 97
+#define TM_K_123_PID                 98
 #define TM_K_SPACE_R                 693, 410, 89, 46	/* button */
 #define TM_K_SPACE_HR                692, 406, 92, 56
-#define TM_K_SPACE_PID               98
+#define TM_K_SPACE_PID               99
 #define TM_K_QUERY_R                 68, 14, 460, 32	/* display: kb hidden: a tap at y < 60 shows it again (v3e_touch code, not a zone) */
 #define TM_POP_SORT_TITLE_R          232, 106, 336, 38	/* display */
 #define TM_POP_SORT_BOX_R            230, 104, 340, 264	/* area: TOUCH: va_touch finds the row / OK / CANCEL from y (TM_POP_*) */
 #define TM_POP_SORT_BOX_HR           228, 104, 344, 264
-#define TM_POP_SORT_BOX_PID          99
+#define TM_POP_SORT_BOX_PID          100
 #define TM_POP_SORT_ROW0_R           236, 150, 328, 32	/* sub: TAG LIST MENU: the cursor there; else the cursor there + PUSH */
-#define TM_POP_SORT_ROW0_PID         100
+#define TM_POP_SORT_ROW0_PID         101
 #define TM_POP_SORT_ROW1_R           236, 184, 328, 32	/* sub: TAG LIST MENU: the cursor there; else the cursor there + PUSH */
-#define TM_POP_SORT_ROW1_PID         101
+#define TM_POP_SORT_ROW1_PID         102
 #define TM_POP_SORT_ROW2_R           236, 218, 328, 32	/* sub: TAG LIST MENU: the cursor there; else the cursor there + PUSH */
-#define TM_POP_SORT_ROW2_PID         102
+#define TM_POP_SORT_ROW2_PID         103
 #define TM_POP_SORT_ROW3_R           236, 252, 328, 32	/* sub: TAG LIST MENU: the cursor there; else the cursor there + PUSH */
-#define TM_POP_SORT_ROW3_PID         103
+#define TM_POP_SORT_ROW3_PID         104
 #define TM_POP_SORT_ROW4_R           236, 286, 328, 32	/* sub: TAG LIST MENU: the cursor there; else the cursor there + PUSH */
-#define TM_POP_SORT_ROW4_PID         104
+#define TM_POP_SORT_ROW4_PID         105
 #define TM_POP_SORT_ROW5_R           236, 320, 328, 32	/* sub: TAG LIST MENU: the cursor there; else the cursor there + PUSH */
-#define TM_POP_SORT_ROW5_PID         105
+#define TM_POP_SORT_ROW5_PID         106
 #define TM_POP_TAGMENU_TITLE_R       232, 132, 336, 38	/* display */
 #define TM_POP_TAGMENU_BOX_R         230, 130, 340, 212	/* area: TOUCH: va_touch finds the row / OK / CANCEL from y (TM_POP_*) */
 #define TM_POP_TAGMENU_BOX_HR        228, 130, 344, 212
-#define TM_POP_TAGMENU_BOX_PID       106
+#define TM_POP_TAGMENU_BOX_PID       107
 #define TM_POP_TAGMENU_ROW0_R        236, 176, 328, 32	/* sub: TAG LIST MENU: the cursor there; else the cursor there + PUSH */
-#define TM_POP_TAGMENU_ROW0_PID      107
+#define TM_POP_TAGMENU_ROW0_PID      108
 #define TM_POP_TAGMENU_ROW1_R        236, 210, 328, 32	/* sub: TAG LIST MENU: the cursor there; else the cursor there + PUSH */
-#define TM_POP_TAGMENU_ROW1_PID      108
+#define TM_POP_TAGMENU_ROW1_PID      109
 #define TM_POP_TAGMENU_ROW2_R        236, 244, 328, 32	/* sub: TAG LIST MENU: the cursor there; else the cursor there + PUSH */
-#define TM_POP_TAGMENU_ROW2_PID      109
+#define TM_POP_TAGMENU_ROW2_PID      110
 #define TM_POP_TAGMENU_OK_R          290, 296, 100, 34	/* sub: PUSH */
-#define TM_POP_TAGMENU_OK_PID        110
+#define TM_POP_TAGMENU_OK_PID        111
 #define TM_POP_TAGMENU_CANCEL_R      410, 296, 100, 34	/* sub: BACK */
-#define TM_POP_TAGMENU_CANCEL_PID    111
+#define TM_POP_TAGMENU_CANCEL_PID    112
 #define TM_SRC_ROWS_R                4, 66, 572, 352	/* area: V4n32: modsmenu va_src -- own row: SD / USB key; model row k: seek, PUSH on the cursor row */
 #define TM_SRC_ROWS_HR               4, 66, 572, 352
-#define TM_SRC_ROWS_PID              112
+#define TM_SRC_ROWS_PID              113
 #define TM_SRC_ROW0_R                4, 66, 572, 60	/* sub: the 64-px layout (<= 5 rows) */
-#define TM_SRC_ROW0_PID              113
+#define TM_SRC_ROW0_PID              114
 #define TM_SRC_ROW1_R                4, 130, 572, 60	/* sub: the 64-px layout (<= 5 rows) */
-#define TM_SRC_ROW1_PID              114
+#define TM_SRC_ROW1_PID              115
 #define TM_SRC_ROW2_R                4, 194, 572, 60	/* sub: the 64-px layout (<= 5 rows) */
-#define TM_SRC_ROW2_PID              115
+#define TM_SRC_ROW2_PID              116
 #define TM_SRC_ROW3_R                4, 258, 572, 60	/* sub: the 64-px layout (<= 5 rows) */
-#define TM_SRC_ROW3_PID              116
+#define TM_SRC_ROW3_PID              117
 #define TM_SRC_ROW4_R                4, 322, 572, 60	/* sub: the 64-px layout (<= 5 rows) */
-#define TM_SRC_ROW4_PID              117
+#define TM_SRC_ROW4_PID              118
 #define TM_SRC_PANE_R                580, 66, 216, 300	/* display */
 #define TM_F_FILTER_R                488, 8, 64, 28	/* button */
 #define TM_F_FILTER_HR               488, 2, 64, 40
-#define TM_F_FILTER_PID              118
+#define TM_F_FILTER_PID              119
 #define TM_F_RESET_R                 568, 4, 76, 36	/* button: hold -> stock zone 23 */
 #define TM_F_RESET_HR                568, 0, 76, 46
-#define TM_F_RESET_PID               119
+#define TM_F_RESET_PID               120
 #define TM_F_BPMKEY_R                648, 4, 76, 36	/* button */
 #define TM_F_BPMKEY_HR               648, 0, 76, 46
-#define TM_F_BPMKEY_PID              120
+#define TM_F_BPMKEY_PID              121
 #define TM_F_MYTAG_R                 728, 4, 68, 36	/* button */
 #define TM_F_MYTAG_HR                728, 0, 68, 46
-#define TM_F_MYTAG_PID               121
+#define TM_F_MYTAG_PID               122
 #define TM_M_FILTER_R                488, 8, 64, 28	/* button */
 #define TM_M_FILTER_HR               488, 2, 64, 40
-#define TM_M_FILTER_PID              122
+#define TM_M_FILTER_PID              123
 #define TM_M_RESET_R                 568, 4, 76, 36	/* button: hold -> stock zone 23 */
 #define TM_M_RESET_HR                568, 0, 76, 44
-#define TM_M_RESET_PID               123
+#define TM_M_RESET_PID               124
 #define TM_M_BPMKEY_R                648, 4, 76, 36	/* button */
 #define TM_M_BPMKEY_HR               648, 0, 76, 44
-#define TM_M_BPMKEY_PID              124
+#define TM_M_BPMKEY_PID              125
 #define TM_M_MYTAG_R                 728, 4, 68, 36	/* button */
 #define TM_M_MYTAG_HR                728, 0, 68, 44
-#define TM_M_MYTAG_PID               125
+#define TM_M_MYTAG_PID               126
 #define TM_F_CHK_BPM_R               113, 53, 110, 36	/* button */
 #define TM_F_CHK_BPM_HR              112, 46, 112, 50
-#define TM_F_CHK_BPM_PID             126
+#define TM_F_CHK_BPM_PID             127
 #define TM_F_CHK_KEY_R               113, 117, 110, 36	/* button */
 #define TM_F_CHK_KEY_HR              112, 110, 112, 50
-#define TM_F_CHK_KEY_PID             127
+#define TM_F_CHK_KEY_PID             128
 #define TM_F_CHK_RATING_R            113, 181, 110, 36	/* button */
 #define TM_F_CHK_RATING_HR           112, 174, 112, 50
-#define TM_F_CHK_RATING_PID          128
+#define TM_F_CHK_RATING_PID          129
 #define TM_F_CHK_COLOR_R             113, 245, 110, 36	/* button */
 #define TM_F_CHK_COLOR_HR            112, 238, 112, 50
-#define TM_F_CHK_COLOR_PID           129
+#define TM_F_CHK_COLOR_PID           130
 #define TM_F_BPM_R                   255, 53, 126, 36	/* button */
 #define TM_F_BPM_HR                  252, 46, 132, 50
-#define TM_F_BPM_PID                 130
+#define TM_F_BPM_PID                 131
 #define TM_F_RANGE_R                 519, 53, 126, 36	/* button */
 #define TM_F_RANGE_HR                516, 46, 132, 50
-#define TM_F_RANGE_PID               131
+#define TM_F_RANGE_PID               132
 #define TM_F_MASTER_R                714, 53, 68, 99	/* button */
 #define TM_F_MASTER_HR               712, 52, 72, 100
-#define TM_F_MASTER_PID              132
+#define TM_F_MASTER_PID              133
 #define TM_F_KEYGRID_R               255, 100, 442, 70	/* area */
 #define TM_F_KEYGRID_HR              252, 100, 448, 70
-#define TM_F_KEYGRID_PID             133
+#define TM_F_KEYGRID_PID             134
 #define TM_F_RATING_R                255, 181, 352, 36	/* area */
 #define TM_F_RATING_HR               252, 174, 356, 50
-#define TM_F_RATING_PID              134
+#define TM_F_RATING_PID              135
 #define TM_F_COLOR0_R                255, 245, 60, 36	/* button */
 #define TM_F_COLOR0_HR               252, 238, 64, 50
-#define TM_F_COLOR0_PID              135
+#define TM_F_COLOR0_PID              136
 #define TM_F_COLOR1_R                321, 245, 60, 36	/* button */
 #define TM_F_COLOR1_HR               320, 238, 64, 50
-#define TM_F_COLOR1_PID              136
+#define TM_F_COLOR1_PID              137
 #define TM_F_COLOR2_R                387, 245, 60, 36	/* button */
 #define TM_F_COLOR2_HR               384, 238, 64, 50
-#define TM_F_COLOR2_PID              137
+#define TM_F_COLOR2_PID              138
 #define TM_F_COLOR3_R                453, 245, 60, 36	/* button */
 #define TM_F_COLOR3_HR               452, 238, 64, 50
-#define TM_F_COLOR3_PID              138
+#define TM_F_COLOR3_PID              139
 #define TM_F_COLOR4_R                519, 245, 60, 36	/* button */
 #define TM_F_COLOR4_HR               516, 238, 64, 50
-#define TM_F_COLOR4_PID              139
+#define TM_F_COLOR4_PID              140
 #define TM_F_COLOR5_R                585, 245, 60, 36	/* button */
 #define TM_F_COLOR5_HR               584, 238, 64, 50
-#define TM_F_COLOR5_PID              140
+#define TM_F_COLOR5_PID              141
 #define TM_F_COLOR6_R                651, 245, 60, 36	/* button */
 #define TM_F_COLOR6_HR               648, 238, 64, 50
-#define TM_F_COLOR6_PID              141
+#define TM_F_COLOR6_PID              142
 #define TM_F_COLOR7_R                717, 245, 60, 36	/* button */
 #define TM_F_COLOR7_HR               716, 238, 64, 50
-#define TM_F_COLOR7_PID              142
+#define TM_F_COLOR7_PID              143
 #define TM_M_TAB0_R                  102, 48, 161, 40	/* button */
 #define TM_M_TAB0_HR                 100, 42, 164, 52
-#define TM_M_TAB0_PID                143
+#define TM_M_TAB0_PID                144
 #define TM_M_TAB1_R                  274, 48, 161, 40	/* button */
 #define TM_M_TAB1_HR                 272, 42, 164, 52
-#define TM_M_TAB1_PID                144
+#define TM_M_TAB1_PID                145
 #define TM_M_TAB2_R                  447, 48, 161, 40	/* button */
 #define TM_M_TAB2_HR                 444, 44, 164, 50
-#define TM_M_TAB2_PID                145
+#define TM_M_TAB2_PID                146
 #define TM_M_TAB3_R                  620, 48, 161, 40	/* button */
 #define TM_M_TAB3_HR                 620, 44, 164, 50
-#define TM_M_TAB3_PID                146
+#define TM_M_TAB3_PID                147
 #define TM_M_AND_R                   111, 213, 64, 52	/* button */
 #define TM_M_AND_HR                  108, 212, 68, 54
-#define TM_M_AND_PID                 147
+#define TM_M_AND_PID                 148
 #define TM_M_OR_R                    176, 213, 64, 52	/* button */
 #define TM_M_OR_HR                   176, 212, 64, 54
-#define TM_M_OR_PID                  148
+#define TM_M_OR_PID                  149
 #define TM_M_ITEM0_R                 272, 110, 244, 36	/* button */
 #define TM_M_ITEM0_HR                272, 104, 244, 48
-#define TM_M_ITEM0_PID               149
+#define TM_M_ITEM0_PID               150
 #define TM_M_ITEM1_R                 527, 110, 244, 36	/* button */
 #define TM_M_ITEM1_HR                524, 104, 248, 48
-#define TM_M_ITEM1_PID               150
+#define TM_M_ITEM1_PID               151
 #define TM_M_ITEM2_R                 272, 170, 244, 36	/* button */
 #define TM_M_ITEM2_HR                272, 164, 244, 48
-#define TM_M_ITEM2_PID               151
+#define TM_M_ITEM2_PID               152
 #define TM_M_ITEM3_R                 527, 170, 244, 36	/* button */
 #define TM_M_ITEM3_HR                524, 164, 248, 48
-#define TM_M_ITEM3_PID               152
+#define TM_M_ITEM3_PID               153
 #define TM_M_ITEM4_R                 272, 230, 244, 36	/* button */
 #define TM_M_ITEM4_HR                272, 224, 244, 48
-#define TM_M_ITEM4_PID               153
+#define TM_M_ITEM4_PID               154
 #define TM_M_ITEM5_R                 527, 230, 244, 36	/* button */
 #define TM_M_ITEM5_HR                524, 224, 248, 48
-#define TM_M_ITEM5_PID               154
+#define TM_M_ITEM5_PID               155
 #define TM_U_CAT0_R                  0, 70, 64, 46	/* button */
 #define TM_U_CAT0_HR                 0, 64, 64, 54
-#define TM_U_CAT0_PID                155
+#define TM_U_CAT0_PID                156
 #define TM_U_CAT1_R                  0, 118, 64, 46	/* button */
 #define TM_U_CAT1_HR                 0, 118, 64, 48
-#define TM_U_CAT1_PID                156
+#define TM_U_CAT1_PID                157
 #define TM_U_CAT2_R                  0, 166, 64, 46	/* button */
 #define TM_U_CAT2_HR                 0, 166, 64, 48
-#define TM_U_CAT2_PID                157
+#define TM_U_CAT2_PID                158
 #define TM_U_CAT3_R                  0, 214, 64, 46	/* button */
 #define TM_U_CAT3_HR                 0, 214, 64, 48
-#define TM_U_CAT3_PID                158
+#define TM_U_CAT3_PID                159
 #define TM_U_CAT4_R                  0, 262, 64, 46	/* button */
 #define TM_U_CAT4_HR                 0, 262, 64, 48
-#define TM_U_CAT4_PID                159
+#define TM_U_CAT4_PID                160
 #define TM_U_CAT5_R                  0, 310, 64, 46	/* button */
 #define TM_U_CAT5_HR                 0, 310, 64, 52
-#define TM_U_CAT5_PID                160
+#define TM_U_CAT5_PID                161
 #define TM_U_ROWS_R                  68, 70, 458, 263	/* area: va_touch: row k = (y - 70) / 33 */
 #define TM_U_ROWS_HR                 68, 70, 460, 264
-#define TM_U_ROWS_PID                161
+#define TM_U_ROWS_PID                162
 #define TM_U_ROW0_R                  68, 70, 458, 31	/* sub: the cursor there; on it: PUSH; editing: BACK */
-#define TM_U_ROW0_PID                162
+#define TM_U_ROW0_PID                163
 #define TM_U_ROW1_R                  68, 103, 458, 31	/* sub: the cursor there; on it: PUSH; editing: BACK */
-#define TM_U_ROW1_PID                163
+#define TM_U_ROW1_PID                164
 #define TM_U_ROW2_R                  68, 136, 458, 31	/* sub: the cursor there; on it: PUSH; editing: BACK */
-#define TM_U_ROW2_PID                164
+#define TM_U_ROW2_PID                165
 #define TM_U_ROW3_R                  68, 169, 458, 31	/* sub: the cursor there; on it: PUSH; editing: BACK */
-#define TM_U_ROW3_PID                165
+#define TM_U_ROW3_PID                166
 #define TM_U_ROW4_R                  68, 202, 458, 31	/* sub: the cursor there; on it: PUSH; editing: BACK */
-#define TM_U_ROW4_PID                166
+#define TM_U_ROW4_PID                167
 #define TM_U_ROW5_R                  68, 235, 458, 31	/* sub: the cursor there; on it: PUSH; editing: BACK */
-#define TM_U_ROW5_PID                167
+#define TM_U_ROW5_PID                168
 #define TM_U_ROW6_R                  68, 268, 458, 31	/* sub: the cursor there; on it: PUSH; editing: BACK */
-#define TM_U_ROW6_PID                168
+#define TM_U_ROW6_PID                169
 #define TM_U_ROW7_R                  68, 301, 458, 31	/* sub: the cursor there; on it: PUSH; editing: BACK */
-#define TM_U_ROW7_PID                169
+#define TM_U_ROW7_PID                170
 #define TM_U_OPTS_R                  530, 67, 266, 329	/* area: va_touch: option first + (y - 67) / 33 (radio_list window) */
 #define TM_U_OPTS_HR                 528, 66, 268, 330
-#define TM_U_OPTS_PID                170
+#define TM_U_OPTS_PID                171
 #define TM_U_OPT0_R                  530, 67, 266, 32	/* sub: PUSH, seek the pending value, PUSH */
-#define TM_U_OPT0_PID                171
+#define TM_U_OPT0_PID                172
 #define TM_U_OPT1_R                  530, 100, 266, 32	/* sub: PUSH, seek the pending value, PUSH */
-#define TM_U_OPT1_PID                172
+#define TM_U_OPT1_PID                173
 #define TM_U_OPT2_R                  530, 133, 266, 32	/* sub: PUSH, seek the pending value, PUSH */
-#define TM_U_OPT2_PID                173
+#define TM_U_OPT2_PID                174
 #define TM_U_OPT3_R                  530, 166, 266, 32	/* sub: PUSH, seek the pending value, PUSH */
-#define TM_U_OPT3_PID                174
+#define TM_U_OPT3_PID                175
 #define TM_U_OPT4_R                  530, 199, 266, 32	/* sub: PUSH, seek the pending value, PUSH */
-#define TM_U_OPT4_PID                175
+#define TM_U_OPT4_PID                176
 #define TM_U_OPT5_R                  530, 232, 266, 32	/* sub: PUSH, seek the pending value, PUSH */
-#define TM_U_OPT5_PID                176
+#define TM_U_OPT5_PID                177
 #define TM_U_OPT6_R                  530, 265, 266, 32	/* sub: PUSH, seek the pending value, PUSH */
-#define TM_U_OPT6_PID                177
+#define TM_U_OPT6_PID                178
 #define TM_U_OPT7_R                  530, 298, 266, 32	/* sub: PUSH, seek the pending value, PUSH */
-#define TM_U_OPT7_PID                178
+#define TM_U_OPT7_PID                179
 #define TM_U_OPT8_R                  530, 331, 266, 32	/* sub: PUSH, seek the pending value, PUSH */
-#define TM_U_OPT8_PID                179
+#define TM_U_OPT8_PID                180
 #define TM_U_OPT9_R                  530, 364, 266, 32	/* sub: PUSH, seek the pending value, PUSH */
-#define TM_U_OPT9_PID                180
+#define TM_U_OPT9_PID                181
 #define TM_S_WAVE_R                  19, 103, 62, 42	/* button */
 #define TM_S_WAVE_HR                 16, 96, 64, 56
-#define TM_S_WAVE_PID                181
+#define TM_S_WAVE_PID                182
 #define TM_S_PHASE_R                 82, 103, 64, 42	/* button */
 #define TM_S_PHASE_HR                80, 96, 68, 56
-#define TM_S_PHASE_PID               182
+#define TM_S_PHASE_PID               183
 #define TM_S_4BARS_R                 148, 103, 64, 42	/* button */
 #define TM_S_4BARS_HR                148, 96, 64, 56
-#define TM_S_4BARS_PID               183
+#define TM_S_4BARS_PID               184
 #define TM_S_HCAL_ON_R               224, 103, 62, 42	/* button */
 #define TM_S_HCAL_ON_HR              224, 96, 64, 56
-#define TM_S_HCAL_ON_PID             184
+#define TM_S_HCAL_ON_PID             185
 #define TM_S_HCAL_SET_R              287, 103, 62, 42	/* button */
 #define TM_S_HCAL_SET_HR             288, 96, 60, 56
-#define TM_S_HCAL_SET_PID            185
+#define TM_S_HCAL_SET_PID            186
 #define TM_S_HCAL_OFF_R              350, 103, 62, 42	/* button */
 #define TM_S_HCAL_OFF_HR             348, 96, 64, 56
-#define TM_S_HCAL_OFF_PID            186
+#define TM_S_HCAL_OFF_PID            187
 #define TM_S_LCD_DN_R                17, 177, 63, 40	/* button: < / > half of the tile */
 #define TM_S_LCD_DN_HR               16, 170, 64, 54
-#define TM_S_LCD_DN_PID              187
+#define TM_S_LCD_DN_PID              188
 #define TM_S_LCD_UP_R                141, 177, 63, 40	/* button: < / > half of the tile */
 #define TM_S_LCD_UP_HR               140, 170, 64, 54
-#define TM_S_LCD_UP_PID              188
+#define TM_S_LCD_UP_PID              189
 #define TM_S_JOG_DN_R                221, 177, 63, 40	/* button: < / > half of the tile */
 #define TM_S_JOG_DN_HR               220, 170, 64, 54
-#define TM_S_JOG_DN_PID              189
+#define TM_S_JOG_DN_PID              190
 #define TM_S_JOG_UP_R                345, 177, 63, 40	/* button: < / > half of the tile */
 #define TM_S_JOG_UP_HR               344, 170, 64, 54
-#define TM_S_JOG_UP_PID              190
+#define TM_S_JOG_UP_PID              191
 #define TM_S_Q0_R                    17, 251, 61, 42	/* button */
 #define TM_S_Q0_HR                   16, 244, 64, 56
-#define TM_S_Q0_PID                  191
+#define TM_S_Q0_PID                  192
 #define TM_S_Q1_R                    79, 251, 61, 42	/* button */
 #define TM_S_Q1_HR                   80, 244, 60, 56
-#define TM_S_Q1_PID                  192
+#define TM_S_Q1_PID                  193
 #define TM_S_Q2_R                    141, 251, 61, 42	/* button */
 #define TM_S_Q2_HR                   140, 244, 64, 56
-#define TM_S_Q2_PID                  193
+#define TM_S_Q2_PID                  194
 #define TM_S_Q3_R                    203, 251, 61, 42	/* button */
 #define TM_S_Q3_HR                   204, 244, 60, 56
-#define TM_S_Q3_PID                  194
+#define TM_S_Q3_PID                  195
 #define TM_S_BJV0_R                  15, 325, 61, 39	/* display: 1/2 disabled (whole beats only) */
 #define TM_S_BJV1_R                  77, 325, 61, 39	/* button */
 #define TM_S_BJV1_HR                 76, 318, 64, 46
-#define TM_S_BJV1_PID                195
+#define TM_S_BJV1_PID                196
 #define TM_S_BJV2_R                  139, 325, 61, 39	/* button */
 #define TM_S_BJV2_HR                 140, 318, 60, 46
-#define TM_S_BJV2_PID                196
+#define TM_S_BJV2_PID                197
 #define TM_S_BJV3_R                  201, 325, 61, 39	/* button */
 #define TM_S_BJV3_HR                 200, 318, 64, 46
-#define TM_S_BJV3_PID                197
+#define TM_S_BJV3_PID                198
 #define TM_S_BJV4_R                  15, 365, 61, 39	/* button */
 #define TM_S_BJV4_HR                 12, 358, 64, 52
-#define TM_S_BJV4_PID                198
+#define TM_S_BJV4_PID                199
 #define TM_S_BJV5_R                  77, 365, 61, 39	/* button */
 #define TM_S_BJV5_HR                 76, 364, 64, 46
-#define TM_S_BJV5_PID                199
+#define TM_S_BJV5_PID                200
 #define TM_S_BJV6_R                  139, 365, 61, 39	/* button */
 #define TM_S_BJV6_HR                 140, 364, 60, 46
-#define TM_S_BJV6_PID                200
+#define TM_S_BJV6_PID                201
 #define TM_S_BJV7_R                  201, 365, 61, 39	/* button */
 #define TM_S_BJV7_HR                 200, 364, 64, 46
-#define TM_S_BJV7_PID                201
+#define TM_S_BJV7_PID                202
 #define TM_S_WCOL_BLUE_R             452, 181, 63, 42	/* button */
 #define TM_S_WCOL_BLUE_HR            452, 174, 64, 56
-#define TM_S_WCOL_BLUE_PID           202
+#define TM_S_WCOL_BLUE_PID           203
 #define TM_S_WCOL_RGB_R              516, 181, 62, 42	/* button */
 #define TM_S_WCOL_RGB_HR             516, 174, 64, 56
-#define TM_S_WCOL_RGB_PID            203
+#define TM_S_WCOL_RGB_PID            204
 #define TM_S_WCOL_3BAND_R            579, 181, 62, 42	/* button */
 #define TM_S_WCOL_3BAND_HR           580, 174, 64, 56
-#define TM_S_WCOL_3BAND_PID          204
+#define TM_S_WCOL_3BAND_PID          205
 #define TM_S_POS_LEFT_R              449, 257, 62, 40	/* button */
 #define TM_S_POS_LEFT_HR             448, 250, 64, 54
-#define TM_S_POS_LEFT_PID            205
+#define TM_S_POS_LEFT_PID            206
 #define TM_S_POS_CENTER_R            512, 257, 62, 40	/* button */
 #define TM_S_POS_CENTER_HR           512, 250, 64, 54
-#define TM_S_POS_CENTER_PID          206
+#define TM_S_POS_CENTER_PID          207
 #define TM_S_LOAD_R                  683, 181, 68, 42	/* button */
 #define TM_S_LOAD_HR                 680, 174, 72, 54
-#define TM_S_LOAD_PID                207
+#define TM_S_LOAD_PID                208
 #define TM_S_SAVE_R                  683, 234, 68, 42	/* button */
 #define TM_S_SAVE_HR                 680, 228, 72, 54
-#define TM_S_SAVE_PID                208
+#define TM_S_SAVE_PID                209
 #define TM_S_RBK_R                   683, 287, 68, 42	/* button */
 #define TM_S_RBK_HR                  680, 282, 72, 54
-#define TM_S_RBK_PID                 209
+#define TM_S_RBK_PID                 210
 #define TM_S_SOURCE_R                436, 85, 334, 66	/* display */
 
 /* repeated families: member k at X0 + k * DX, Y0 + k * DY */
 #define TM_P_LOOP_PAD_N          8
-#define TM_P_LOOP_PAD_X0         58
-#define TM_P_LOOP_PAD_Y0         258
-#define TM_P_LOOP_PAD_DX         80
+#define TM_P_LOOP_PAD_X0         72
+#define TM_P_LOOP_PAD_Y0         252
+#define TM_P_LOOP_PAD_DX         81
 #define TM_P_LOOP_PAD_DY         0
 #define TM_P_LOOP_PAD_W          72
-#define TM_P_LOOP_PAD_H          44
+#define TM_P_LOOP_PAD_H          52
 #define TM_P_BJ_PAD_N            8
-#define TM_P_BJ_PAD_X0           58
-#define TM_P_BJ_PAD_Y0           258
-#define TM_P_BJ_PAD_DX           80
+#define TM_P_BJ_PAD_X0           72
+#define TM_P_BJ_PAD_Y0           252
+#define TM_P_BJ_PAD_DX           81
 #define TM_P_BJ_PAD_DY           0
 #define TM_P_BJ_PAD_W            72
-#define TM_P_BJ_PAD_H            44
+#define TM_P_BJ_PAD_H            52
 #define TM_LPT_ROW_N             8
 #define TM_LPT_ROW_X0            457
 #define TM_LPT_ROW_Y0            90
@@ -741,6 +744,6 @@
 #define TM_LPT_ROW_H 39
 
 #define TM_SLOP 6
-#define TM_NPID 210
+#define TM_NPID 211
 
 #endif

@@ -3211,7 +3211,7 @@ kc_no:	rts
 	.p2align 2
 kc_pc:	.byte	9, 11, 0, 2, 4, 5, 7	! A .. G
 	.p2align 2
-tk_keys:	.long RAMB+0x10400	! keys_build's names, 8 bytes per key id
+tk_keys:	.long RAMB+0x10800	! keys_build's names, 8 bytes per key id
 tk_mk:		.long 0x4D4B0000	! "MK"
 tk_med:		.long MED+68
 
@@ -5700,7 +5700,7 @@ rm_udiv:
 
 	.p2align 2
 rm_tab:		.long RAMB+0x10100	! the rows' texts, 0x60 bytes each (n = 1-8)
-rm_keys:	.long RAMB+0x10400	! key names, 8 bytes per key id (< 128)
+rm_keys:	.long RAMB+0x10800	! key names, 8 bytes per key id (< 128)
 rm_artid:	.long RAMB+0x10090	! the row's artwork id (0: none)
 rm_mp3:		.ascii	"MP3\0"
 rm_m4a:		.ascii	"M4A\0"
@@ -6309,7 +6309,7 @@ bx_k1820:	.word	1820
 	.p2align 2
 
 ! keys_build: once, the key names: export.pdb's key table (type 5: +0 id,
-! +8 the name, a short or long ASCII DeviceSQL string) -> 0x081F0400 +
+! +8 the name, a short or long ASCII DeviceSQL string) -> 0x081F0800 +
 ! id*8, seven characters at most. TP_KS = 1 whatever happens. r9 = TP state;
 ! uses r10-r14 (saved by row_waves).
 keys_build:
@@ -6507,7 +6507,7 @@ kb_256:		.word 256
 kb_bpage:	.word B_PAGE
 kb_4096:	.word 4096
 	.p2align 2
-kb_keys:	.long RAMB+0x10400
+kb_keys:	.long RAMB+0x10800
 
 ! tr_pwv4 (rowwave): the same walk on the row's .EXT file (B_APATH with its
 ! extension changed from DAT) for PWV4, the colour preview: 1200 columns of

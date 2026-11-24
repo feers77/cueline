@@ -37,8 +37,8 @@ Reference versions: binutils 2.42, Python 3.12, Pillow 12.1.1, fontTools 4.61.1.
 python3 builder/cueline_patch.py /path/to/C2KNXS2.UPD          # writes Cueline/C2KNXS2.UPD next to the input
 ```
 It verifies the input sha256, applies `builder/cueline.delta` (our prebuilt patch data; `builder/cueline.delta`
-sha256 `cbbabcba2eb62714aa0ff2232ee374be46857d1698f789071d8fd82cbcf08632`), repacks, and checks the output sha256 equals `85905736d2f042e3be62c363180c60a5107d97032fa854369c28315074ca0b6e`. On Windows the same tool is
-`CuelineBuilder.exe` (release asset, sha256 `b1d99409c6adca1176dae1cf03c138e74691a9b5f719b3749d40ec251f0dc641`; unsigned: SmartScreen may warn). On macOS it is `CuelineBuilder-macOS.zip` (release asset, sha256 `322a57ebf1c3bc3a75225a3e5ce19d49cfe37a6b1328da2ab198d0d179b86894`; universal app, not notarized: the first time, System Settings -> Privacy & Security -> Open Anyway). In a browser: the Cueline Web Builder (https://feers77.github.io/cueline/webbuilder/), same output.
+sha256 `981750cba8e2681d00bf8eb213a0424c9c68bf92144232a38304912af48801c7`), repacks, and checks the output sha256 equals `65c30bdef959704e86460b996b5c2ec3f1add7b10fb677e5bcbbedbe6f6e0914`. On Windows the same tool is
+`CuelineBuilder.exe` (release asset, sha256 `ac4d56841abd9c9815832a89c725d72b4f45f7d050f42f1dc357192cb4a58e26`; unsigned: SmartScreen may warn). On macOS it is `CuelineBuilder-macOS.zip` (release asset, sha256 `0cc6b136d5b67fae16415f242ec142b95c19dfcd802374146f86c7bbb3c9b8bb`; universal app, not notarized: the first time, System Settings -> Privacy & Security -> Open Anyway). In a browser: the Cueline Web Builder (https://feers77.github.io/cueline/webbuilder/), same output.
 
 ## 3. Build from source (paranoid path)
 From the repository root:
@@ -47,11 +47,11 @@ From the repository root:
 ```
 Takes a few minutes. Expected end of the output:
 ```
-build.sh: wrote .../out-release/C2KNXS2.UPD  [profile release, build ID "Cueline-2.3 20261123-2329 2cd1c93f"]
-  sha256    85905736d2f042e3be62c363180c60a5107d97032fa854369c28315074ca0b6e
+build.sh: wrote .../out-release/C2KNXS2.UPD  [profile release, build ID "Cueline-2.3.1 20261124-1809 49e8943c"]
+  sha256    65c30bdef959704e86460b996b5c2ec3f1add7b10fb677e5bcbbedbe6f6e0914
   verify    verify_update: all checks passed
   bootcheck PASS  ...
-  == R23R1r reference build, byte-identical (sha256 85905736d2f042e3be62c363180c60a5107d97032fa854369c28315074ca0b6e)
+  == R23U1r reference build, byte-identical (sha256 65c30bdef959704e86460b996b5c2ec3f1add7b10fb677e5bcbbedbe6f6e0914)
 ```
 Exit codes: 0 = identical to the reference; 2 = built and checked, but the sha differs (other tool versions:
 acceptable if verify and bootcheck passed); 1 = error (do not install).
@@ -74,7 +74,7 @@ autotest). Only for testing; see dev/README.md.
 3. Copy `out-release/C2KNXS2.UPD` alone to the root of a small FAT32 USB stick.
 4. Deck off, insert the stick, start the update as in Pioneer's official CDJ-2000NXS2 update guide, wait for
    complete, power-cycle. Never switch off during the update.
-5. UTILITY > INFO > BUILD shows `Cueline-2.3 2cd1c93f`.
+5. UTILITY > INFO > BUILD shows `Cueline-2.3.1 49e8943c`.
 6. Tell them 2.3 is the current stable release (confirmed on real decks; KEY SHIFT / KEY SYNC are back with a new engine, and a display freeze of 2.2 at loops is fixed), but it is unofficial: test at home before a gig, keep the
    official 1.87 on a stick, report bugs in GitHub Issues.
 7. Back to stock (explain all of it):

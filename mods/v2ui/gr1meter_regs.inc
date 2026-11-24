@@ -12,6 +12,9 @@
  */
 enum { G1_OFF_PATH = 1, G1_OFF_NOTOWNED, G1_OFF_UPD, G1_OFF_WDOG, G1_OFF_KILL };
 static u32 g1_last_a, g1_nopaint;
+#define G1_LINGER 4
+static int g1_idle;
+u32 v2_g1_linger;
 
 #ifdef V2_GR1PRECOMP
 #define G1_AB3(a) (((143u + G1_X) << 16) | G1_WW)	/* PRECOMP: fixed (the deck ignores the shift) */
@@ -38,9 +41,19 @@ static void g1_adj_restore(void);
 static u32 sc0_boot[7];
 static int sc0_saved, sc0_done;
 #endif
-static void g1_regs_off(void)
+/* REVIEW 1124 4.3: every off path (screen not ours, watchdog, view gone) used to give scaler 0 and the matrix back
+ * to stock in the SAME commit that turned GR1's read off; scaler registers latch in their own groups (DS at the input
+ * vsync, manual 33.1.2), so the panel could show GR1 one frame through stock's line-doubling scaler = two tick rows.
+ * Now the layer goes off first and the scaler / matrix come back G1_LINGER flips later (g1_watch); update mode and the
+ * kill switch restore at once. */
+static int g1_rs_left;
+static void g1_regs_off_now(int now)
 {
-	g1_adj_restore();
+	if (now) {
+		g1_rs_left = 0;
+		g1_adj_restore();
+	} else
+		g1_rs_left = G1_LINGER;
 	HWR(GR1 + 0x20) &= ~3u;					/* AB1 DISP_SEL 0 (stock: background colour) */
 	HWR(GR1 + 0x04) = 0;					/* reads off */
 	HWR(GR1) |= 0x11;
@@ -56,7 +69,7 @@ static void g1_off(int why)
 	if (!g1_on)
 		return;
 	g1_gr2sel(0);
-	g1_regs_off();
+	g1_regs_off_now(why == G1_OFF_UPD || why == G1_OFF_KILL || UPD_STATE);
 	g1_on = 0;
 	g1_hold = now_ms() + G1_HOLD_MS;
 	v2_g1_offs++;
@@ -278,10 +291,27 @@ static void g1_commit(void)
 {
 	u32 a;
 	if (!g1_seen) {
+		/* GR1LINGER (owner, decks 2026-11-23: for a moment the master row showed two rows of ticks after changing
+		 * the meter's style by touch): leaving the WAVEFORM view switched GR1 off and gave scaler 0 back to stock
+		 * (its line-doubling up-scaler) in the SAME commit as the first frame without the key. If the panel shows
+		 * the last keyed GR3 buffer one vsync longer than the registers take, GR1 is seen through the stock
+		 * scaler for that frame: every line twice. Now the layer and its scaler setup stay as they are for
+		 * G1_LINGER frames without the key (both GR3 buffers repainted, several vsyncs passed) and only then go
+		 * off; a view that comes back meanwhile just keys again (no re-setup, no 1 s of CPU strip). */
+		if (g1_on && !KILL_HB && !UPD_STATE && g1_idle < G1_LINGER) {
+			g1_idle++;
+			g1_nopaint = 0;
+			if (g1_idle > 1)	/* REVIEW 1124 m.A: the last keyed buffer may still be on the panel one frame */
+				g1_kprev = 0;
+			g1_key_now = 0;
+			v2_g1_linger++;
+			return;
+		}
 		g1_off(KILL_HB ? G1_OFF_KILL : G1_OFF_PATH);
 		g1_key_now = 0;
 		return;
 	}
+	g1_idle = 0;
 	g1_seen = 0;
 	g1_nopaint = 0;
 #ifdef V2_GR1PRECOMP
@@ -303,6 +333,7 @@ static void g1_commit(void)
 			HWR(GR1 + G1_OWN[i]) = g1_own(G1_OWN[i]);
 		HWR(GR1) |= 0x11;
 		g1_on = 1;
+		g1_age = 0;
 		v2_g1_setups++;
 		v2_g1_on = 1;
 	} else {
@@ -322,6 +353,8 @@ static void g1_commit(void)
 	g1_adj_live();		/* m4: GR1's colour matrix GBR -> GBR identity (stock: YCbCr -> GBR) */
 	g1_gr2sel(1);		/* after hb_commit: its setup / re-assert may have written DISP_SEL 2 this frame */
 	g1_last_a = a;
+	if (g1_age < 100)
+		g1_age++;
 	g1_kprev = g1_key_now;
 	g1_pa0 = g1_a0;
 	g1_pa1 = g1_a1;
@@ -334,8 +367,13 @@ static void g1_commit(void)
 static void g1_watch(void)
 {
 	g1_adj_snap();
-	if (!g1_on)
+	if (!g1_on) {
+		if (g1_rs_left && (UPD_STATE || --g1_rs_left == 0)) {	/* REVIEW 1124 4.3: the deferred restore */
+			g1_rs_left = 0;
+			g1_adj_restore();
+		}
 		return;
+	}
 	if (UPD_STATE)
 		g1_off(G1_OFF_UPD);
 	else if (++g1_nopaint > 3)

@@ -122,7 +122,8 @@ STATES = {s.name: s for s in (
     State('shortcut.rbm', 10, 0x1E, 0, 0, ('ks_on', 'ks_rbm'), 'SHORT CUT, REKORDBOX BUTTON = KEY SHIFT'),
 )}
 PLAYER = ('player', 'player.loop', 'player.bj', 'player.ks', 'player.ksp', 'player.grid')   # (not under the LPT pane: outside = BACK)
-ZOOMG = ('player', 'player.loop', 'player.bj', 'player.ks', 'player.grid')    # the ZOOM - GRID label (under K.SYNC: not ksp)
+ZOOMG = ('player', 'player.ks')               # the ZOOM - GRID label under the band (no pad row)
+ZOOMG_UP = ('player.loop', 'player.bj', 'player.ksp', 'player.grid')    # ... above the pad row (PLAYERSCALE phase 2)
 LISTS = ('list.trk', 'list.plain', 'list.root', 'list.info', 'list.tag')
 HDR_LISTS = LISTS                       # header(): back box + INFO box
 TRK_LISTS = ('list.trk', 'list.plain', 'list.info', 'list.tag')  # header(pv = tracks): the PREVIEW tile (v2.c: sid 3 / 4 / INFO)
@@ -180,32 +181,34 @@ def _targets():
     L = []
     a = L.append
     # ---- player (class 1) --------------------------------------------------------------------------------
-    a(t('p.loop_tile', PLAYER, (561, 0, 76, 60), 'button', stock(3), 'int tx = 561 + i * 80'))
-    a(t('p.ks_tile', ('player.ks', 'player.ksp'), (641, 0, 76, 60), 'button', vt(12, 1), 'int tx = 561 + i * 80'))
-    a(t('p.bj_tile', PLAYER, (721, 0, 76, 60), 'button', stock(15), 'int tx = 561 + i * 80'))
-    a(t('p.info', PLAYER, (276, 30, 280, 26), 'button', key('INFO'), 'text_u16(&f_m, 276, 32, kft, kfn, 552',
+    a(t('p.loop_tile', PLAYER, (561, 0, 71, 60), 'button', stock(3), 'static const short TX[3] = { 561, 639, 716 }'))
+    a(t('p.ks_tile', ('player.ks', 'player.ksp'), (639, 0, 71, 60), 'button', vt(12, 1), 'static const short TX[3] = { 561, 639, 716 }'))
+    a(t('p.bj_tile', PLAYER, (716, 0, 71, 60), 'button', stock(15), 'static const short TX[3] = { 561, 639, 716 }'))
+    a(t('p.info', PLAYER, (290, 30, 266, 26), 'button', key('INFO'), 'text_u16(&f_ti, 290, 31, kft, kfn, 552',
         note='sub-line key + the (i) disc'))
     a(t('p.meter', PLAYER, (204, 60, 428, 60), 'area', stock(2), 'fill(0, 60, W, BAND_Y0 - 60, C_BLACK)',
         note='tap cycles PHASE / WAVEFORM / 4 BARS (pm_tap)'))
     a(t('p.overview', PLAYER, (79, 405, 640, 75), 'area', stock(0), '#define OV_X 79',
         note='needle search (paused) / Touch Cue (playing, LINK CUE with CUE: TchAud tc_check reads zone 0)'))
     for k in range(8):
-        a(t('p.loop_pad%d' % k, 'player.loop', (58 + 80 * k, 258, 72, 44), 'button', stock(4, k),
-            'int px = 58 + 80 * k, lit = k == active'))
-        a(t('p.bj_pad%d' % k, 'player.bj', (58 + 80 * k, 258, 72, 44), 'button', stock(7 + k),
-            'int px = 58 + 80 * k, cx = px + 20'))
+        a(t('p.loop_pad%d' % k, 'player.loop', (72 + k * 325 // 4, 252, 72, 52), 'button', stock(4, k),
+            'int px = PAD_X(k), lit = k == active'))
+        a(t('p.bj_pad%d' % k, 'player.bj', (72 + k * 325 // 4, 252, 72, 52), 'button', stock(7 + k),
+            'int px = PAD_X(k), cx = px + 20'))
     for nm, x, arg in (('p.ks_m1', 180, 2), ('p.ks_reset', 353, 4), ('p.ks_p1', 524, 3)):
-        a(t(nm, 'player.ksp', (x, 258, 96, 44), 'button', vt(12, arg), 'static const int X[3] = { 180, 353, 524 }'))
-    a(t('p.ks_sync', 'player.ksp', (656, 258, 96, 44), 'button', vt(12, 7), 'fill(656, y, 96, 44, bg)'))
-    a(t('p.ks_row', 'player.ksp', (16, 250, 768, 60), 'swallow', vt(12, 5), 'fill(WAVE_X0, y - 3, WAVE_N, 48'))
+        a(t(nm, 'player.ksp', (x, 252, 96, 52), 'button', vt(12, arg), 'static const int X[3] = { 180, 353, 524 }'))
+    a(t('p.ks_sync', 'player.ksp', (656, 252, 96, 52), 'button', vt(12, 7), 'fill(656, y, 96, PAD_H, bg)'))
+    a(t('p.ks_row', 'player.ksp', (16, 250, 768, 60), 'swallow', vt(12, 5), 'fill(WAVE_X0, y - 3, WAVE_N, PAD_H + 5'))
     # TOUCH (V4n41): the GRID ADJUST panel (v2.c grid_bar) and the ZOOM - GRID toggle (zoom_label)
     for k, (nm, x) in enumerate((('snap', 197), ('shift', 282), ('half_back', 367), ('half_next', 446),
                                  ('reset', 531))):
-        a(t('g.' + nm, 'player.grid', (x, 258, 72, 44), 'button', vt(15, k),
+        a(t('g.' + nm, 'player.grid', (x, 252, 72, 52), 'button', vt(15, k),
             'static const short X[5] = { 197, 282, 367, 446, 531 }'))
-    a(t('g.row', 'player.grid', (16, 250, 768, 60), 'swallow', vt(15, 6), 'fill(WAVE_X0, y - 3, WAVE_N, 48'))
-    a(t('p.zoomgrid', ZOOMG, (708, 296, 86, 18), 'button', vt(15, 5), 'fill(708, 296, 86, 18, C_BLACK)',
+    a(t('g.row', 'player.grid', (16, 250, 768, 60), 'swallow', vt(15, 6), 'fill(WAVE_X0, y - 3, WAVE_N, PAD_H + 5'))
+    a(t('p.zoomgrid', ZOOMG, (708, 296, 86, 18), 'button', vt(15, 5), 'fill(708, y - 1, 86, 18, C_BLACK)',
         note='stock GRID ADJUST mode on / off'))
+    a(t('p.zoomgrid_up', ZOOMG_UP, (708, 232, 86, 16), 'button', vt(15, 7), 'int y = PADROW_UP ? 233 : 297',
+        note='the same label above the pad row while it is up (modsmenu vt_hit gates 15/5 and 15/7 on the pad row)'))
     # LOAD PREVIOUS TRACK pane (popup(), MODEL[7] == 0x02)
     a(t('lpt.title', 'player.lpt', (457, 60, 343, 30), 'display', NONE, 'int x0 = 457, w = W - 457, y = 60'))
     # TOUCH (V4n41): modsmenu vt_pop (CENTPOP) -> va_touch action 14 inside the pane, BACK outside
@@ -222,7 +225,7 @@ def _targets():
     a(t('b.src', brs, (0, 0, 56, 60), 'button', key('USB'), 'fill(0, 0, RAIL_W, 60, nv)'))
     a(t('b.back', HDR_LISTS, (74, 14, 32, 32), 'button', key('BACK'), 'frame(x, 14, 32, 32, 1, 0x4A69)'))
     a(t('b.info', HDR_LISTS, (712, 12, 80, 36), 'button', key('INFO'), 'fill(712, 12, 80, 36'))
-    a(t('b.preview', TRK_LISTS, (562, 6, 72, 48), 'button', vt(18), 'fill(562, 6, 72, 48, C_SEL)',
+    a(t('b.preview', TRK_LISTS, (561, 0, 71, 60), 'button', vt(18), 'fill(561, 0, 71, 60, C_SEL)',
         note='3000 PREVIEW tile: Link Cue on the rows, a tap = on / off (kill_v +24)'))
     a(t('b.filter', ('list.trk', 'list.plain', 'list.root', 'list.info'), (640, 16, 64, 28), 'button', vt(5),
         'frame(640, 16, 64, 28, 1, 0x4A69)'))
@@ -376,15 +379,16 @@ def _current_vt():
     a = lambda *v: L.append(VZ(*v))     # noqa: E731
     for k, (nm, x0, x1) in enumerate((('snap', 192, 276), ('shift', 276, 364), ('half_back', 364, 440),
                                       ('half_next', 440, 524), ('reset', 524, 612))):
-        a(1, 0xFF, 15, k, x0, 252, x1, 308, None, 'g.' + nm)
-    a(1, 0xFF, 12, 1, 640, 0, 720, 60, 'KEYSHIFT', 'p.ks_tile')
-    a(1, 0xFF, 12, 2, 176, 254, 280, 306, 'KEYSHIFT', 'p.ks_m1')
-    a(1, 0xFF, 12, 4, 348, 254, 452, 306, 'KEYSHIFT', 'p.ks_reset')
-    a(1, 0xFF, 12, 3, 520, 254, 624, 306, 'KEYSHIFT', 'p.ks_p1')
-    a(1, 0xFF, 12, 7, 652, 254, 756, 306, 'KEYSHIFT', 'p.ks_sync')
+        a(1, 0xFF, 15, k, x0, 248, x1, 308, None, 'g.' + nm)
+    a(1, 0xFF, 12, 1, 636, 0, 712, 60, 'KEYSHIFT', 'p.ks_tile')     # PLAYERSCALE phase 2: the tile 639..710
+    a(1, 0xFF, 12, 2, 176, 248, 280, 308, 'KEYSHIFT', 'p.ks_m1')    # ... the pad row 252..304
+    a(1, 0xFF, 12, 4, 348, 248, 452, 308, 'KEYSHIFT', 'p.ks_reset')
+    a(1, 0xFF, 12, 3, 520, 248, 624, 308, 'KEYSHIFT', 'p.ks_p1')
+    a(1, 0xFF, 12, 7, 652, 248, 756, 308, 'KEYSHIFT', 'p.ks_sync')
     a(1, 0xFF, 12, 5, 16, 250, 784, 310, 'KEYSHIFT', 'p.ks_row')
     a(10, 0xFF, 12, 6, 680, 286, 752, 330, 'KEYSHIFT', 's.rbk')
     a(1, 0xFF, 15, 5, 704, 290, 800, 322, None, 'p.zoomgrid')
+    a(1, 0xFF, 15, 7, 704, 228, 800, 246, None, 'p.zoomgrid_up')    # PLAYERSCALE phase 2: above the pad row while it is up
     a(1, 0xFF, 15, 6, 16, 250, 784, 310, None, 'g.row')
     for k in range(6):
         a(VT_UCLS, 0x0A, 9, k, 0, 70 + 48 * k, 64, 116 + 48 * k, None, 'u.cat%d' % k)
@@ -665,8 +669,12 @@ def vt_live(rows, st, syms):
             continue
         if r.act == 18 and st.sid == 0x00:
             continue                                # TOUCH: PREVIEW only off the root / SOURCE (va_touch)
-        if r.act == 15 and r.arg != 5 and 'grid' not in st.modes:
+        if r.act == 15 and r.arg not in (5, 7) and 'grid' not in st.modes:
             continue                                # TOUCH: GRID ADJUST panel zones in that mode only (vt_hit)
+        if r.act == 15 and r.arg in (5, 7):         # PLAYERSCALE phase 2: ZOOM - GRID under the band (5) / above
+            up = any(m in st.modes for m in ('pads_loop', 'pads_bj', 'ks_panel', 'grid'))   # the pad row (7)
+            if up != (r.arg == 7):
+                continue
         if r.act == 12:                             # KEYSHIFT gating (vt_hit)
             if r.arg == 6:
                 if 'ks_rbm' not in st.modes:

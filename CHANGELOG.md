@@ -1,6 +1,46 @@
 # CHANGELOG
 
-## 2.3 -- 2026-11-23: RELEASE `R23R1r` / DEV `R23R1n` (labels MAIN 2.20 / GUI 2.14, source hash `2cd1c93f`)
+## 2.3.1 -- 2026-11-24: RELEASE `R23U1r` / DEV `R23U1n` (labels MAIN 2.30 / GUI 2.24, source hash `49e8943c`)
+Fix release for 2.3 (treble after KEY SHIFT, display bugs from a full code review) and CDJ-3000 proportions for the
+phase meter and the player screen. Changes since 2.3:
+- **Treble lost after using KEY SHIFT (bug fix, 2.3 has this bug):** once a shift (or KEY SYNC) had been used, going
+  back to 0 / RESET left the audio running through the resampler at a fixed in-between position, which acts as a
+  gentle low-pass (about −3 dB at 11 kHz in the worst case) until a 48 / 96 kHz track was loaded or the deck was
+  switched off. At exactly 0 the samples now pass unchanged.
+- **LINK phase meter as on the CDJ-3000:** the PHASE view has a fixed time scale (it no longer changes with the
+  waveform zoom), beat marks on one side of each line and a centre line; the WAVEFORM view sits lower, with shorter
+  marks. Changing the view by touch, or leaving the player screen, no longer hands the display scaler back in the
+  same frame (a cause we suspect for doubled tick rows seen for a moment on real decks).
+- **Player screen in CDJ-3000 proportions:** PLAYER, QUANTIZE, BEAT JUMP and BPM boxes, header tiles, track title
+  (larger type), minute ruler (taller marks, half minutes), cue marker and loop-length label are resized and
+  repositioned. The pad row (BEAT LOOP, BEAT JUMP, KEY SHIFT, GRID ADJUST) has larger pads; while it is open the
+  waveform is half height with its top beat marks in place, and ZOOM – GRID moves above the pads. Touch areas moved
+  with the drawing.
+- **Overview, last 7 % of the track (bug fix):** the top-right corner of the overview was erased on every track,
+  hiding hot cue and memory marks near the end.
+- **Key names (bug fix, 2.3 has this bug):** showing a browse list with eight rows overwrote part of the internal
+  table of key names used for KEY SYNC and the master key. Found by code review and confirmed in the emulator; its
+  effect on a deck was not measured.
+- **Smaller fixes:** the K.SYNC tile lights when KEY SYNC is on with a shift of 0; small labels (QUANTIZE, KEY) no
+  longer run together; the WAVEFORM meter follows a zoom change while both decks are paused; the minute ruler shows
+  minutes above 99; SOURCE shows the right total when used and free space come in different units; the waveform is
+  read again after a load (a re-read that never ran); the hidden loop window of the original firmware is now
+  switched off on every screen, not only on the player.
+- **Tested on real decks:** two CDJ-2000NXS2 on Pro DJ Link ran two unattended scripts (9 and 33 minutes) on a
+  developer build of the same sources, each script on both decks: four file formats, pop-ups, preview gestures, a
+  touch tour of the new pad row, header tiles and ZOOM – GRID with memory read-backs, settings, LINK, KEY SHIFT on
+  eight long tracks with loops and searches, and 27 taps on the phase meter under SYNC. No EMERGENCY LOOP. **Not
+  checked by eye or ear on the decks:** the treble fix (verified in a host test of the resampler), the doubled tick
+  rows.
+- **Versioning:** MAIN 2.30 / GUI 2.24 (DEV and RELEASE alike); UTILITY > INFO > BUILD shows `Cueline-2.3.1 <hash>`.
+  2.3.1 installs over 2.3, 2.2, 2.1.1 and 2.1 without a factory reset.
+
+Known issues: KEY SHIFT has no effect on tracks of 48 / 88.2 / 96 kHz (they play unshifted). KEY SYNC with the 2.3
+engine and the menu languages were checked in the emulator, not yet measured on real decks. The first preview over
+LINK from another deck's USB can take a moment (the index is built once). The WAVEFORM meter may sit 1 pixel row off
+vertically.
+
+## 2.3 -- 2026-11-24: RELEASE `R23R1r` / DEV `R23R1n` (labels MAIN 2.20 / GUI 2.14, source hash `2cd1c93f`)
 KEY SHIFT and KEY SYNC return with a new engine; one display bug fix. Changes since 2.2:
 - **KEY SHIFT is back, with a new engine.** It now works *inside* the deck's own MASTER TEMPO engine, the way the
   CDJ-3000 does it: the original time-stretcher runs at tempo ÷ pitch and its output is resampled by the pitch

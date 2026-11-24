@@ -48,8 +48,8 @@ sudo apt install gcc-sh4-linux-gnu binutils-sh4-linux-gnu python3-pil python3-nu
 ## 3. Build
 
 ```
-./build.sh C2KNXS2.UPD                     # RELEASE  -> out-release/C2KNXS2.UPD  (= R23R1r)
-PROFILE=dev ./build.sh C2KNXS2.UPD         # DEV      -> out-dev/C2KNXS2.UPD      (= R23R1n)
+./build.sh C2KNXS2.UPD                     # RELEASE  -> out-release/C2KNXS2.UPD  (= R23U1r)
+PROFILE=dev ./build.sh C2KNXS2.UPD         # DEV      -> out-dev/C2KNXS2.UPD      (= R23U1n)
 ```
 
 - Both profiles build from the same sources. DEV also copies `dev/mods/` into the build's work copy and adds

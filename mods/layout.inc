@@ -5,7 +5,7 @@
 ! stock-firmware layout the committed .bin files are assembled with:
 !   RAMB   a 128 KB block of free RAM: rowwave buffers +0x0, the black big
 !          buffer +0x9000, the row table +0x10000 (texts +0x10100, keys
-!          +0x10400), the kill switch word +0x1F7F0, the shared block
+!          +0x10800 -- REVIEW 1124: was +0x10400 = row 8's text slot), the kill switch word +0x1F7F0, the shared block
 !          +0x1F800, diagnostics +0x1FE00, wav32 state +0x1FF00
 !   TADEC  the tadec blob's entry table (open +0, seek +4, read +8,
 !          rate +0xC, close +0x10, jpeg +0x14)

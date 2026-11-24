@@ -34,6 +34,26 @@
 #define W 800
 #define BAND_Y0 122		/* stock centre waveform + its beat ticks */
 #define BAND_Y1 306
+/* PLAYERSCALE: the band's playhead as the 3000 -- 204..440 = 8 px past the tick rows -> 136..293 (was the whole
+ * band region 124..303); with the pads up (half-height layout) as before until that layout is the 3000's */
+#define PH_Y0 136
+#define PH_H (b_shrink ? 95 : 158)	/* pad row up: the 3000's 204..345 -> 136..230 */
+/* PLAYERSCALE phase 2 (re/PLAYER_SCALE_PLAN.md; 3000 wf3k.png + video frame 16): the pad row (BEAT LOOP / BEAT JUMP
+ * pads, the KEY SHIFT panel, GRID ADJUST) is 8 x 116 x 84 at x 116 + 130 k, y 382 -> 72 x 52 at x 72 + 81.25 k, y 252
+ * (was 72 x 44 at 58 + 80 k, y 258). While it is up -- whatever the loop state -- the band is half height with its
+ * TOP tick row where it always is (141) and the bottom one at 215 (was: half height only while looping, ticks at
+ * 127 / 232); the beat numbers, the loop length and ZOOM - GRID sit between the band and the pads. */
+/* the loop wash covers the wave rows between the tick rows only (3000 wf3k.png: 228..323 of 720), band rows */
+#define WASH_Y0 (151 - BAND_Y0)
+#define WASH_Y1 ((b_shrink ? 215 : 279) - BAND_Y0)
+#define PAD_Y 252
+#define PAD_H 52
+#define PAD_W 72
+#define PAD_X(k) (72 + (((k) * 325) >> 2))
+#ifndef V2_KEYSHIFT
+#define KS_PANEL_UP 0
+#endif
+#define PADROW_UP (DECK[0xF3] == 2 || DECK[0x11B] == 1 || GA_MODE || KS_PANEL_UP)
 
 /* MAIN's models in GUI RAM (re/V2_PROTOCOL.md) */
 /* every model below is filled by other code or by DMA (which does not keep the CPU's D-cache coherent):
@@ -282,6 +302,7 @@ static u32 kit_gr, kit_gcur, kit_cursor = 0xFFFFFFFF, kit_ink, kit_inkreq, kit_z
 #define KS_ON ((v3e_b & 0x8001) == 0x8001)
 #define KS_SEMI (KS_ON ? (int)((v3e_b >> 1) & 31) - 12 : 0)
 #define KS_PANEL (KS_ON && ((v3e_b >> 6) & 1))
+#define KS_PANEL_UP KS_PANEL
 #define KS_RBM ((v3e_b & 0x8080) == 0x8080)
 #define KS_KSYNC (KS_ON && ((v3e_b >> 8) & 1))	/* V4n: KEY SYNC on (mods/keyshift ksy_on) */
 #define KS_KREF (KS_ON && ((v3e_b >> 9) & 1))	/* V4n: a K.SYNC press refused (no key / no master) */
@@ -622,6 +643,20 @@ static void text_c(const struct font *f, int cx, int y, const char *s, u16 fg, u
 	text(f, cx - text_w(f, s) / 2, y, s, fg, bg);
 }
 
+/* PLAYERSCALE phase 4: centred with `tr` px between the letters -- the 3000's tile labels are wider set than our
+ * narrow small face ("BEAT" 54 px on 1280 = 34 here; f_s alone: 22) */
+static void text_c_tr(const struct font *f, int cx, int y, const char *s, int tr, u16 fg, u16 bg)
+{
+	int n = 0, x;
+	const char *q;
+	for (q = s; *q; q++)
+		n++;
+	x = cx - (text_w(f, s) + tr * (n - 1)) / 2;
+	set_ramp(fg, bg);
+	for (; *s; s++)
+		x += draw_glyph(f, x, y, (u8)*s, W) + tr;
+}
+
 static void text_r(const struct font *f, int rx, int y, const char *s, u16 fg, u16 bg)
 {
 	text(f, rx - text_w(f, s), y, s, fg, bg);
@@ -928,8 +963,12 @@ static void ldart_draw(int x0, int y0, int dw, int dh)
 /* V4n9 (CDJ-3000 emu, side by side): the 3000's overview sits higher, its minute labels fully visible above the
  * screen edge -- the whole block 12 px up (was OV_TOP 407 / OV_Y 421 / OV_BAR 465 / OV_RUL 467) */
 #define OV_Y 409		/* overview rows 409..451 (OVH 43) */
-#define OV_BAR 453		/* the progress line under it (red played, white ahead), 2 rows */
-#define OV_RUL 455		/* the minute ruler: ticks 455..458, labels under them (to ~466) */
+/* PLAYERSCALE (3000 a.png, native: a black row, 4 white, 2 red; minute ticks 13 tall and 3-4 wide, white, the label
+ * BESIDE the tick; half-minute ticks 1 px grey): x 0.625 = white 2 rows (was 1), red 1, ticks 8 tall (were 4, the
+ * labels under them) */
+#define OV_BAR 453		/* the progress line under it: rows 453, 454 white ahead / grey played, 455 red */
+#define OV_BARH 3
+#define OV_RUL 457		/* the minute ruler: ticks 457..464, labels beside them */
 #define OV_TOP 395		/* hot-cue badges 395..405, memory triangles 401..405, loop bars 407..408 */
 #define N_HOT 8
 static const u16 HC[] = { 0xF800, 0xFD20, 0xFFE0, 0x07E0, 0x07FF, 0x001F, 0xF81F, 0xFFFF };
@@ -939,6 +978,14 @@ static void tri(int x, int y, u16 c)		/* pointing up, apex at y */
 	int i;
 	for (i = 0; i < 5; i++)
 		fill(x - i, y + i, 2 * i + 1, 1, c);
+}
+static void tri_cue(int x, int y, u16 c)	/* PLAYERSCALE: the overview's cue triangle, 17 x 15 -> 11 x 9 (was tri's 9 x 5) */
+{
+	int i;
+	for (i = 0; i < 9; i++) {
+		int hw = (i * 5 + 4) >> 3;
+		fill(x - hw, y + i, 2 * hw + 1, 1, c);
+	}
 }
 static void tri_dn(int x, int y, u16 c)		/* pointing down, apex at y + 4 */
 {
@@ -951,8 +998,8 @@ static void cue_badge(int x, int y, int k, u16 c)
 {
 	char l[2];
 	l[0] = 'A' + k; l[1] = 0;
-	fill(x, y, 10, 11, c);
-	text_c(&f_t, x + 5, y + 9 - f_t.asc, l, C_BLACK, c);
+	fill(x, y, 12, 11, c);		/* PLAYERSCALE: 19 x 18 -> 12 x 11 (was 10 x 11) */
+	text_c(&f_t, x + 6, y + 9 - f_t.asc, l, C_BLACK, c);
 }
 
 
@@ -1130,7 +1177,7 @@ static void markers(int x0, int w, u32 len_ms)
 		}
 		if (i == 0) {
 			if (en == 0xFFFFFFFF || en <= st)
-				tri(x0 + sx, OV_RUL, 0xFD06);		/* cue: #F8A030 under the overview (V3rc6: 3000 skin img_currentCue) */
+				tri_cue(x0 + sx, OV_RUL, 0xFD06);		/* cue: #F8A030 under the overview (V3rc6: 3000 skin img_currentCue) */
 		} else if (i <= N_HOT) {
 			u16 c = hot_col(i, r);
 			fill(x0 + sx, OV_TOP + 11, 1, OV_Y - OV_TOP - 11, c);
@@ -1227,21 +1274,27 @@ static void ruler(int x0, int w, u32 len_ms, int remain)
 		int lab = udiv(m, step) * step == m, xx = x0 + (int)x;
 		if (x >= (u32)w)
 			continue;
+		if (ppm >= 24 && m * 60000 >= 30000) {	/* PLAYERSCALE: the half minute before it, 1 px grey */
+			u32 th = remain ? t + 30000 : t - 30000, xh = udiv(udiv(th, 16) * (u32)w, udiv(len_ms, 16) ? udiv(len_ms, 16) : 1);
+			if (th <= len_ms && xh < (u32)w)
+				fill(x0 + (int)xh, OV_RUL, 1, 8, C_GREY);
+		}
 		if (ppm >= 6 || lab)
-			fill(xx, OV_RUL, 1, lab ? 4 : 2, C_GREY);
+			fill(xx, OV_RUL, lab ? 2 : 1, 8, lab ? C_WHITE : C_GREY);
 		if (lab) {
 			char *q = buf;
 			int tw;
 			if (remain) *q++ = '-';
+			if (m >= 100) *q++ = '0' + udiv(m, 100) % 10;	/* REVIEW 1124 m.D: mixes of 100 min and more */
 			if (m >= 10) *q++ = '0' + udiv(m, 10) % 10;
 			*q++ = '0' + m % 10;
 			*q++ = ':'; *q++ = '0'; *q++ = '0'; *q = 0;
 			tw = text_w(&f_t, buf);
-			if (xx + 2 + tw > x0 + w || (xx + 2 < last_r + 4 && xx + 2 + tw + 4 > last_l))
+			if (xx + 5 + tw > x0 + w || (xx + 5 < last_r + 4 && xx + 5 + tw + 4 > last_l))
 				continue;
-			text(&f_t, xx + 2, OV_RUL + 1, buf, C_LBL, C_BLACK);
-			last_l = xx + 2;
-			last_r = xx + 2 + tw;
+			text(&f_t, xx + 5, OV_RUL - 2, buf, C_LBL, C_BLACK);	/* cap rows OV_RUL + 1 .. + 7 */
+			last_l = xx + 5;
+			last_r = xx + 5 + tw;
 		}
 	}
 }
@@ -1709,6 +1762,9 @@ static u32 gms(const volatile u8 *r)
 u32 v2_det_hold;
 static int det_holding;	/* V3rc8: a short detail-length drop on the same track is being bridged */
 static u32 ld_t0;	/* LOADFIX: the last change of the track identity (paint_frame; 0 none yet) */
+/* REVIEW 1124 3.2: paint_frame's local ld_t0 shadowed this one, so it stayed 0 and ld_reread() never ran since 1.92.
+ * paint_frame keeps its local (its pacing is unchanged); it sets this one through ld_mark(). */
+static void ld_mark(u32 t) { ld_t0 = t; }
 /* LOADFIX (deck: an occasional half-drawn / stale band after a load): the band's data checks sample 32 spots of
  * the whole track, so a late chunk of the detail landing between them in the visible window left columns built
  * from the old / half-written data (paused: until a zoom). After any load the band is re-read from the buffer,
@@ -1988,7 +2044,7 @@ static u32 band_xk;		/* V3f: the inputs of the band's other layers (loop pads, l
 /* V3e3 (audit L1): with the loop pads open the 3000 shrinks the waveform to half height, centred at y 185
  * (rows SH_Y0 .. SH_Y0 + RING_H / 2 of the band), the pads below it */
 static int b_shrink;
-#define SH_Y0 17
+#define SH_Y0 15	/* PLAYERSCALE: the halved wave (128 -> 64 rows) between the tick rows 141..150 and 215..224 */
 HOTSW static void band_copy(int la, int lb)
 {
 	int y;
@@ -2006,7 +2062,7 @@ HOTSW static void band_copy(int la, int lb)
 		if (b_shrink) {
 			int sy = y - SH_Y0;
 			if (sy < 0 || sy >= RING_H / 2) {	/* V3rc1: runs, not a test per pixel (loop in: 190 ms) */
-				if (la <= lb) {
+				if (la <= lb && y >= WASH_Y0 && y < WASH_Y1) {
 					fill16(dst, la, bg);
 					fill16(dst + la, lb - la + 1, wash);
 					fill16(dst + lb + 1, WAVE_N - lb - 1, bg);
@@ -2018,6 +2074,7 @@ HOTSW static void band_copy(int la, int lb)
 		}
 		cp16(dst, src + ring_head, a);
 		cp16(dst + a, src, ring_head);
+		if (y >= WASH_Y0 && y < WASH_Y1)
 		for (x = la; x <= lb; x++)
 			if (dst[x] == bg)
 				dst[x] = wash;
@@ -2316,7 +2373,7 @@ static int wave_band(void)
 			if (la < 0) la = 0;
 			if (lb >= WAVE_N) lb = WAVE_N - 1;
 		}
-		b_shrink = DECK[0xD3] == 3 || DECK[0xD3] == 5;	/* (band_xk carries +0xD3) */
+		b_shrink = PADROW_UP;	/* (band_xk carries the pad modes, the KEY SHIFT words and GRID ADJUST) */
 		band_copy(la, lb);
 	}
 	/* beat ticks above and below: downbeats red and long, the other beats white */
@@ -2351,8 +2408,8 @@ static int wave_band(void)
 				}
 				/* V3e1 (audit Q8): 1 px, 10 tall, beats #A6A6A6, bars red, at the 3000's rows */
 				(void)len;
-				fill(WAVE_X0 + col, b_shrink ? 127 : 141, 1, 10, down ? C_RED : 0xA534);
-				fill(WAVE_X0 + col, b_shrink ? 232 : 279, 1, 10, down ? C_RED : 0xA534);
+				fill(WAVE_X0 + col, 141, 1, 10, down ? C_RED : 0xA534);
+				fill(WAVE_X0 + col, b_shrink ? 215 : 279, 1, 10, down ? C_RED : 0xA534);
 			}
 		}
 	}
@@ -2395,7 +2452,7 @@ static int wave_band(void)
 		}
 	}
 	/* playhead: V3e1 (audit W1/Q3) red while playing, white when paused / at the cue, yellow with SLIP on */
-	fill(WAVE_X0 + V2_PLAYHEAD - 1, BAND_Y0 + 2, 2, BAND_Y1 - BAND_Y0 - 4,
+	fill(WAVE_X0 + V2_PLAYHEAD - 1, PH_Y0, 2, PH_H,
 	     slip_on() ? 0xFF20 : deck_playing() ? C_RED : C_WHITE);
 	return 1;
 }
@@ -2872,7 +2929,7 @@ static int needle_away(u32 pos_x)
  * right-aligned at rx (the 3000 / rekordbox look) */
 /* the player's BPM box (672..787 x 325..384, MASTER tab under it): digit baseline 9 px above the
  * frame's bottom, as the browse deck area and the 3000 frame (re/cdj3k_refs play-a440) */
-#define BPM_BASE 378
+#define BPM_BASE 374	/* PLAYERSCALE: the box ends at 380 (was 378 in a box to 384): 6 px above the frame's foot */
 static void bpm_split(int rx, int y, const struct font *fi, const struct font *fd, char *buf, u16 fg)
 {
 	char *dot;
@@ -2954,15 +3011,15 @@ static int loop_len_k(u32 bpm10)
 static void jump_bar(void)
 {
 	static const char *const N[4] = { "2", "4", "8", "16" };
-	int k, y = 258;
-	fill(WAVE_X0, y - 3, WAVE_N, 48, dm(C_BLACK));
+	int k, y = PAD_Y;
+	fill(WAVE_X0, y - 3, WAVE_N, PAD_H + 5, dm(C_BLACK));
 	for (k = 0; k < 8; k++) {
-		int px = 58 + 80 * k, cx = px + 20, cy = y + 22, i, right = k & 1;
-		checker2(px, y, 72, 44, dm(C_CK1), dm(C_BAR));	/* V4n: skin img_btnBeatJump = #191919/#323232 checker */
-		frame(px, y, 72, 44, 2, 0x7BEF);	/* V3rc8t (claims audit #8): BEAT JUMP pads #7D7D7D outline (skin), not blue */
+		int px = PAD_X(k), cx = px + 20, cy = y + 26, i, right = k & 1;
+		checker2(px, y, PAD_W, PAD_H, dm(C_CK1), dm(C_BAR));	/* V4n: skin img_btnBeatJump = #191919/#323232 checker */
+		frame(px, y, PAD_W, PAD_H, 2, 0x7BEF);	/* V3rc8t (claims audit #8): BEAT JUMP pads #7D7D7D outline (skin), not blue */
 		for (i = 0; i < 6; i++)		/* the arrow: a 6-px triangle pointing left / right */
 			fill(right ? cx + i - 3 : cx - i + 3, cy - (5 - i), 1, 2 * (5 - i) + 1, dm(C_WHITE));
-		text_c(&f_m, px + 46, y + 11, N[k >> 1], dm(C_WHITE), dm(C_BAR));
+		text_c(&f_sd, px + 46, y + 14, N[k >> 1], dm(C_WHITE), dm(C_BAR));	/* PLAYERSCALE: cap 18 -> 11-12 (f_sd) */
 	}
 }
 static int key_txt(u8 *out, const volatile u8 *t, int n, int semi);
@@ -2977,22 +3034,22 @@ static u8 ks_kb[16];
 static void ks_bar(void)
 {
 	static const int X[3] = { 180, 353, 524 };
-	int k, y = 258, sh = KS_SEMI;
-	fill(WAVE_X0, y - 3, WAVE_N, 48, dm(C_BLACK));
+	int k, y = PAD_Y, sh = KS_SEMI;
+	fill(WAVE_X0, y - 3, WAVE_N, PAD_H + 5, dm(C_BLACK));
 	{	/* V4n: KEY SYNC (the 3000's K.SYNC; MAIN zone action 12 arg 7 at 652..756): lit #007DE1 while on */
 		int on = KS_KSYNC;
 		u16 bg = on ? C_SEL : dm(C_BLACK);
-		fill(656, y, 96, 44, bg);
-		frame(656, y, 96, 44, 2, on ? C_SEL : KS_KREF ? C_WHITE : 0x7BEF);
-		text_c(&f_t, 704, y + 3, "KEY", dm(C_WHITE), bg);
-		text_c(&f_m, 704, y + 17, "SYNC", dm(C_WHITE), bg);
+		fill(656, y, 96, PAD_H, bg);
+		frame(656, y, 96, PAD_H, 2, on ? C_SEL : KS_KREF ? C_WHITE : 0x7BEF);
+		text_c(&f_t, 704, y + 6, "KEY", dm(C_WHITE), bg);
+		text_c(&f_m, 704, y + 21, "SYNC", dm(C_WHITE), bg);
 	}
 	for (k = 0; k < 3; k++) {
 		int px = X[k], d = k == 0 ? -1 : k == 2 ? 1 : 0, kn = g_kn, m = 0;
 		u16 bg = k == 1 && sh ? C_SEL : dm(C_BLACK);
 		char b[4], *q = b;
-		fill(px, y, 96, 44, bg);
-		frame(px, y, 96, 44, 2, k == 1 ? C_SEL : 0x7BEF);
+		fill(px, y, 96, PAD_H, bg);	/* PLAYERSCALE: 153 x 84 -> 96 x 52 */
+		frame(px, y, 96, PAD_H, 2, k == 1 ? C_SEL : 0x7BEF);
 		if (k == 1) {
 			int a = sh < 0 ? -sh : sh;
 			if (sh)
@@ -3001,15 +3058,15 @@ static void ks_bar(void)
 				*q++ = '1';
 			*q++ = '0' + a % 10;
 			*q = 0;
-			text_c(&f_t, px + 48, y + 3, "RESET", dm(C_WHITE), bg);
-			text_c(&f_m, px + 48, y + 17, b, dm(C_WHITE), bg);
+			text_c(&f_t, px + 48, y + 6, "RESET", dm(C_WHITE), bg);
+			text_c(&f_m, px + 48, y + 21, b, dm(C_WHITE), bg);
 			continue;
 		}
-		text_c(&f_t, px + 48, y + 3, d < 0 ? "-1" : "+1", dm(C_WHITE), bg);
+		text_c(&f_t, px + 48, y + 6, d < 0 ? "-1" : "+1", dm(C_WHITE), bg);
 		if (kn && sh + d >= -12 && sh + d <= 12)
 			m = key_txt(ks_kb, g_key, kn, sh + d);
 		if (m)
-			text_u16(&f_m, px + 48 - 6 * m, y + 17, ks_kb, m, px + 94, dm(C_WHITE), bg);
+			text_u16(&f_m, px + 48 - 6 * m, y + 21, ks_kb, m, px + 94, dm(C_WHITE), bg);
 	}
 }
 #endif
@@ -3020,26 +3077,26 @@ static void grid_bar(void)
 {
 	static const short X[5] = { 197, 282, 367, 446, 531 };
 	static const char *const L1[5] = { "SNAP", "SHIFT", "", "", "RESET" }, *const L2[5] = { "GRID", "GRID", "1/2", "1/2", "" };
-	int k, y = 258;
-	fill(WAVE_X0, y - 3, WAVE_N, 48, dm(C_BLACK));
+	int k, y = PAD_Y;
+	fill(WAVE_X0, y - 3, WAVE_N, PAD_H + 5, dm(C_BLACK));
 	for (k = 0; k < 5; k++) {
 		int px = X[k], i;
-		fill(px, y, 72, 44, dm(C_BLACK));
-		frame(px, y, 72, 44, 2, 0x7BEF);
+		fill(px, y, PAD_W, PAD_H, dm(C_BLACK));
+		frame(px, y, PAD_W, PAD_H, 2, 0x7BEF);
 		if (k == 2 || k == 3) {	/* the 3000's double arrows: two 6-px triangles, then 1/2 */
-			int cx = px + (k == 2 ? 22 : 50), cy = y + 12, r = k == 3;
+			int cx = px + (k == 2 ? 22 : 50), cy = y + 16, r = k == 3;
 			for (i = 0; i < 6; i++) {
 				fill(r ? cx - 8 + i : cx - i + 2, cy - (5 - i), 1, 2 * (5 - i) + 1, dm(C_WHITE));
 				fill(r ? cx + i : cx - i + 10, cy - (5 - i), 1, 2 * (5 - i) + 1, dm(C_WHITE));
 			}
-			text_c(&f_m, px + 36, y + 19, L2[k], dm(C_WHITE), dm(C_BLACK));
+			text_c(&f_m, px + 36, y + 23, L2[k], dm(C_WHITE), dm(C_BLACK));
 			continue;
 		}
 		if (L2[k][0]) {
-			text_c(&f_t, px + 36, y + 6, L1[k], dm(C_WHITE), dm(C_BLACK));
-			text_c(&f_t, px + 36, y + 22, L2[k], dm(C_WHITE), dm(C_BLACK));
+			text_c(&f_t, px + 36, y + 10, L1[k], dm(C_WHITE), dm(C_BLACK));
+			text_c(&f_t, px + 36, y + 26, L2[k], dm(C_WHITE), dm(C_BLACK));
 		} else
-			text_c(&f_t, px + 36, y + 14, L1[k], dm(C_WHITE), dm(C_BLACK));
+			text_c(&f_t, px + 36, y + 18, L1[k], dm(C_WHITE), dm(C_BLACK));
 	}
 }
 static void loop_bar(u32 bpm10)
@@ -3074,19 +3131,19 @@ static void loop_bar(u32 bpm10)
 	 * the loop page, blue in slip's 1/16.. page), the current one filled orange; the "1 | 2" page toggle
 	 * at the right (page 1 lit; display only) */
 	(void)x;
-	y = 258;
-	fill(WAVE_X0, y - 3, WAVE_N, 48, dm(C_BLACK));
+	y = PAD_Y;
+	fill(WAVE_X0, y - 3, WAVE_N, PAD_H + 5, dm(C_BLACK));
 	for (k = 0; k < 8; k++) {
 		/* V4n (claims audit #101, skin img_btnBeatLoop): off = #191919/#323232 checker in a #FF7323 frame
 		 * (slip #28A0FF), on = #FF7323/#E15A0F checker (slip #28A0FF/#197DD2), white text */
-		int px = 58 + 80 * k, lit = k == active;
+		int px = PAD_X(k), lit = k == active;
 		u16 oc = slip ? 0x2D1F : C_MASTER, ob = slip ? 0x1BFA : 0xE2C1;
 		if (lit)
-			checker2(px, y, 72, 44, oc, ob);
+			checker2(px, y, PAD_W, PAD_H, oc, ob);
 		else
-			checker2(px, y, 72, 44, dm(C_CK1), dm(C_BAR));
-		frame(px, y, 72, 44, 2, oc);
-		text_c(&f_m, px + 36, y + 11, L[k], C_WHITE, lit ? ob : dm(C_BAR));
+			checker2(px, y, PAD_W, PAD_H, dm(C_CK1), dm(C_BAR));
+		frame(px, y, PAD_W, PAD_H, 2, oc);
+		text_c(&f_sd, px + 36, y + 14, L[k], C_WHITE, lit ? ob : dm(C_BAR));	/* PLAYERSCALE: f_sd */
 	}
 	/* V3rc7: no "1 | 2" page toggle (it was display only and its top strip set a 32-beat loop) */
 }
@@ -3504,8 +3561,8 @@ static void deck_area(int info, int on_player)
 		v2_reg_draws++;
 		fill(0, 317, W, 480 - 317, C_BLACK);
 		fill(0, 317, W, 1, C_BAR);
-		frame(12, 325, 64, 59, 2, C_FRAME);
-		text_c(&f_t, 44, 330, "PLAYER", C_WHITE, C_BLACK);	/* V3e1 (audit D9): the 3000's small labels */
+		frame(12, 325, 55, 55, 2, C_FRAME);	/* PLAYERSCALE: 88 x 88 -> 55 x 55 (was 64 x 59) */
+		text_c_tr(&f_t, 40, 330, "PLAYER", 1, C_WHITE, C_BLACK);	/* (59 px on 1280 = 37; f_t alone 29) */	/* V3e1 (audit D9): the 3000's small labels */
 		text(&f_t, 106, 330, "TRACK", C_WHITE, C_BLACK);
 		if (ahc != 3) {
 			frame(177, 331, 64, 19, 1, ahc == 1 ? C_RED : C_WHITE);
@@ -3516,18 +3573,18 @@ static void deck_area(int info, int on_player)
 		/* V3e1 (audit D8): BEAT SYNC inside the BPM box while synced, as the 3000 */
 		text(&f_t, 679, 329, sync ? "BEAT SYNC" : "BPM", C_WHITE, C_BLACK);	/* V3rc8z (claims audit #11): white */
 		/* the bottom row is bottom-aligned with the overview's under-bar (y 474), as the 3000 */
-		frame(12, 434, 64, 40, 2, C_WHITE);
-		text_c(&f_s, 44, 435, "BEAT JUMP", C_WHITE, C_BLACK);
-		text_c(&f_t, 759, 433, "KEY", C_WHITE, C_BLACK);
+		frame(12, 432, 55, 32, 2, C_WHITE);	/* PLAYERSCALE: 88 x 51 at y 647 -> 55 x 32 at 432 (was 64 x 40 at 434) */
+		text_c(&f_t, 40, 433, "BEAT JUMP", C_WHITE, C_BLACK);
+		text_c(&f_t, 760, 424, "KEY", C_WHITE, C_BLACK);	/* PLAYERSCALE: label 640 -> 427, value 666..690 -> 444..460 */
 	}
 	rforce |= all;		/* the background was cleared: every region below draws again */
 	if (need(28, hmix(hmix(player_no, on_air()), (u32)pn_blank() + 2 * (u32)pn_grey()))) {	/* V4s: the PLAYER tile's number and on-air arcs */
-		fill(14, 341, 60, 41, C_BLACK);
+		fill(14, 341, 51, 37, C_BLACK);
 		buf[0] = '0' + player_no % 10; buf[1] = 0;
 		if (!pn_blank())	/* V4n17: blinks while negotiating; V4n22: grey when not confirmed */
-			text_c(&f_l, 44, 343, buf, pn_grey() ? C_GREY : C_WHITE, C_BLACK);
+			text_c(&f_l, 40, 341, buf, pn_grey() ? C_GREY : C_WHITE, C_BLACK);
 		if (on_air())		/* V3e1 (audit D1): the 3000's red ((n)) while the mixer has it on air */
-			air_arcs(44, 361, C_RED);
+			air_arcs(40, 359, C_RED);
 	}
 
 	if (need(3, trackno)) {
@@ -3609,14 +3666,14 @@ static void deck_area(int info, int on_player)
 		 * fill below leave rows 327..339 alone, so after a master hand-off the orange tab stayed on the new
 		 * follower (white frame, white digits, MASTER tab) until region 2 repainted (BEAT SYNC / BPM label at
 		 * x 679.., left of the cell) */
-		fill(745, 325, 42, 15, C_BLACK);
-		frame(672, 325, 115, 59, 2, master ? C_MASTER : C_FRAME);	/* V4s: here, not in region 2 */
+		fill(738, 325, 55, 16, C_BLACK);
+		frame(672, 325, 121, 55, 2, master ? C_MASTER : C_FRAME);	/* PLAYERSCALE: 194 x 88 -> 121 x 55 (was 115 x 59) */	/* V4s: here, not in region 2 */
 		if (master) {	/* V4n (claims audit #128): the MASTER tab inside the box's top-right (skin 68x19 at
 				 * 1192,488 -> 42x13 at 745,325), not above the frame */
-			fill(745, 325, 42, 13, C_MASTER);
-			text_c(&f_t, 766, 326, "MASTER", C_BLACK, C_MASTER);
+			fill(738, 325, 55, 15, C_MASTER);	/* PLAYERSCALE: the tab 89 x 24 -> 55 x 15 */
+			text_c(&f_t, 765, 327, "MASTER", C_BLACK, C_MASTER);
 		}
-		fill(674, 340, 111, 42, C_BLACK);
+		fill(674, 341, 117, 37, C_BLACK);
 		if (loaded && !bpm_unknown) {
 			char *dot;
 			fmt_bpm(buf, bpm10, v100);
@@ -3628,25 +3685,26 @@ static void deck_area(int info, int on_player)
 				*dot = '.';
 				wd = text_w(&f_sd, dot);
 				if (wi + wd <= 106)
-					bpm_split(782, BPM_BASE - f_bpm.asc, &f_bpm, &f_sd, buf, bc);
+					bpm_split(786, BPM_BASE - f_bpm.asc, &f_bpm, &f_sd, buf, bc);
 				else
-					bpm_split(782, BPM_BASE - f_l.asc, &f_l, &f_sd, buf, bc);
+					bpm_split(786, BPM_BASE - f_l.asc, &f_l, &f_sd, buf, bc);
 			} else {
 				*dot = '.';
-				bpm_split(782, BPM_BASE - f_bpm.asc, &f_bpm, &f_md, buf, bc);
+				bpm_split(786, BPM_BASE - f_bpm.asc, &f_bpm, &f_md, buf, bc);
 			}
 		} else if (loaded && bpm_unknown) {
 			buf[0] = '-'; buf[1] = '-'; buf[2] = '.'; buf[3] = '-'; buf[4] = 0;
-			bpm_split(782, BPM_BASE - f_bpm.asc, &f_bpm, &f_md, buf, bc);
+			bpm_split(786, BPM_BASE - f_bpm.asc, &f_bpm, &f_md, buf, bc);
 		}
 	}
 	if (need(7, q + 8 * (u32be(DECK + 0x48) != 0))) {	/* V3e3: QUANTIZE on = red (re_deck: +0x48) */
 		u16 qc = C_RED;
-		fill(12, 390, 64, 40, C_BLACK);
+		fill(12, 390, 56, 34, C_BLACK);
 		if (u32be(DECK + 0x48)) {	/* V3rc8z (claims audit #11): the 3000 hides QUANTIZE when it is off */
-			text_c(&f_m, 44, 404, QV[q], qc, C_BLACK);
-			frame(12, 390, 64, 40, 2, qc);
-			text_c(&f_s, 44, 391, "QUANTIZE", qc, C_BLACK);
+			/* PLAYERSCALE: 88 x 51 at y 586 -> 55 x 32 at 391, label cap 6, value cap 11-12 (f_sd) */
+			text_c(&f_sd, 40, 401, QV[q], qc, C_BLACK);
+			frame(12, 391, 55, 32, 2, qc);
+			text_c(&f_t, 40, 392, "QUANTIZE", qc, C_BLACK);	/* (f_t's ink = rows y + 3 .. y + 9) */
 		}
 	}
 #ifdef V3E2
@@ -3656,9 +3714,9 @@ static void deck_area(int info, int on_player)
 	if (need(27, hmix(hmix(v3e_d & 0xFF, loaded), u32be(DECK + 0x3C) * 4 + (u32be(DECK + 0x2C) != 0)))) {
 		static const char *const BJV[8] = { "", "1", "2", "4", "8", "16", "32", "64" };
 		int x;
-		fill(14, 448, 60, 24, C_BLACK);
+		fill(14, 446, 51, 16, C_BLACK);
 		if ((v3e_d & 0x80) && V3E_BJ)
-			text_c(&f_m, 44, 450, BJV[V3E_BJ], C_WHITE, C_BLACK);
+			text_c(&f_sd, 40, 442, BJV[V3E_BJ], C_WHITE, C_BLACK);
 		fill(177, 353, 64, 20, C_BLACK);
 		if (u32be(DECK + 0x2C)) {	/* re_deck: stock AUTO CUE, 2 on / 0 off */
 			frame(177, 354, 64, 19, 1, C_WHITE);	/* V3rc8z (claims audit #11): AUTO CUE is white on the 3000 */
@@ -3765,7 +3823,7 @@ static void deck_area(int info, int on_player)
 					}
 				}
 #endif
-				fill(726, 446, 66, 30, C_BLACK);
+				fill(726, 436, 66, 30, C_BLACK);
 				if (kdn) {
 					int wsum = 0, kx;
 #ifdef V2_KEYSHIFT
@@ -3789,12 +3847,12 @@ static void deck_area(int info, int on_player)
 						if (kx < 726)
 							kx = 726;
 						if (a1[0])
-							text_r(&f_s, 791, a2[0] ? 445 : 453, a1, C_OR, C_BLACK);
+							text_r(&f_s, 791, a2[0] ? 435 : 443, a1, C_OR, C_BLACK);
 						if (a2[0])
-							text_r(&f_s, 791, a1[0] ? 460 : 453, a2, C_OR, C_BLACK);
+							text_r(&f_s, 791, a1[0] ? 450 : 443, a2, C_OR, C_BLACK);
 					}
 #endif
-					text_u16(&f_m, kx, 448, kd, kdn, W, kcol, C_BLACK);
+					text_u16(&f_m, kx, 438, kd, kdn, W, kcol, C_BLACK);
 				}
 			}
 		}
@@ -3812,6 +3870,9 @@ static void deck_area(int info, int on_player)
 			ko = hmix(ko, mono_ck());
 		ko = hmix(ko, slip_ms_ok() && len ? udiv(udiv(slip_pos_ms(), 16) * 640, udiv(len, 16) ? udiv(len, 16) : 1) + 1 : 0);
 		ko = hmix(hmix(ko, remain_mode), DECK[0xDF] == 3 && ns_live ? 1 + (u32be(DECK + 0x70) >> 4) : 0);
+#ifdef V2_KEYSHIFT
+		ko = hmix(ko, (u32)((KS_KSYNC || KS_KREF) && mt));	/* REVIEW 1124 3.5: the K.SYNC + MT pair covers x 678..718 */
+#endif
 		if (need(9, ko)) {
 			fill(79, 400, 642, 80, C_BLACK);
 			fill(556, 380, 90, 22, C_BLACK);
@@ -3832,23 +3893,23 @@ static void deck_area(int info, int on_player)
 					strip_marks_snap(hmix(trackno, len));
 				/* V3e1 (audit Q13): the 3000 under-bar -- a white rule ahead, #555555 under the played
 				 * part with the red progress line below it */
-				fill(OV_X, OV_BAR, pos_x, 1, 0x52AA);
-				fill(OV_X + pos_x, OV_BAR, 640 - pos_x, 1, C_WHITE);
-				fill(OV_X, OV_BAR + 1, 640, 1, C_RED);	/* V3rc8t (claims audit #4): the red line runs the full width (3.20 refs) */
+				fill(OV_X, OV_BAR, pos_x, 2, 0x52AA);
+				fill(OV_X + pos_x, OV_BAR, 640 - pos_x, 2, C_WHITE);
+				fill(OV_X, OV_BAR + 2, 640, 1, C_RED);	/* V3rc8t (claims audit #4): the red line runs the full width (3.20 refs) */
 				ruler(OV_X, 640, len, remain_mode);
 				markers(OV_X, 640, len);
 				if (pos_x)	/* V3rc8t (3000 gap sweep #8): the overview playhead has a black edge */
-					fill(OV_X + pos_x - 1, OV_Y - 2, 1, OV_BAR + 2 - OV_Y + 2, C_BLACK);
+					fill(OV_X + pos_x - 1, OV_Y - 2, 1, OV_BAR + OV_BARH - OV_Y + 2, C_BLACK);
 				if (pos_x + 2 < 640)
-					fill(OV_X + pos_x + 2, OV_Y - 2, 1, OV_BAR + 2 - OV_Y + 2, C_BLACK);
-				fill(OV_X + pos_x, OV_Y - 2, 2, OV_BAR + 2 - OV_Y + 2, C_WHITE);
+					fill(OV_X + pos_x + 2, OV_Y - 2, 1, OV_BAR + OV_BARH - OV_Y + 2, C_BLACK);
+				fill(OV_X + pos_x, OV_Y - 2, 2, OV_BAR + OV_BARH - OV_Y + 2, C_WHITE);
 				if (slip_ms_ok() && len) {	/* the slip ghost: where the track really is (V4n32: MAIN's ms) */
 					u32 sp = slip_pos_ms(), gx;
 					if (sp > len) sp = len;
 					gx = udiv(udiv(sp, 16) * 640, udiv(len, 16) ? udiv(len, 16) : 1);
 					if (gx > 638) gx = 638;
 					if (gx + 3 < pos_x || gx > pos_x + 3)
-						fill(OV_X + gx, OV_Y - 2, 2, OV_BAR + 2 - OV_Y + 2, C_SLIPG);
+						fill(OV_X + gx, OV_Y - 2, 2, OV_BAR + OV_BARH - OV_Y + 2, C_SLIPG);
 				}
 				if (DECK[0xDF] == 3 && ns_live && u32be(DECK + 0x74) && needle_away(pos_x)) {
 					/* V3c (W7) needle-drag preview: a finger on the strip while playing (Touch Cue / needle
@@ -3860,7 +3921,7 @@ static void deck_area(int info, int on_player)
 					if (fp > fn) fp = fn;
 					fx = udiv((fp >> 4) * 640, (fn >> 4) ? fn >> 4 : 1);
 					if (fx > 639) fx = 639;
-					fill(OV_X + fx, OV_Y - 2, 2, OV_BAR + 2 - OV_Y + 2, C_GREEN);
+					fill(OV_X + fx, OV_Y - 2, 2, OV_BAR + OV_BARH - OV_Y + 2, C_GREEN);
 					nx = OV_X + (int)fx - 22;
 					if (nx < OV_X) nx = OV_X;
 					if (nx > OV_X + 640 - 44) nx = OV_X + 640 - 44;
@@ -3885,7 +3946,12 @@ static void deck_area(int info, int on_player)
 		/* V3e1 (video 02, audit D8): the MASTER tab sits on the BPM box's top-right corner, as the 3000 */
 		fill(672, 384, 115, 13, C_BLACK);
 		fill(730, 318, 57, 7, C_BLACK);	/* V4n: the MASTER tab moved into the BPM box (region 6) */
-		fill(672, 402, 120, 20, C_BLACK);
+		/* REVIEW 1124 3.5: the overview runs to x 718 from y 409: a 672..791 clear erased its top-right 47 x 13 px
+		 * (hot cues / memory marks of the last 7 %) on every track. Clear right of it; the K.SYNC + MT pair (MT box
+		 * at 678) is the only case that reaches over the overview. */
+		fill(719, 402, 73, 20, C_BLACK);
+		if (ksy && mt)
+			fill(672, 402, 47, 20, C_BLACK);
 		if (ksy) {	/* V4n: the CDJ-3000's K.SYNC badge (skin img_syncKeyShift_#on: #007DE1 frame + text on
 				 * black, the MT badge's slot); a refusal shows it white for ~0.6 s */
 			u16 kc = ksy == 1 ? C_SEL : C_WHITE;
@@ -3977,17 +4043,16 @@ static void band_extras(int lab)
  * - the beat-distance numbers: FIXED marks N beats ahead of the playhead (2 / 4 zoomed in, 4 / 8 zoomed
  *   out: the larger pair whose 8 / 4 beats still fit the band), as the 3000 (video §1, burst 87:40);
  * - "<loop> n": the active loop's length in beats at the playhead (the 3000's loop arrow + 1/2, 4 ...). */
-static void loop_icon(int x, int y, u16 c)	/* a 9 x 9 circular arrow */
+static void loop_icon_l(int x, int y, u16 c)	/* PLAYERSCALE: the 3000's loop arrow 29 x 19 -> 18 x 12 (was 9 x 9) */
 {
-	static const u16 M[9] = { 0x07C, 0x082, 0x101, 0x101, 0x101, 0x101, 0x082, 0x07C, 0x000 };
-	int i, j;
-	for (j = 0; j < 8; j++)
-		for (i = 0; i < 9; i++)
-			if (M[j] >> (8 - i) & 1)
-				fill(x + i, y + j, 1, 1, c);
-	fill(x + 6, y - 1, 3, 1, c);	/* the arrow head, top right */
-	fill(x + 7, y, 1, 1, c);
-	fill(x + 1, y + 7, 2, 1, C_BLACK);	/* the gap at the bottom left */
+	int i;
+	fill(x + 4, y + 2, 12, 2, c);		/* top */
+	fill(x + 15, y + 3, 2, 7, c);		/* right */
+	fill(x + 2, y + 9, 14, 2, c);		/* bottom */
+	fill(x + 1, y + 6, 2, 4, c);		/* left, up to the gap under the head */
+	for (i = 0; i < 3; i++)			/* the head, pointing left at the top-left end */
+		fill(x + i, y + 2 - i, 1, 2 * i + 2, c);
+	fill(x + 3, y, 1, 6, c);
 }
 /* V4 (HWBAND): split into calc (updates the smoothing statics, records what to draw, returns its hash) and draw,
  * so the hardware band can key the GR3 overlay on it; band_numbers() = calc + draw, as before */
@@ -3997,14 +4062,14 @@ static u32 band_numbers_calc(u32 bpm10)
 {
 	int looping = DECK[0xD3] == 3 || DECK[0xD3] == 5;	/* V3e1 (audit Q9): the 3000's row */
 	/* V3rc7: the rows under the band belong to the pad row whenever a pad mode is open (loop or jump) */
-	int pads = DECK[0xF3] == 2 || DECK[0x11B] == 1;
+	int pads = PADROW_UP;
 	bnr.nb = 0;
 	bnr.lab = 0;
 	{	/* #16 (TANDA3): the 3000's beat-distance numbers, n / 2n beats right of the playhead (they do not scroll).
 		 * px per beat from the grid BPM at the playhead (constant: the GR3 key changes only on a zoom or a tempo
 		 * change in the grid), the band is in track time (pitch does not matter): 150 entries / s, 2^sh a column */
 		u32 gi, cnt, bp, ppb16;
-		const volatile u8 *r0 = pads ? 0 : grid_at(u32be(DECK + 0x78), &gi, &cnt);
+		const volatile u8 *r0 = grid_at(u32be(DECK + 0x78), &gi, &cnt);	/* PLAYERSCALE: also with the pad row (under the half band) */
 		bp = r0 ? u16be(r0 + 20 * gi + 2) : 0;
 		if (bp >= 2000 && bp <= 30000 && !BN_OFF) {
 			/* the largest pair (n, 2n) from 2/4 up whose 2n beats still fit right of the playhead; #16b (3000
@@ -4026,7 +4091,7 @@ static u32 band_numbers_calc(u32 bpm10)
 		 * grey otherwise (the stored loop's length, else the 4-BEAT LOOP key's 4); above the pads when
 		 * they are up */
 		int lk = loop_len_k(bpm10);
-		bnr.ly = pads ? 244 : 293;
+		bnr.ly = pads ? 237 : 293;	/* PLAYERSCALE: between the half band and the pads (ink 237..249) */
 		bnr.lc = looping ? (slip_on() ? 0x0C9F : C_MASTER) : C_LBL;	/* V3rc8t: slip loop = #0F91FF (3000) */
 		if (lk >= 0 || looping) {	/* V3rc8t (claims audit #12): the 3000 shows "<loop> n" only with a loop */
 			bnr.lab = 1;
@@ -4043,11 +4108,7 @@ static void band_numbers_draw(void)
 	{
 	static const char *const NB[] = { "2", "4", "8", "16", "32", "64", "128" };
 	int j;
-#ifdef V2_KEYSHIFT
-	if (bnr.nb && !KS_PANEL && !GA_MODE)	/* V4k: not over the KEY SHIFT panel's tiles (TOUCH: nor GRID ADJUST's) */
-#else
-	if (bnr.nb)
-#endif
+	if (bnr.nb)	/* PLAYERSCALE: also with the KEY SHIFT panel / GRID ADJUST up (they are under the half band now) */
 		for (j = 0; j < 2; j++) {
 			/* #16b (3000 screenshots clean3k / c / a, re/WAVE3000_SPEC.md §BN): each number CENTRED on its
 			 * n-beat distance from the playhead (+-1 px on 1280), white digits whose cap height spans
@@ -4056,13 +4117,15 @@ static void band_numbers_draw(void)
 			int w = text_w(&f_t, NB[bnr.k + j]), x = bnr.x[j] - w / 2;
 			if (x + w > WAVE_X0 + WAVE_N)	/* V4n27z: room 400 > the band's right half: keep it inside */
 				x = WAVE_X0 + WAVE_N - w;
-			text(&f_t, x, 283, NB[bnr.k + j], C_WHITE, C_BLACK);
+			text(&f_t, x, PADROW_UP ? 219 : 283, NB[bnr.k + j], C_WHITE, C_BLACK);	/* (4 rows into the bottom ticks) */
 		}
 	}
 	if (bnr.lab) {
-		int w = 12 + text_w(&f_t, L[bnr.lk]), x = WAVE_X0 + V2_PLAYHEAD - w / 2;
-		loop_icon(x, bnr.ly + 2, bnr.lc);	/* (no clear: the band's ring copy repaints these rows) */
-		text(&f_t, x + 12, bnr.ly, L[bnr.lk], bnr.lc, C_BLACK);
+		/* PLAYERSCALE: icon 18 x 12, digits cap 11-12 (f_sd, 13); the baseline 2 px under f_t's old one, the ink
+		 * ends on row ly + 12 (305 without pads: inside the band's rows) */
+		int w = 22 + text_w(&f_sd, L[bnr.lk]), x = WAVE_X0 + V2_PLAYHEAD - w / 2;
+		loop_icon_l(x, bnr.ly, bnr.lc);		/* (no clear: the band's ring copy repaints these rows) */
+		text(&f_sd, x + 22, bnr.ly - 6, L[bnr.lk], bnr.lc, C_BLACK);
 	}
 	wave_off();
 }
@@ -4309,15 +4372,17 @@ static u32 own_countdown(u32 el, u32 bpm10, s32 tempo)
 		cd_col = hot ? C_CD_HOT : C_CD_MEM;
 	return n;
 }
-/* one tick column on a meter line: downbeats red and long */
-HOT static void pm_tick(int x, int y, int down, int lx)
+/* one tick column on a meter line (the line = rows y, y + 1). METERSCALE (re/SCALING_AUDIT.md, CDJ-3000 frames
+ * re/cdj3k_refs/video/02, 03): a beat = 2 x 17 px on ONE side, toward the other line (the master's orange line: down,
+ * our blue line: up); a bar head = red, 31 px across the line. x 0.625: 11 and 19. dir = +1 down / -1 up. */
+HOT static void pm_tick(int x, int y, int down, int lx, int dir)
 {
 	if (x < lx || x > 780)
 		return;
 	if (down)
-		fill(x, y - 8, 2, 14, C_RED);
+		fill(x, y - 8, 2, 19, C_RED);
 	else
-		fill(x, y - 5, 2, 8, C_WHITE);
+		fill(x, dir > 0 ? y + 2 : y - 11, 2, 11, C_WHITE);
 }
 static struct { u32 t; const volatile u16 *e; u32 n; int wb, sc; u32 pos16, rate; s32 B; u32 k, mis, bt;
 	u32 key, sbt, gt1, gst16, ggn, gbib, b16; } mm;
@@ -4330,8 +4395,9 @@ HOT static void mm_tick(int x, int y, int down)
 {	/* the 3000's grid image (0x185edf0) under the wave with the widget's 15-px margins (ctor 0x167fc3c): ticks of
 	 * 15 px (x 0.667 = 10) above and below the wave, touching it, the same length for every beat; bars red, beats
 	 * white at 65 % (0x185f640 = #A6A6A6, as our own band) */
-	fill(x, y - 24, 1, 10, down ? C_RED : 0xA534);
-	fill(x, y + 15, 1, 10, down ? C_RED : 0xA534);
+	/* METERSCALE: 15 px x 0.625 (a size, not a position) = 9 (was 10) */
+	fill(x, y - 23, 1, 9, down ? C_RED : 0xA534);
+	fill(x, y + 15, 1, 9, down ? C_RED : 0xA534);
 }
 /* the master's beats (k = 0 its current bar's downbeat) as ticks on a line at y, or mini-wave grid ticks */
 HOT static void master_ticks(int cx, int lx, int rx, s32 mph, u32 mbar, u32 bl_real, u32 ppb16, int y, int mini)
@@ -4349,7 +4415,10 @@ HOT static void master_ticks(int cx, int lx, int rx, s32 mph, u32 mbar, u32 bl_r
 		int x = cx + (int)sdiv(t * (s32)ppb16, (s32)bl_real * 16), down = (k & 3) == 0;
 		if (x < lx || x >= rx)
 			continue;
-		if (mini) {
+		if (mini == 2) {	/* METERSCALE: no master wave to cover the middle -- the grid image as it is, ONE row of
+					 * full-height lines (was: mm_tick's two short rows around an empty band) */
+			fill(x, y - 23, 1, 47, down ? C_RED : 0xA534);
+		} else if (mini) {
 			/* PHASEWAVE (the 3000's grid image, + the widget's 15-px margins): full
 			 * -height 1-px lines under the wave = ticks of 15 px (x 0.667 = 10) above and below it, the same
 			 * length for every beat; bars red, beats white at 65 % (#A6A6A6); only the grid's own beats.
@@ -4357,7 +4426,7 @@ HOT static void master_ticks(int cx, int lx, int rx, s32 mph, u32 mbar, u32 bl_r
 			 * draws every beat, so the master row does too: REVIEW.md D8, later for both rows.) */
 			mm_tick(x, y, down);
 		} else
-			pm_tick(x, y, down, lx);
+			pm_tick(x, y, down, lx, 1);
 	}
 }
 /* WAVEFORM type, the master playing this deck's track: its waveform from our own detail at the master's
@@ -4416,6 +4485,10 @@ static int l0b_pos(u32 now, u32 mplayer, u32 *pos8, u32 *sp16)
 	*sp16 = sp;
 	return 1;
 }
+#ifdef V2_HUD
+static s32 sy_min, sy_max;
+static u32 sy_n;
+#endif
 u32 v2_mm_hold, v2_mm_resync;	/* frames drawn from the held state, beat re-syncs (mem / HUD) */
 u32 v2_sm_t, v2_sm_snap;	/* SMOOTHWAVE: last frame's time, snaps (mem / HUD) */
 u32 v2_mm_back, v2_mm_sbl;	/* GRIDBLINK: frames whose position stepped back; the step-back hold's release (ms, 0 off) */
@@ -4843,7 +4916,7 @@ HOT static int master_mini(int cx, int lx, int rx, s32 mph, u32 mbar, u32 bl_rea
 			in_wave = 0; lane = dm(C_BLACK); in_wave = iw;
 			if (MM_RX > lx) {
 				fill(lx, cy - 26, MM_RX - lx, 12, lane);
-				fill(lx, cy + 15, MM_RX - lx, 11, lane);
+				fill(lx, cy + 15, MM_RX - lx, 9, lane);	/* (PLAYERSCALE phase 3: to row 121) */
 			}
 		}
 		/* HALFBLUE (B11): the CDJ-3000's master waveform widget::GradationShader (: a 60-px
@@ -4900,6 +4973,16 @@ HOT static int master_mini(int cx, int lx, int rx, s32 mph, u32 mbar, u32 bl_rea
 #endif
 #undef MM_RX
 	}
+#ifdef V2_HUD
+	if (!w8 && bp_rate > 0 && now - bp_t < 100) {	/* METERSYNC (DEV): the master playing OUR track -- its drawn position
+							 * minus the band's (track ms); the spread over a second = how evenly the
+							 * two rows move against each other (HUD txt[8] spread, txt[10] minimum) */
+		s32 d = (s32)udiv(pos16 * 5, 12) - (s32)udiv((bp_q8 + (u32)bp_rate * (now - bp_t)) * 5, 192);
+		if (!sy_n || d < sy_min) sy_min = d;
+		if (!sy_n || d > sy_max) sy_max = d;
+		sy_n++;
+	}
+#endif
 	wblue = wb;
 	return 1;
 }
@@ -4907,7 +4990,7 @@ static void phase_meter(u32 loaded, u32 el, s32 tempo, u32 own_master, u32 mplay
 			u32 beat, u32 mbeat)
 {
 	char buf[8];
-	int cx = WAVE_X0 + V2_PLAYHEAD, lx = loaded && mplayer ? 230 : 168;
+	int cx = WAVE_X0 + V2_PLAYHEAD, lx = 170;	/* METERSCALE: the 3000's 272 x 0.625, with or without a master */
 	u32 bl = 0, gi = 0, cnt = 0, bl_real, own_cd;
 	const volatile u8 *r0 = loaded ? grid_at(el, &gi, &cnt) : 0;
 	fill(0, 60, W, BAND_Y0 - 60, C_BLACK);
@@ -4933,17 +5016,19 @@ static void phase_meter(u32 loaded, u32 el, s32 tempo, u32 own_master, u32 mplay
 	 * this deck's own, in the colour of its next cue (hot cue colour / memory red / blue) */
 	fmt_bars(buf, mplayer ? ((ms_flags & 1) && ms_cd && ms_cd < 0x1FF ? ms_cd : 0) : 0);
 	(void)own_master;
-	text_r(&f_s, 108, 77, buf, C_PHO, C_BLACK);
-	text(&f_s, 112, 77, "Bars", C_PHO, C_BLACK);
+	/* METERSCALE: the labels end at x 162 (the 3000's 259 x 0.625; were 30 px further left) */
+	/* PLAYERSCALE: the rows as the 3000's lines 128 / 161 -> 85 / 107 (were 84 / 104) */
+	text_r(&f_s, 138, 78, buf, C_PHO, C_BLACK);
+	text(&f_s, 142, 78, "Bars", C_PHO, C_BLACK);
 	fmt_bars(buf, own_cd);
-	text_r(&f_s, 108, 97, buf, cd_col, C_BLACK);
-	text(&f_s, 112, 97, "Bars", cd_col, C_BLACK);	/* 3000: img_phaseSlavePlayer{,Green,Red}Bars */
-	if (loaded && mplayer) {	/* as stock: MASTER PLAYER n left of the master row */
+	text_r(&f_s, 138, 100, buf, cd_col, C_BLACK);
+	text(&f_s, 142, 100, "Bars", cd_col, C_BLACK);	/* 3000: img_phaseSlavePlayer{,Green,Red}Bars */
+	if (loaded && mplayer) {	/* METERSCALE: the master's player number in a small orange box left of its label
+					 * row, as the 3000 (frame video/01: box at x 123..141 -> 77..88); the words
+					 * "MASTER PLAYER" stood in the meter's own span (x 160..224) */
 		buf[0] = '0' + mplayer; buf[1] = 0;
-		text_r(&f_s, 204, 64, "MASTER", C_PHO, C_BLACK);
-		text_r(&f_s, 204, 78, "PLAYER", C_PHO, C_BLACK);
-		fill(207, 68, 17, 22, C_PHO);
-		text_c(&f_s, 215, 72, buf, C_BLACK, C_PHO);
+		fill(76, 76, 13, 13, C_PHO);
+		text_c(&f_s, 82, 78, buf, C_BLACK, C_PHO);
 	}
 	if (wtype == 2) {	/* V3e1: 4 BARS, the NXS2's classic meter (user): two rows of four boxes, the
 				 * master's beat outlined in the orange row, this deck's beat filled in the blue
@@ -4951,12 +5036,12 @@ static void phase_meter(u32 loaded, u32 el, s32 tempo, u32 own_master, u32 mplay
 		int i;
 		for (i = 0; i < 4; i++) {
 			int bx = 230 + i * 86;
-			frame(bx, 79, 80, 11, 1, C_PHO);
-			frame(bx, 99, 80, 11, 1, C_PHB);
+			frame(bx, 80, 80, 11, 1, C_PHO);
+			frame(bx, 102, 80, 11, 1, C_PHB);
 			if (loaded && mbeat == (u32)i + 1)
-				frame(bx - 1, 78, 82, 13, 2, i == 0 ? 0xF800 : 0xFD20);
+				frame(bx - 1, 79, 82, 13, 2, i == 0 ? 0xF800 : 0xFD20);
 			if (loaded && beat && ((beat - 1) & 3) == (u32)i)
-				fill(bx + 1, 100, 78, 9, i == 0 ? 0xB800 : own_master ? 0xCA60 : C_PHB);
+				fill(bx + 1, 103, 78, 9, i == 0 ? 0xB800 : own_master ? 0xCA60 : C_PHB);
 		}
 		return;
 	}
@@ -4967,9 +5052,13 @@ static void phase_meter(u32 loaded, u32 el, s32 tempo, u32 own_master, u32 mplay
 		/* PHASESCALE (user, gig 2026-11-18): the band's scale, following the zoom, as the WAVEFORM view (METER_FULL:
 		 * a beat spans as many px as the band's) -- was a fixed 100 px/s, so the ticks met the band's only at the
 		 * centre. ppb16 = px per beat x 16 = 1500 x beat / (1000 << sh) (150 entries / s, 1.6 x 2^sh a column) */
-		u32 bt = bl ? bl : bl_real, ppb16 = udiv(1500 * bt, SHL(1000u, ZSH(zkey())));
-		fill(lx, 84, 632 - lx, 2, C_PHO);
-		fill(lx, 104, 632 - lx, 2, C_PHB);
+		/* METERSCALE (owner 2026-11-24: "as the 3000"): back to the CDJ-3000's FIXED real-time scale -- 160 px/s
+		 * whatever the zoom or the BPM (tick pitch x BPM = 9600 in five frames of different tracks, re/SCALING_AUDIT.md),
+		 * x 0.625 = 100 px/s: px per beat x 16 = real beat ms x 16 / 10. The WAVEFORM view is the one that follows
+		 * the zoom. (PHASESCALE had put the band's scale here: zoomed out the two rows' ticks ran into each other.) */
+		u32 ppb16 = udiv(bl_real * 16, 10);
+		fill(lx, 85, 632 - lx, 2, C_PHO);
+		fill(lx, 107, 632 - lx, 2, C_PHB);
 		if (r0 && bl && ppb16) {
 			u32 k = gi > 40 ? gi - 40 : 0;
 #if 1	/* V4n58i: unconditional (safe without GR2METER) */
@@ -4978,7 +5067,7 @@ static void phase_meter(u32 loaded, u32 el, s32 tempo, u32 own_master, u32 mplay
 			 * at the playhead (its position carried to now, as el_m) -- locked to the band, no ms / px rounding */
 			s32 lb = -1;
 			int lsh = ZSH(zkey());
-			if (!mplayer && bp_rate > 0 && now_ms() - bp_t < 100)
+			if (0 && !mplayer && bp_rate > 0 && now_ms() - bp_t < 100)	/* METERSCALE: the band's columns no longer apply */
 				lb = bcol((s32)((bp_q8 + (u32)bp_rate * (now_ms() - bp_t)) >> 8), lsh);
 #endif
 			for (; k < cnt && k < gi + 42; k++) {
@@ -4991,17 +5080,17 @@ static void phase_meter(u32 loaded, u32 el, s32 tempo, u32 own_master, u32 mplay
 				if (x > 630)
 					break;
 				if (x >= lx)
-					pm_tick(x, 104, u16be(r0 + 20 * k) == 1, lx);
+					pm_tick(x, 107, u16be(r0 + 20 * k) == 1, lx, -1);
 			}
 		}
 		if (mplayer)
-			master_ticks(cx, lx, 632, mph, mbar, bl_real, ppb16, 84, 0);	/* a master beat = one of ours */
-		fill(cx - 1, 76, 2, 34, C_WHITE);
+			master_ticks(cx, lx, 632, mph, mbar, bl_real, ppb16, 85, 0);	/* a master beat = one of ours */
+		fill(cx - 1, 77, 2, 41, C_WHITE);	/* METERSCALE: the 3000's 3 x 64 at 115..178 -> 77..117 */
 		return;
 	}
 	/* WAVEFORM: the master's mini-waveform (or its grid) from lx to the band's right end */
 	if (mplayer && mph >= 0) {
-		int rx = WAVE_X0 + WAVE_N, cy = 92;
+		int rx = WAVE_X0 + WAVE_N, cy = 98;	/* PLAYERSCALE phase 3 (gr1meter_ring.inc G1_Y) */
 		wave_on();
 		u32 bt = bl ? bl : bl_real, z = zkey();
 		int sh = ZSH(z);
@@ -5009,13 +5098,12 @@ static void phase_meter(u32 loaded, u32 el, s32 tempo, u32 own_master, u32 mplay
 		if (!KILL_MW && master_mini(cx, lx, rx, mph, mbar, bl_real, bt, cy))	/* V4n36 trace: kill switch */
 			v2_pm_same++;		/* PHASEWAVE: with its grid ticks (from the grid's entries) */
 		else {
-			fill(lx, cy, rx - lx, 1, 0x4208);	/* no master waveform here: its beat grid alone */
-			v2_pm_grid++;
-			master_ticks(cx, lx, rx, mph, mbar, mbar >> 2, ppb16, cy, 1);	/* V4n32z: a master beat = one of ours */
+			v2_pm_grid++;		/* no master waveform here: its beat grid alone */
+			master_ticks(cx, lx, rx, mph, mbar, mbar >> 2, ppb16, cy, 2);	/* V4n32z: a master beat = one of ours */
 		}
 		wave_off();
 	}
-	fill(cx - 1, 66, 2, 52, C_WHITE);
+	fill(cx - 1, 75, 2, 47, C_WHITE);	/* PLAYERSCALE phase 3: the wave's ticks top to bottom */
 }
 
 static void popup(int force);
@@ -5063,11 +5151,13 @@ static void hws_paint(void);
 static void zoom_label(void)
 {
 	int g = GA_MODE;	/* TOUCH: the 3000's img_zoomGrid -- the active one boxed blue (a tap toggles, MAIN zone 15/5) */
-	fill(708, 296, 86, 18, C_BLACK);
-	frame(g ? 762 : 712, 297, g ? 32 : 40, 15, 1, C_SEL);
-	text_c(&f_s, 732, 297, "ZOOM", g ? C_GREY : C_SEL, C_BLACK);
-	text(&f_s, 754, 297, "-", C_GREY, C_BLACK);
-	text_c(&f_s, 778, 297, "GRID", g ? C_SEL : C_GREY, C_BLACK);
+	int y = PADROW_UP ? 233 : 297;	/* PLAYERSCALE: above the pad row while it is up (MAIN zone 15/7) */
+	if (!PADROW_UP)
+		fill(708, y - 1, 86, 18, C_BLACK);
+	frame(g ? 764 : 715, y + 1, g ? 28 : 34, 13, 1, C_SEL);	/* PLAYERSCALE: 55 x 21 -> 34 x 13 (was 40 x 15) */
+	text_c(&f_s, 732, y, "ZOOM", g ? C_GREY : C_SEL, C_BLACK);
+	text(&f_s, 754, y, "-", C_GREY, C_BLACK);
+	text_c(&f_s, 778, y, "GRID", g ? C_SEL : C_GREY, C_BLACK);
 }
 #ifdef V2_HWBAND
 #include "hwband.inc"	/* V4 Fase 2: the band on the VDC4 layer GR2 (re/V3_PROGRESS.md "V4 HWBAND") */
@@ -5145,7 +5235,7 @@ static void player(void)
 		band_xk = hmix(hmix(hmix(b10, DECK[0xD3] | slip_on() << 8 | mlab << 9 | DECK[0xF3] << 12 |
 				(u32)DECK[0x11B] << 20), (u32)loop_len_k(b10)), (u32)ana);
 #ifdef V2_KEYSHIFT
-		band_xk = hmix(hmix(band_xk, (v3e_b & 0x807F) + 0x10000u), (u32)g_kn);
+		band_xk = hmix(hmix(band_xk, (v3e_b & 0x837F) + 0x10000u), (u32)g_kn);	/* REVIEW 1124 3.4: + bits 8 / 9 (K.SYNC on / refused) */
 		band_xk = hmix(band_xk, (u32)GA_MODE);	/* TOUCH (V4n41): the GRID ADJUST panel / ZOOM - GRID label */
 #endif
 		band_xk = hmix(band_xk, (u32)cue_next_cm() | cue_ver << 8);	/* V4b1: the cue comment (and a new cue table) */
@@ -5197,17 +5287,17 @@ static void player(void)
 			icon(a, 28 - v2a_rects[a].w / 2, 16 + SRC_DY(a), C_WHITE, C_NAVY);
 	}
 	text_c(&f_s, 28, 40, slot == 2 ? "SD" : slot == 3 ? "USB" : slot ? "LINK" : "", C_WHITE, C_NAVY);
-	fill(69, 10, 37, 40, C_BAR);
+	fill(68, 10, 40, 40, C_BAR);	/* PLAYERSCALE (re/PLAYER_SCALE_PLAN.md): the art 60 x 60 -> 38 x 38 (was 35 x 38) */
 	ldart_hdr = 0;
 	if (loaded && ldart_seq()) {
-		ldart_draw(70, 11, 35, 38);	/* G2: MAIN's own decode of the loaded track's cover */
+		ldart_draw(69, 11, 38, 38);	/* G2: MAIN's own decode of the loaded track's cover */
 		ldart_hdr = 1;
 	} else if (loaded && u32be(slot0 + 0x1C)) {
-		artwork(70, 11, 35, 38);
+		artwork(69, 11, 38, 38);
 		art_keep();
 		ldart_hdr = 2;
 	} else	/* V3e1 (audit Q10): the 3000's grey vinyl-disc placeholder on the header grey */
-		icon_scaled(V2A_NOART_HDR, 70, 11, 35, 38, 0x4A49, C_BAR);
+		icon_scaled(V2A_NOART_HDR, 69, 11, 38, 38, 0x4A49, C_BAR);
 	{	/* P10: the model's title / key slots are rebuilt on every screen change (empty for a frame
 		 * or two): keep the loaded track's last ones instead of flashing "Not Loaded." */
 		static u8 tc[128], kc[64];
@@ -5242,18 +5332,18 @@ static void player(void)
 			}
 		}
 		if (loaded && tn) {	/* V3e1 (audit Q2): the 3000's note before the title */
-			icon_scaled(V2A_TITLE_TRACK, 118, 6, 12, 18, C_LBL, C_BAR);	/* ICONS: 3000 img_icnTrack is #AFAFAF (C_LBL: day-mode safe) */
-			text_u16(&f_m, 136, 4, tc, tn, 552, C_WHITE, C_BAR);
+			icon_scaled(V2A_TITLE_TRACK, 118, 6, 12, 18, C_LBL, C_BAR);	/* (PLAYERSCALE: its ink is the 3000's 10 x 15) */	/* ICONS: 3000 img_icnTrack is #AFAFAF (C_LBL: day-mode safe) */
+			text_u16(&f_ti, 141, 2, tc, tn, 552, C_WHITE, C_BAR);	/* PLAYERSCALE: the 3000's 226; phase 4: cap 16 (f_ti) */
 			memcpy_title(tc, tn, t);
 		} else if (!loaded && lg_on)	/* V4n30a: the load gate (3000: Loading) */
-			text(&f_m, 116, 4, "Loading...", C_LBL, C_BAR);
+			text(&f_ti, 119, 2, "Loading...", C_LBL, C_BAR);
 		else if (!loaded)	/* V4m2: a loaded track without any title: an empty bar, as stock */
-			text(&f_m, 116, 4, "Not Loaded.", C_RED, C_BAR);
+			text(&f_ti, 119, 2, "Not Loaded.", C_RED, C_BAR);
 		if (loaded && kn) {
-			int kfn = kn, kx, cy = 43, d;
+			int kfn = kn, kx, cy = 46, d;
 			const volatile u8 *kft = kf_key(kc, &kfn);	/* V4n36: the KEY FORMAT */
-			kx = 276 + row_text_w(&f_m, kft, kfn) + 12;
-			text_u16(&f_m, 276, 32, kft, kfn, 552, C_WHITE, C_BAR);
+			kx = 290 + row_text_w(&f_ti, kft, kfn) + 12;
+			text_u16(&f_ti, 290, 31, kft, kfn, 552, C_WHITE, C_BAR);
 			/* the 3000's (i) after the sub-line: a white disc, a dark "i" */
 			for (d = -6; d <= 6; d++) {
 				int hw = d < 0 ? -d : d;
@@ -5267,16 +5357,18 @@ static void player(void)
 	if (loaded) {
 		/* V3e1 (audit Q1): the sub-line shows the track's LENGTH (static), as the 3000 */
 		fmt_mmss(buf, len);
-		text(&f_m, 116, 32, buf, C_WHITE, C_BAR);
+		text(&f_ti, 141, 31, buf, C_WHITE, C_BAR);	/* PLAYERSCALE: under the title (226), the BPM at 345 -> 216 */
 		fmt_bpm(buf, bpm10, bpm_dec ? bpm100_at(bpm10, tempo, el) : 0);
-		text(&f_m, 196, 32, bpm_unknown ? "--.-" : buf, C_WHITE, C_BAR);
+		text(&f_ti, 216, 31, bpm_unknown ? "--.-" : buf, C_WHITE, C_BAR);
 		/* musical key: drawn above from the kept copy (model side 1 slot 0, icon 0x0F) */
 	}
 	/* status tiles (the 3000's touch buttons; here labels only) */
 	for (i = 0; i < 3; i++) {
 		static const char *const t1[] = { "BEAT", "KEY", "BEAT" };
 		static const char *const t2[] = { "LOOP", "SHIFT", "JUMP" };
-		int tx = 561 + i * 80, c = i == 1 ? C_GREY : C_WHITE;
+		/* PLAYERSCALE phase 2: 114 wide at x 898 / 1022 / 1146 -> 71 at 561 / 639 / 716 (was 76 at 561 + 80 i) */
+		static const short TX[3] = { 561, 639, 716 };
+		int tx = TX[i], c = i == 1 ? C_GREY : C_WHITE;
 		/* V3e1 (audit Q6/Q12): a lit tile = blue fill while its pads are up (BEAT LOOP: looping, our
 		 * pad bar shows), smaller two-line labels as the 3000 */
 		int lit = (i == 0 && DECK[0xF3] == 2) || (i == 2 && DECK[0x11B] == 1);	/* V3rc7: the pad modes */
@@ -5288,12 +5380,12 @@ static void player(void)
 #endif
 		u16 tb = lit ? C_SEL : C_CK2;
 		if (lit)
-			fill(tx, 0, 76, 60, C_SEL);
+			fill(tx, 0, 71, 60, C_SEL);
 		else
-			checker(tx, 0, 76, 60);
-		text_c(&f_s, tx + 38, 13, t1[i], lit ? C_WHITE : c, tb);
-		text_c(&f_s, tx + 38, 29, t2[i], lit ? C_WHITE : c, tb);
-		fill(tx + 26, 52, 24, 2, lit ? C_WHITE : C_GREY);
+			checker(tx, 0, 71, 60);
+		text_c_tr(&f_s, tx + 35, 13, t1[i], 2, lit ? C_WHITE : c, tb);
+		text_c_tr(&f_s, tx + 35, 29, t2[i], 2, lit ? C_WHITE : c, tb);
+		fill(tx + 18, 57, 35, 2, lit ? C_WHITE : C_GREY);	/* PLAYERSCALE: 56 x 3 at the tile's foot */
 	}
 	}	/* need(0) */
 	}
@@ -5341,6 +5433,7 @@ static void player(void)
 		kh = hmix(hmix(kh, (u32)tempo), cue_ver);	/* V4n31a: the countdown's cue list (cue_t) */
 #ifdef V3E2
 		kh = hmix(kh, u32be(W8BUF + 4) ^ u32be(W8BUF + 8) ^ u32be(W8BUF + 0x0C));
+		kh = hmix(hmix(kh, zkey()), (u32)day | (u32)day_full << 1);	/* REVIEW 1124 m.C: the WAVEFORM / fallback scale follows the zoom; LIGHT modes */
 #endif
 		/* V3rc8y (deck HUD at 60 fps, zoom 4: F54 Q20): at 60 the meter and the deck area alternate (meter on
 		 * even, deck on odd frames: 30 Hz each, the rate they had at 30 fps) so no frame carries both */
@@ -5840,23 +5933,23 @@ static void header(const volatile u8 *t, u32 hid, const char *title, int back, i
 	x += 44;
 	if (hid && v2a_for_icon(hid) >= 0 && !is_src_icon(hid))
 		x += icon_id(hid, x, 30, C_WHITE, C_BAR) + 8;
-	if (title)
-		text(&f_m, x, 17, title, C_WHITE, C_BAR);
+	if (title)	/* PLAYERSCALE phase 6: the 3000's header title cap 26 -> 16 (f_ti; was f_m 14) */
+		text(&f_ti, x, 15, title, C_WHITE, C_BAR);
 	else if (t)
-		text_u16(&f_m, x, 17, t + 0x2A, u16len(t), 560, C_WHITE, C_BAR);
+		text_u16(&f_ti, x, 15, t + 0x2A, u16len(t), 556, C_WHITE, C_BAR);
 	/* PREVIEW (Link Cue on the rows' mini waveforms, as the 3000's touch preview) */
 	if (pv) {	/* V3rc2: track lists only (3000 frame 22: none on the category / playlist tree) */
 		/* V4n (claims audit #144, BrowseLayout img_btnPreview 114x90 at 1018): a header tile, solid #007DE1
 		 * while a row's preview plays, the #191919/#323232 checker otherwise; white label */
 		int lit = V3E_PV_ROW != 0, off = V3E_PVOFF;
 		if (lit && !off)
-			fill(562, 6, 72, 48, C_SEL);
+			fill(561, 0, 71, 60, C_SEL);	/* PLAYERSCALE phase 6: 114 x 90 -> 71 x 60, the header's height (was 72 x 48) */
 		else if (off) {	/* TOUCH (V4n41): PREVIEW off -- the 3000's released toggle: a plain outlined tile, grey label */
-			fill(562, 6, 72, 48, C_BAR);
-			frame(562, 6, 72, 48, 1, 0x4A69);
+			fill(561, 0, 71, 60, C_BAR);
+			frame(561, 0, 71, 60, 1, 0x4A69);
 		} else
-			checker2(562, 6, 72, 48, C_CK1, C_BAR);
-		text_c(&f_s, 598, 22, "PREVIEW", off ? C_GREY : C_WHITE, lit && !off ? C_SEL : C_BAR);
+			checker2(561, 0, 71, 60, C_CK1, C_BAR);
+		text_c(&f_s, 596, 22, "PREVIEW", off ? C_GREY : C_WHITE, lit && !off ? C_SEL : C_BAR);
 	}
 #ifdef V3E2
 	/* V3e2: TRACK FILTER (the 3000's key; a tap opens stock's filter, MAIN v3e_touch) */
@@ -6308,13 +6401,13 @@ static void strip(int info_title)
 	if (need(2, hmix(hmix(player_num(), air), remain_mode))) {
 		fill(0, STRIP_Y, W, 480 - STRIP_Y, C_BLACK);
 		fill(0, STRIP_Y, W, 1, C_BAR);
-		frame(8, 425, 44, 50, 1, C_FRAME);
-		text_c(&f_t, 30, 428, "PLAYER", C_WHITE, C_BLACK);
+		frame(12, 430, 38, 38, 1, C_FRAME);	/* PLAYERSCALE phase 6: 60 x 60 -> 38 x 38 (was 44 x 50) */
+		text_c(&f_t, 31, 431, "PLAYER", C_WHITE, C_BLACK);
 		buf[0] = '0' + player_num() % 10; buf[1] = 0;
-		text_c(&f_m, 30, 445, buf, C_WHITE, C_BLACK);
+		text_c(&f_m, 31, 441, buf, C_WHITE, C_BLACK);
 		if (air) {	/* the 3000's red ((n)) */
-			fill(16, 450, 2, 12, C_RED); fill(14, 452, 2, 8, C_RED);
-			fill(42, 450, 2, 12, C_RED); fill(44, 452, 2, 8, C_RED);
+			fill(19, 449, 2, 10, C_RED); fill(17, 451, 2, 6, C_RED);
+			fill(41, 449, 2, 10, C_RED); fill(43, 451, 2, 6, C_RED);
 		}
 		text(&f_t, 62, 424, remain_mode ? "REMAIN" : "ELAPSED", C_WHITE, C_BLACK);
 		rforce |= 1;
@@ -6354,7 +6447,7 @@ static void strip(int info_title)
 				text_c(&f_m, 348, 436, u16be(ERR_TXT + 10) == '5' ? "Unsupported file format." :
 				       "Media or File is collapsed.", C_RED, C_BLACK);
 			else if (!loaded)
-				text_c(&f_m, 348, 436, "Not Loaded.", C_RED, C_BLACK);
+				text_c(&f_ti, 348, 434, "Not Loaded.", C_RED, C_BLACK);	/* PLAYERSCALE phase 6: cap 27 -> 16 */
 			else if (ovok) {	/* the player's snapshot, played part from the played image */
 				int y;
 				wave_on();
@@ -6419,12 +6512,12 @@ static void strip(int info_title)
 			frame(596, 426, 40, 16, 1, mt ? C_OR : 0x4A69);
 			text_c(&f_s, 616, 427, "MT", mt ? C_OR : 0x4A69, dm(C_BLACK));
 			if (range == 3) {	/* +-16: white outline, no fill */
-				frame(642, 426, 46, 16, 1, sd ? 0x1082 : 0xFFFF);
+				frame(648, 426, 34, 16, 1, sd ? 0x1082 : 0xFFFF);	/* PLAYERSCALE phase 6: 55 x 25 -> 34 x 16 */
 				text_c(&f_s, 665, 427, RANGE[range], sd ? 0x1082 : 0xFFFF, sd ? 0xF79E : 0);
 			} else if (range == 4)	/* WIDE: red text, no box */
 				text_c(&f_s, 665, 427, RANGE[range], 0xF800, sd ? 0xF79E : 0);
 			else {
-				fill(642, 426, 46, 16, RC[range]);
+				fill(648, 426, 34, 16, RC[range]);
 				text_c(&f_s, 665, 427, RANGE[range], C_BLACK, RC[range]);
 			}
 			day = sd;
@@ -6445,17 +6538,17 @@ static void strip(int info_title)
 	}
 	if (need(6, hmix(hmix(hmix(bpm10, master), sync), loaded + 2 * bpm_unknown))) {
 		fill(716, 421, 84, 58, C_BLACK);
-		frame(718, 425, 78, 50, 1, master ? C_MASTER : C_FRAME);
+		frame(717, 430, 79, 38, 1, master ? C_MASTER : C_FRAME);	/* PLAYERSCALE phase 6: 127 x 60 -> 79 x 38 (was 78 x 50) */
 		if (master) {
-			fill(756, 421, 40, 9, C_MASTER);
-			text_c(&f_t, 776, 420, "MASTER", C_BLACK, C_MASTER);
+			fill(756, 426, 40, 9, C_MASTER);
+			text_c(&f_t, 776, 425, "MASTER", C_BLACK, C_MASTER);
 		}
-		text(&f_t, 722, 428, sync ? "BEAT SYNC" : "BPM", sync ? C_SEL : C_WHITE, C_BLACK);
+		text(&f_t, 721, 431, sync ? "BEAT SYNC" : "BPM", sync ? C_SEL : C_WHITE, C_BLACK);
 		if (loaded && !bpm_unknown) {
 			fmt_bpm(buf, bpm10, 0);
-			text_r(&f_m, 792, 446, buf, master ? C_MASTER : C_WHITE, C_BLACK);
+			text_r(&f_m, 792, 442, buf, master ? C_MASTER : C_WHITE, C_BLACK);
 		} else if (loaded)
-			text_r(&f_m, 792, 446, "--.-", C_WHITE, C_BLACK);
+			text_r(&f_m, 792, 442, "--.-", C_WHITE, C_BLACK);
 	}
 }
 
@@ -7024,6 +7117,14 @@ static void utility(int sid)
 }
 
 /* ---- SOURCE (frame 20 / cdj3k-3.20 source-usb): device rows + the info pane ---- */
+static int u16_has(const volatile u8 *s, int n, u16 c)	/* REVIEW 1124 b.5 */
+{
+	int i;
+	for (i = 0; i < n; i++)
+		if (u16be(s + 2 * i) == c)
+			return 1;
+	return 0;
+}
 static int num_x100(const volatile u8 *t, int n)	/* "5.81 GB used" -> 581 (x100) */
 {
 	int i = 0, v = 0, frac = -1;
@@ -7218,7 +7319,11 @@ static void source_screen(void)
 				text_u16(&f_m, 680, 144, s3 + 0x2A, u16len(s3), 792, C_WHITE, 0x2124);
 			if (u16len(s4) && u16len(s5)) {
 				char b[16], *p = b;
-				int u = num_x100(s4 + 0x2A, u16len(s4)), f = num_x100(s5 + 0x2A, u16len(s5)), t = u + f;
+				int u = num_x100(s4 + 0x2A, u16len(s4)), f = num_x100(s5 + 0x2A, u16len(s5)), t;
+				/* REVIEW 1124 b.5: the texts carry their unit ("512 MB", "7.1 GB"): MB counts / 1024 */
+				if (u16_has(s4 + 0x2A, u16len(s4), 'M')) u = (int)udiv((u32)u, 1024);
+				if (u16_has(s5 + 0x2A, u16len(s5), 'M')) f = (int)udiv((u32)f, 1024);
+				t = u + f;
 				if (t >= 100000) t = 99999;
 				if (t >= 10000) *p++ = '0' + udiv(t, 10000) % 10;
 				if (t >= 1000) *p++ = '0' + udiv(t, 1000) % 10;
@@ -7230,7 +7335,7 @@ static void source_screen(void)
 				text(&f_m, 680, 178, b, C_WHITE, 0x2124);
 				{
 					int n = 0; while (n < u16len(s5) && !(u16be(s5 + 0x2A + 2 * n) == 'B' && n > 1)) n++;
-					text_u16(&f_m, 680, 212, s5 + 0x2A, n + 1, 792, C_WHITE, 0x2124);
+					text_u16(&f_m, 680, 212, s5 + 0x2A, n < u16len(s5) ? n + 1 : n, 792, C_WHITE, 0x2124);	/* REVIEW 1124 b.4 */
 				}
 			}
 			text(&f_s, 588, 250, "Background Color", C_LBL, 0x2124);
@@ -8042,7 +8147,7 @@ static const struct orule { u8 modes, zlo, zhi, act; } orules[] = {
 	{ MB(M_PLAYER), 63, 63, O_HIDE },	/* stock centre-waveform canvas */
 	/* LOOPSTALL (decks, 2026-11-23): with a loop active every frame took ~138 s in stock's draw phase. z 50 was
 	 * O_HIDE (stock drew and cleared it every frame, nobody saw it; we draw the loop ourselves): now O_OWN */
-	{ MB(M_PLAYER), 50, 50, O_OWN },	/* loop shading over the waveform */
+	{ M_ALL, 50, 50, O_OWN },	/* loop shading over the waveform (REVIEW 1124 3.1: every screen, a loop runs on under BROWSE / INFO / SHORT CUT) */
 	{ MB(M_PLAYER), 64, 65, O_HIDE },	/* PHASE METER TYPE 2: stock's two 216x25 meters (ours drawn) */
 #ifndef V2_OWN_TOP
 #define V2_OWN_TOP (MB(M_BROWSE) | MB(M_PLAYER) | MB(M_SHORTCUT) | MB(M_PINFO))	/* D1: + SHORTCUT, INFO (pages all ours) */
@@ -9349,6 +9454,7 @@ static int paint_frame(u32 base)
 		if (id != ld_id) {
 			ld_id = id;
 			ld_t0 = t | 1;
+			ld_mark(t | 1);
 		}
 		if (lg_on || (ld_t0 && t - ld_t0 < 1500))
 			pend = 1;
@@ -9616,8 +9722,12 @@ static int paint_frame(u32 base)
 			 * two crumbs (ms, 22 b) | from << 22 | to << 26; txt[10] = paints refused for no base (15 b) | for a
 			 * screen we do not own (15 b) << 15 */
 			txt[9] = (cr_max > 0xFFFFF ? 0xFFFFF : cr_max) | cr_pair << 20;	/* ms (20 b) | from (5 b) << 25 | to (5 b) << 20 */
-			txt[10] = hk_first;	/* the hook before the first gap > 10 s, and (txt[8], replaces X) before the last */
-			txt[8] = hk_last;
+			/* METERSYNC: txt[8] = spread (ms) of master row - band over the second (0x7FFF = no sample), txt[10] =
+			 * its minimum + 2^30 (so a negative offset stays a positive word) */
+			txt[8] = sy_n ? ((u32)(sy_max - sy_min) > 0x7FFE ? 0x7FFE : (u32)(sy_max - sy_min)) : 0x7FFF;
+			txt[10] = sy_n ? (u32)(sy_min + 0x40000000) & 0x7FFFFFFF : 0;
+			sy_n = 0;
+			(void)hk_first; (void)hk_last;
 			txt[11] = v2_heal_y;		/* Y: the last healed row */
 			txt[12] = v2_latch_stuck;	/* S: latch waits that timed out, since boot */
 			txt[13] = v2_pstall; v2_pstall = 0;	/* P: the longest position stall this second (ms) */

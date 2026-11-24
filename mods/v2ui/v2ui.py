@@ -211,8 +211,8 @@ SC_ZONES = (
 # 15) -- stock at the left / right of the meter row -- move onto V2's BEAT LOOP / BEAT JUMP header tiles (v2.c
 # player(): 76 x 60 at x 561 / 721), so a tap on a lit tile opens / closes its pads as on the 3000
 HDR_ZONES = (
-    (3, (18, 55, 68, 53, 0x084EDBF6), (561, 0, 76, 60)),
-    (15, (714, 55, 68, 53, 0x084EDC28), (721, 0, 76, 60)),
+    (3, (18, 55, 68, 53, 0x084EDBF6), (561, 0, 71, 60)),      # PLAYERSCALE phase 2: 71 wide at 561 / 639 / 716
+    (15, (714, 55, 68, 53, 0x084EDC28), (716, 0, 71, 60)),
 )
 # V3rc1: TRACK FILTER's KEY edit box (zone 30, class 8) grows onto the CDJ-3000 key grid v2.c filter_page()
 # draws (2 x 12 cells, x 255..699, y 100..171); the other filter zones keep stock's geometry (the page is drawn
@@ -226,15 +226,15 @@ FILTER_ZONES = (
 # (nothing is drawn there); MY TAG item 6 (zone 52) gets the x of its column (stock bug: 572 instead of 527).
 # Rect-only checks (handlers of 5 / 6 are re-pointed by modsmenu).
 PAD_ZONES = (
-    (4, (18, 207, 764, 73), (58, 258, 632, 44)),
-) + tuple((7 + k, (18 + 96 * k + (1 if k >= 2 else 0) * 0, 207, 90, 73), (58 + 80 * k, 258, 72, 44)) for k in range(8)) + (
+    (4, (18, 207, 764, 73), (72, 252, 640, 52)),      # PLAYERSCALE phase 2: pads 72 x 52 at x 72 + 81.25 k, y 252
+) + tuple((7 + k, (18 + 96 * k + (1 if k >= 2 else 0) * 0, 207, 90, 73), (72 + k * 325 // 4, 252, 72, 52)) for k in range(8)) + (
     (5, (130, 55, 70, 53), (0, 0, 0, 0)),
     (6, (635, 55, 70, 53), (0, 0, 0, 0)),
     (52, (572, 230, 244, 36), (527, 230, 244, 36)),
 )
 PAD_THR = 0x08101A68
 PAD_THR_STOCK = (95, 191, 286, 382, 477, 573, 668, 764)
-PAD_THR_V3 = (75, 155, 235, 315, 395, 475, 555, 631)
+PAD_THR_V3 = (75, 156, 237, 319, 400, 481, 562, 639)     # the middle of each 9-px gap (touch_map.map_stock)
 RT_GEO_STOCK = (33, 747, 47, 30, 28, 47, 30, 28, 294)
 RT_GEO_V3 = (64, 86, 91, 40, 38, 65, 28, 26, 294)   # V4n28 (audit P1): x0/width = the 86-px wave (was 56..211)
 

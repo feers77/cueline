@@ -146,8 +146,8 @@ lists them all.
   Italian, Dutch, Spanish and Portuguese. Cueline's own screens stay in English.
 - The other menu languages, and the Chinese and Korean fonts, were removed. This frees space in the firmware for
   the new features.
-- With ESPAÑOL, the names of the UTILITY items stay in English.
-- **If you need another menu language, stay on the official firmware.**
+- In every language, the names of the UTILITY items stay in English.
+- Other menu languages are not available in Cueline.
 
 ---
 
@@ -239,7 +239,7 @@ when your **HISTORY NAME is 29 characters or fewer** (see `KNOWN_LIMITS.md`).
 
 | Item | Options | Default | Saved |
 |---|---|---|---|
-| BUILD | read-only | shows `Cueline-2.3 2cd1c93f` | - |
+| BUILD | read-only | shows `Cueline-2.3.1 49e8943c` | - |
 | LINK KEY STATUS | OFF / ON | ON | no (ON at every boot) |
 | KEY SYNC | OFF / ON | ON | no (ON at every boot) |
 | LINK CUE | OFF / PREVIEW / CUE / BOTH | BOTH | no (BOTH at every boot) |
@@ -592,7 +592,7 @@ always on.
 UTILITY > INFO > **BUILD** shows the installed build's tag and source hash, for example:
 
 ```
-Cueline-2.3 2cd1c93f
+Cueline-2.3.1 49e8943c
 ```
 
 Check it after every install. Quote it in every bug report.

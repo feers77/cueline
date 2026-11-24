@@ -1438,7 +1438,7 @@ v3e_touch:
 	nop
 	tst	r0,r0
 	bf	7f
-	mov.l	vt_kbhp,r1		! V3rc3: no zone with the keyboard hidden: swallowed (stock would
+	mov.l	vt_kbhn,r1		! V3rc3: no zone with the keyboard hidden: swallowed (stock would
 	mov.l	@r1,r0			! type a key there)
 	tst	r0,r0
 	bt	vt_stock
@@ -1488,6 +1488,7 @@ vt_done:
 	rts
 	nop
 	.p2align 2
+vt_kbhn: .long	vt_kbh			! PLAYERSCALE phase 2: a near copy too (the zone table grew by a row)
 vt_hpn:	.long	vt_held			! V4n31a: near copies (va_src / SOURCE grew the code past the
 vt_kpn:	.long	vt_key			! reach of the pool below)
 vt_up:	mov	#0,r0
@@ -1625,12 +1626,19 @@ vt_hit:
 	bf	13f
 	mov.b	@(3,r7),r0
 	cmp/eq	#5,r0
-	bt	13f
+	bt	14f
+	cmp/eq	#7,r0			! PLAYERSCALE phase 2: ZOOM - GRID above the pad row (arg 7)
+	bt	14f
 	mov.l	vt_gmp,r1
 	mov.l	@r1,r0
 	tst	r0,r0
 	bt	4f
+	bra	13f
+	nop
+14:	bra	vt_zg			! PLAYERSCALE phase 2: gated on the pad row (out of line, after the literals)
+	nop
 13:
+vt_z13:
 	.ifdef	KEYSHIFT
 	mov.b	@(2,r7),r0		! V4k: KEY SHIFT zones (action 12) only in their state
 	cmp/eq	#12,r0
@@ -1657,7 +1665,8 @@ vt_hit:
 	.endif
 	rts
 	mov	r7,r0
-4:	bra	3b
+4:
+vt_z4:	bra	3b
 	add	#8,r7
 9:	rts
 	mov	#0,r0
@@ -1667,6 +1676,8 @@ vt_gmp:	.long	0x0A35F3E0		! TOUCH: stock GRID ADJUST mode (getter 0x083FBA68)
 	.ifdef	KEYSHIFT
 vt_ksb2: .long	KSB
 	.endif
+
+
 
 ! r0 = the zone record (the touch's x / 4, y / 2 still in r5 / r6): its action
 vt_act:
@@ -1959,6 +1970,52 @@ vt_rp:	.long	vt_rt
 vt_curp: .long	0x0B5434F4
 vt_key:	.long	0			! the tapped key's setter (0 none)
 	.long	0			! panel frames left
+	.p2align 2
+vt_zg:	! PLAYERSCALE phase 2 (v2.c PADROW_UP): the label sits under the band (arg 5) with no pad row and above
+	! it (arg 7) while one is up -- BEAT LOOP pads (heartbeat block +0xF0 == 2), BEAT JUMP pads (+0x118 == 1),
+	! stock GRID ADJUST mode, the KEY SHIFT panel -- so each zone is live only in its state
+	mov.l	vt_lpm,r1
+	mov.l	@r1,r0
+	cmp/eq	#2,r0
+	bt	15f
+	mov.l	vt_bjm,r1
+	mov.l	@r1,r0
+	cmp/eq	#1,r0
+	bt	15f
+	mov.l	vt_gmp2,r1
+	mov.l	@r1,r0
+	tst	r0,r0
+	bf	15f
+	.ifdef	KEYSHIFT
+	mov.l	vt_ksb3,r1
+	mov.l	@(20,r1),r0		! KEY SHIFT on ...
+	tst	r0,r0
+	bt	16f
+	mov.l	@(4,r1),r0		! ... and its panel open
+	tst	r0,r0
+	bf	15f
+16:
+	.endif
+	mov.b	@(3,r7),r0		! no pad row: arg 7 is off
+	cmp/eq	#7,r0
+	bt	17f
+	bra	vt_z13
+	nop
+17:	bra	vt_z4
+	nop
+15:	mov.b	@(3,r7),r0		! a pad row: arg 5 is off
+	cmp/eq	#5,r0
+	bt	17b
+	bra	vt_z13
+	nop
+	.p2align 2
+vt_lpm:	.long	0x0B568C9C + 0xF0	! the heartbeat block's loop-pad mode word (GUI DECK + 0xF0)
+vt_bjm:	.long	0x0B568C9C + 0x118	! ... and the beat-jump pad mode word (GUI DECK + 0x118)
+vt_gmp2: .long	0x0A35F3E0
+	.ifdef	KEYSHIFT
+vt_ksb3: .long	KSB
+	.endif
+
 	.global	vt_held
 vt_held: .long	0, 0, -1000		! held, panel frames, frame of the last action
 vt_rt:	.long	0, 0, 0			! rail: target icon, steps, frame of the next step
@@ -4483,7 +4540,10 @@ vp_go:					! r4 = the row, r7 = the cursor's, r5 = PUSH after, r1 != 0: no PUSH 
 
 vg_tap:
 	mov	r4,r0
-	cmp/eq	#5,r0
+	cmp/eq	#7,r0			! PLAYERSCALE phase 2: the label's zone above the pad row = the same toggle
+	bf	0f
+	mov	#5,r0
+0:	cmp/eq	#5,r0
 	bf	1f
 	mov.l	vg_mode,r1		! the ZOOM - GRID toggle: stock's GRID ADJUST mode on / off
 	mov.l	@r1,r0

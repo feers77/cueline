@@ -176,6 +176,11 @@ void ks_fill(int32_t *b0, int32_t *b1, int mode)
     }
     ks_ctl.splices += (uint32_t)calls;
 
+    /* REVIEW 1124 5.1: back at 1.0 after a shift the FIFO keeps a fractional read position, and the linear
+     * interpolation at a fixed fraction is a low-pass (-3 dB at 11 kHz for f = 0.5) for as long as the deck runs.
+     * At exactly 1.0 read whole samples (the FIFO's latency stays, the audio is bit-exact again). */
+    if (p_use == 1.0f)
+        pos = (float)(int)(pos + 0.5f);
     for (i = 0; i < 16; i++) {
         int ip = (int)pos;
         if (ip + 1 < nf) {

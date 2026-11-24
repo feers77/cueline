@@ -33,11 +33,12 @@ DIGITS = '0123456789:.-+% '
 # name, pixel size (TrueType em), charset
 FONTS = [
     ('f_s', 12, ASCII + '\u00b1'),             # labels: TRACK, REMAIN, TEMPO, BPM, PLAYER ...
-    ('f_m', 20, ASCII + LATIN1),    # title, sub-line, tiles
+    ('f_m', 20, ASCII + LATIN1),    # list rows, tiles, pop-ups
+    ('f_ti', 23, ASCII + LATIN1),   # PLAYERSCALE phase 4: the player header's title and sub-line (the 3000's cap 25-26 -> 16)
     ('f_l', 34, DIGITS),            # TRACK number, tempo %, small boxes
     ('f_xl', 50, DIGITS),           # REMAIN, BPM integer
     ('f_md', 24, DIGITS),           # milliseconds, BPM decimal
-    ('f_sd', 18, DIGITS),
+    ('f_sd', 18, DIGITS + '/'),     # + '/': the QUANTIZE value (PLAYERSCALE)
     ('f_t', 10, DIGITS + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ/()'),   # V3c: overview ruler, hot-cue letters, beat numbers
     ('f_bpm', 42, DIGITS),          # BPM box integer (fits the box under its label, as the 3000)           # BPM second decimals (BPM DECIMALS ON)
 ]
@@ -45,17 +46,18 @@ FONTS = [
 # is drawn with (v2.c: f_xl "--:--" / mm:ss, f_bpm the BPM integer, f_md ".---" / ms / BPM decimal, f_sd
 # the BPM decimals); a missing glyph draws nothing (glyph() returns 0)
 if os.environ.get('CDJ_V2_FONTTRIM') == '1':
-    TRIM = {'f_l': '0123456789:.-+', 'f_xl': '0123456789:-', 'f_bpm': '0123456789-', 'f_md': '0123456789.-', 'f_sd': '0123456789.-'}
+    TRIM = {'f_l': '0123456789:.-+', 'f_xl': '0123456789:-', 'f_bpm': '0123456789-', 'f_md': '0123456789.-', 'f_sd': '0123456789.-/'}
     # f_m: of U+00A0..U+00BF only the ones a title plausibly carries (NBSP, inverted marks, (c), (R), degree,
     # acute, middle dot); a dropped one shows as '?'
     TRIM['f_m'] = ''.join(ch for ch in ASCII + LATIN1 if not 0xA2 <= ord(ch) <= 0xBE or ch in '\u00a9\u00ae\u00b0\u00b4\u00b7')
+    TRIM['f_ti'] = TRIM['f_m']
     FONTS = [(n, z, TRIM.get(n, c)) for n, z, c in FONTS]
 
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CUELINE = os.path.join(HERE, 'fonts', 'CuelineSans')
 # UI layout grid: name -> (cell height, baseline row, cap height) in px
-GRID = {'f_s': (15, 12, 9), 'f_m': (25, 20, 14), 'f_l': (42, 33, 24), 'f_xl': (61, 49, 36),
+GRID = {'f_s': (15, 12, 9), 'f_m': (25, 20, 14), 'f_ti': (29, 23, 16), 'f_l': (42, 33, 24), 'f_xl': (61, 49, 36),
         'f_md': (30, 24, 17), 'f_sd': (23, 18, 13), 'f_t': (13, 10, 7), 'f_bpm': (51, 41, 30)}
 DISPLAY = {'f_l', 'f_xl', 'f_md', 'f_bpm'}      # big counters: the Display cut
 SMALL_GAMMA = 0.9                               # <= 12 px nominal
@@ -111,7 +113,11 @@ def render_grid(ttf, grid, chars, gamma=1.0, track=0):
                 a = px[x, y] >> 4
                 b = (px[x + 1, y] >> 4) if x + 1 < x0 + gw else 0
                 rows.append(a << 4 | b)
-        glyphs.append((ord(ch), adv, x0 - pad, gw, bytes(rows)))
+        xo = x0 - pad
+        if cap <= 7 and not ch.isdigit():   # (digits keep equal advances) REVIEW 1124 3.6: at cap 7 (f_t) 'I' (advance 2) and 'Z' / 'Y' / '4' (ink at -1) touched
+            xo = max(xo, 0)     # and the later glyph overwrote the stem: ink inside the cell, one free column after it
+            adv = max(adv, xo + gw + 1)
+        glyphs.append((ord(ch), adv, xo, gw, bytes(rows)))
     return h, asc, glyphs, size, clipped
 
 

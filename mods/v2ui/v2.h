@@ -25,6 +25,6 @@ struct font {
 	const u8 *px;	/* 4-bpp rows, two pixels a byte, high nibble first */
 };
 
-extern const struct font f_s, f_m, f_l, f_xl, f_md, f_sd, f_bpm, f_t;
+extern const struct font f_s, f_m, f_l, f_xl, f_md, f_sd, f_bpm, f_t, f_ti;
 
 #endif

@@ -186,9 +186,9 @@ static void hb_wave(s32 a, u16 *dst, u16 *t)
 static u32 hb_over(s32 a, u16 *out, u32 gi)
 {
 	u16 bg = wc_bg, wash = in_wave ? 0xFF18 : 0x4208;
-	int ty0 = (hc.shrink ? 127 : 141) - BAND_Y0, ty1 = (hc.shrink ? 232 : 279) - BAND_Y0, y, j;
+	int ty0 = 141 - BAND_Y0, ty1 = (hc.shrink ? 215 : 279) - BAND_Y0, y, j;
 	if (a >= hc.la && a <= hc.lb)
-		for (y = 0; y < RING_H; y++)
+		for (y = WASH_Y0; y < WASH_Y1; y++)
 			if (out[y] == bg)
 				out[y] = wash;
 #else
@@ -201,7 +201,7 @@ static void hb_cols(int r, s32 a0, s32 a1)
 	u16 bg = wc_bg, wash = in_wave ? 0xFF18 : 0x4208;
 	u32 s = hb_slot(a0), gi = hc.g ? hb_grid_find(a0) : 0;
 	s32 a;
-	int ty0 = (hc.shrink ? 127 : 141) - BAND_Y0, ty1 = (hc.shrink ? 232 : 279) - BAND_Y0;
+	int ty0 = 141 - BAND_Y0, ty1 = (hc.shrink ? 215 : 279) - BAND_Y0;
 	for (a = a0; a < a1; a++, s = s + 1 == HB_N ? 0 : s + 1) {
 		int top = col_prof(a, hc.e, hc.n, 0, hc.sc, cb), y, j;
 		const u16 *src = nb;
@@ -215,7 +215,7 @@ static void hb_cols(int r, s32 a0, s32 a1)
 		}
 		if (a >= hc.la && a <= hc.lb) {
 			for (y = 0; y < RING_H; y++)
-				out[y] = src[y] == bg ? wash : src[y];
+				out[y] = src[y] == bg && y >= WASH_Y0 && y < WASH_Y1 ? wash : src[y];
 			src = out;
 		}
 		if (src != out)
@@ -451,7 +451,7 @@ __attribute__((noinline)) static void hb_context(const volatile u16 *e, u32 n, i
 		hc.la = bcol(lp_st, sh);
 		hc.lb = bcol(lp_en, sh);
 	}
-	hc.shrink = b_shrink = DECK[0xD3] == 3 || DECK[0xD3] == 5;
+	hc.shrink = b_shrink = PADROW_UP;
 	hc.g = 0;
 	hc.gn = 0;
 	if (cntg && cntg < 8192 && (rp & 0xFF000000) == 0x0F000000) {
@@ -490,10 +490,10 @@ __attribute__((noinline)) static void hb_gr3(int mlab)
 	fill(WAVE_X0 + WAVE_N, BAND_Y0, W - WAVE_X0 - WAVE_N, RING_H, C_BLACK);
 	for (y = BAND_Y0; y < BAND_Y1; y++)
 		fill16(fb + y * W + WAVE_X0, WAVE_N, HB_KEY);
-	fill(WAVE_X0 + V2_PLAYHEAD - 1, BAND_Y0 + 2, 2, BAND_Y1 - BAND_Y0 - 4,
+	fill(WAVE_X0 + V2_PLAYHEAD - 1, PH_Y0, 2, PH_H,
 	     slip_on() ? 0xFF20 : deck_playing() ? C_RED : C_WHITE);
 	if (hb_sgx >= 0)	/* V4n32 (#21): the slip ghost -- where the track really is (CDJ-3000 slip state) */
-		fill(hb_sgx, BAND_Y0 + 2, 2, BAND_Y1 - BAND_Y0 - 4, C_SLIPG);
+		fill(hb_sgx, PH_Y0, 2, PH_H, C_SLIPG);
 	loop_bar(u32be(DECK + 0x68));
 	band_extras(mlab);
 	wave_off();
