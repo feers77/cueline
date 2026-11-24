@@ -1,5 +1,33 @@
 # CHANGELOG
 
+## 2.3 -- 2026-11-23: RELEASE `R23R1r` / DEV `R23R1n` (labels MAIN 2.20 / GUI 2.14, source hash `2cd1c93f`)
+KEY SHIFT and KEY SYNC return with a new engine; one display bug fix. Changes since 2.2:
+- **KEY SHIFT is back, with a new engine.** It now works *inside* the deck's own MASTER TEMPO engine, the way the
+  CDJ-3000 does it: the original time-stretcher runs at tempo ÷ pitch and its output is resampled by the pitch
+  ratio. No separate pitch shifter after the audio path any more, so the added delay is about 0.4 ms instead of the
+  0.7–33 ms sawtooth of the 2.1 engine, and the "doubled" hi-hats are gone. Range −12 … +11 semitones. It works with
+  MASTER TEMPO on **or off** (with it off the tempo fader still changes the pitch as usual, plus your shift), without
+  touching the MASTER TEMPO key. Tempo and position stay exact (measured on real decks: 993–1010 ms of track per
+  second at every shift).
+- **KEY SYNC and the KEY SYNC BUTTON are back** in UTILITY and use the same engine.
+- **Screen frozen for about 2½ minutes when a loop became active (bug fix, also present in 2.2):** on real decks,
+  LOOP OUT or the 4-beat loop key on the player screen stopped the display (audio and keys kept working) and it
+  came back by itself minutes later. The original firmware was still drawing its own hidden loop-shading window,
+  one slow hardware copy per row. Cueline draws the loop itself, so that window is no longer drawn at all.
+- **Seven menu languages again:** LANGUAGE offers English, French, German, Italian, Dutch, Spanish and Portuguese
+  for the deck's own texts. Cueline's own screens stay in English.
+- **Tested on real decks:** two CDJ-2000NXS2 on Pro DJ Link ran a 35-minute unattended script on a developer build
+  of the same sources: eight long tracks (WAV 24, M4A, WAV 32 float, MP3, FLAC), three passes each with +4 and −5,
+  MASTER TEMPO toggled every pass, a loop, a search and CUE / PLAY in every pass, then a long loop with SYNC,
+  MASTER, BROWSE and SHORT CUT inside it. The screen was painted every second throughout; no EMERGENCY LOOP.
+- **Versioning:** MAIN 2.20 / GUI 2.14 (DEV and RELEASE alike); UTILITY > INFO > BUILD shows `Cueline-2.3 <hash>`.
+  2.3 installs over 2.2, 2.1.1 and 2.1 without a factory reset.
+
+Known issues: KEY SHIFT has no effect on tracks of 48 / 88.2 / 96 kHz (they play unshifted). KEY SYNC with the new
+engine and the menu languages were checked in the emulator, not yet measured on real decks. The first preview over
+LINK from another deck's USB can take a moment (the index is built once). The WAVEFORM meter may sit 1 pixel row off
+vertically.
+
 ## 2.2 -- 2026-11-22: RELEASE `R22R2r` / DEV `R22R2n` (labels MAIN 2.12 / GUI 2.06, source hash `7c0049ef`)
 Stability and performance release, no new features. Changes since 2.1.1:
 - **Screen stuck with garbage (bug fix):** after closing SHORT CUT over a browse list the rows sometimes did not

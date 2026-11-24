@@ -24,7 +24,7 @@ See also: `USER_GUIDE.md` (every feature) and `KNOWN_LIMITS.md` (what does not w
 3. Switch the deck off. Insert the stick.
 4. Start the update exactly as Pioneer DJ's official CDJ-2000NXS2 update guide describes.
 5. Wait until the update reaches 100 % and says it is complete. Then switch the deck off and on.
-6. Check UTILITY > INFO > **BUILD**. It must show `Cueline-2.2 7c0049ef`.
+6. Check UTILITY > INFO > **BUILD**. It must show `Cueline-2.3 2cd1c93f`.
 
 **Never switch the deck off, and never pull the stick, while the update runs.**
 
@@ -153,14 +153,14 @@ Pioneer files, and never flash anything itself.
 
 ### Where do I see which version I run?
 
-UTILITY > INFO > **BUILD** shows the build, for example `Cueline-2.2 7c0049ef`. UTILITY > VERSION No. shows the version
+UTILITY > INFO > **BUILD** shows the build, for example `Cueline-2.3 2cd1c93f`. UTILITY > VERSION No. shows the version
 number.
 
 ### Where are KEY SHIFT and KEY SYNC?
 
-They are switched off in Cueline 2.2. The engine of 2.1 did not sound right on its own, so 2.2 hides the UTILITY
-rows and holds both off; the grey KEY SHIFT tile stays in the header. They return in 2.3 with a new engine. We
-recommend updating to 2.2 anyway (2.1.1 has display bugs that 2.2 fixes); 2.3, with both back, is the next release.
+They are back in Cueline 2.3, with a new engine that works inside the deck's own MASTER TEMPO engine (as the
+CDJ-3000 does). Turn on UTILITY > DJ SETTING > KEY SHIFT and tap the KEY SHIFT tile in the header. They were
+switched off in 2.2 only: if you run 2.2, update to 2.3.
 
 ### Some of my settings go back to default after power-off.
 
@@ -179,8 +179,9 @@ recommend updating to 2.2 anyway (2.1.1 has display bugs that 2.2 fixes); 2.3, w
 
 ### The menus are not in my language.
 
-Cueline keeps only English and Spanish, to free space for the features. If you need another language, stay on the
-official firmware.
+Since 2.3 UTILITY > LANGUAGE offers English, French, German, Italian, Dutch, Spanish and Portuguese for the deck's
+own texts. Cueline's own screens and the UTILITY item names stay in English. The other languages of the official
+firmware (and the Chinese and Korean fonts) were removed to free space for the features.
 
 ### A track shows no waveform.
 
@@ -216,7 +217,7 @@ If the problem stays, go back to stock (see above) and play your gig on the offi
 
 ### How do I report a bug?
 
-1. Note UTILITY > INFO > **BUILD** (for example `Cueline-2.2 7c0049ef`).
+1. Note UTILITY > INFO > **BUILD** (for example `Cueline-2.3 2cd1c93f`).
 2. If you run the DEV build, try the matching kill switch. If the problem goes away, say which one.
 3. Open an issue on the project's GitHub page. Include:
    - the BUILD id;

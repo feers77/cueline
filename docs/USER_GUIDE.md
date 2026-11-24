@@ -142,7 +142,8 @@ lists them all.
 
 ### 1.9 Languages
 
-- The menus are available in **English and Spanish only**: UTILITY > LANGUAGE offers ENGLISH / ESPAÑOL.
+- The deck's own menus are available in **seven languages**: UTILITY > LANGUAGE offers English, French, German,
+  Italian, Dutch, Spanish and Portuguese. Cueline's own screens stay in English.
 - The other menu languages, and the Chinese and Korean fonts, were removed. This frees space in the firmware for
   the new features.
 - With ESPAÑOL, the names of the UTILITY items stay in English.
@@ -238,7 +239,7 @@ when your **HISTORY NAME is 29 characters or fewer** (see `KNOWN_LIMITS.md`).
 
 | Item | Options | Default | Saved |
 |---|---|---|---|
-| BUILD | read-only | shows `Cueline-2.2 7c0049ef` | - |
+| BUILD | read-only | shows `Cueline-2.3 2cd1c93f` | - |
 | LINK KEY STATUS | OFF / ON | ON | no (ON at every boot) |
 | KEY SYNC | OFF / ON | ON | no (ON at every boot) |
 | LINK CUE | OFF / PREVIEW / CUE / BOTH | BOTH | no (BOTH at every boot) |
@@ -411,15 +412,11 @@ Saved only with a HISTORY NAME of 29 characters or fewer.
 - A key changed with KEY SHIFT shows in **orange**.
 
 ### 4.3 KEY SHIFT
-> **Switched off in Cueline 2.2.** KEY SHIFT, KEY SYNC and the KEY SYNC BUTTON (sections 4.3–4.5) are hidden and
-> held off in 2.2; the grey KEY SHIFT tile stays in the header. They return in 2.3 with a new engine. The text
-> below describes 2.1 / 2.1.1.
+KEY SHIFT changes the key in semitone steps, from -12 to +11, without changing the tempo. Since 2.3 it works
+**inside the deck's own MASTER TEMPO engine**, the way the CDJ-3000 does it: the original time-stretcher runs at
+tempo ÷ pitch and its output is resampled by the pitch ratio.
 
-
-KEY SHIFT changes the key in semitone steps, from -12 to +12, without changing the tempo. It uses **our own key
-shift engine**.
-
-**Status:** our own engine runs on the real decks; its sound quality has not been judged yet.
+**Status:** measured on two real decks (exact tempo and position at every shift, with MASTER TEMPO on and off).
 
 How to use it:
 
@@ -437,9 +434,8 @@ How it works with MASTER TEMPO (as on the CDJ-3000):
 
 Things to know:
 
-- About 23 ms of extra latency while a shift is active.
-- Large shifts can sound "phasey".
-- The shift keeps running while you scratch.
+- About 0.4 ms of extra delay while a shift is active.
+- 44.1 kHz tracks only: on 48 / 88.2 / 96 kHz tracks KEY SHIFT has no effect yet.
 - Very fast double taps on -1 / +1 can be missed. Tap at a normal pace.
 - Turning KEY SHIFT OFF in UTILITY sets the shift back to 0 and closes the panel.
 
@@ -596,7 +592,7 @@ always on.
 UTILITY > INFO > **BUILD** shows the installed build's tag and source hash, for example:
 
 ```
-Cueline-2.2 7c0049ef
+Cueline-2.3 2cd1c93f
 ```
 
 Check it after every install. Quote it in every bug report.

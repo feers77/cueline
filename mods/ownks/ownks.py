@@ -68,6 +68,9 @@ def build_dsp(force=False, with_ab=None):
     with_ab = ab() if with_ab is None else with_ab
     gcc = os.path.join(TOOLS, 'tic6x-elf-gcc')
     bin_path = DSP_BIN_AB if with_ab else DSP_BIN
+    ks4 = os.environ.get('CDJ_KS4MT') == '1'       # 2.3 study: KEY SHIFT through the stock MASTER TEMPO engine (dsp/ks4mt.c)
+    if ks4:
+        bin_path = os.path.join(HERE, 'dsp', 'ks4mt_dsp.bin')
     sym_path = bin_path[:-4] + '.sym'
     if os.path.exists(gcc):
         d = os.path.join(HERE, 'dsp')
@@ -75,6 +78,8 @@ def build_dsp(force=False, with_ab=None):
             cf = ['-O2', '-march=c674x', '-mlittle-endian', '-msdata=none', '-ffreestanding',
                   '-fno-builtin', '-Wall', '-DKS_STOCK_FILL=%#x' % DSP_STOCK_FILL]
             srcs = [('ks3.c', ['-DKS_AB'] if with_ab else [])]
+            if ks4:
+                srcs = [('ks4mt.c', [])]
             if with_ab:
                 srcs += [('ownks.c', ['-DKS_AB_OLD']), ('ks_tab.c', [])]
             objs = []
@@ -148,7 +153,7 @@ def set_mvk(word, half):
     return (word & ~(0xFFFF << 7)) | ((half & 0xFFFF) << 7)
 
 
-def dsp_table(stock_main, dsp_img, fill_addr):
+def dsp_table(stock_main, dsp_img, fill_addr, ratio_hook=None):
     old = stock_main[TABLE_OLD[0] - MBASE:0x08091234 - MBASE]
     if hashlib.sha256(old).hexdigest() != TABLE_SHA:
         raise SystemExit('ownks: the DSP boot table is not stock 1.87')
@@ -170,7 +175,49 @@ def dsp_table(stock_main, dsp_img, fill_addr):
         if addr < DSP_BASE + len(dsp_img) and DSP_BASE < addr + len(data):
             raise SystemExit('ownks: %#x overlaps stock section %#x' % (DSP_BASE, addr))
     secs.append([DSP_BASE, bytearray(dsp_img)])
+    if ratio_hook is not None:
+        ks4_patch(secs, ratio_hook)
     return pack_table(entry, secs)
+
+
+# ks4mt (2.3): KEY SHIFT through the stock MASTER TEMPO engine. The stock pipeline calls its rate manager 0x8000D158
+# from two sites (`b .S1` + addkpc). Both are retargeted to a veneer in the 20-byte alignment gap between two stock
+# sections (0x8005AFCC..0x8005AFE0; the section before it ends with the string "2.04\0" at 0x8005AFC9), which jumps
+# to ks_rate in our section (a branch reaches +-4 MB; our section is 5.5 MB away). ks_rate calls the manager itself
+# and scales the rate word it leaves. Nothing is rewritten at run time.
+KS4_MGR = 0x8000D158
+KS4_SITES = {0x80004C18: 0x0010AB11, 0x80004C34: 0x0010A711}      # address: stock word (b .S1 0x8000D158)
+KS4_VENEER = 0x8005AFCC
+B_B31, NOP5 = 0x007C0362, 0x00008000        # as the stock L2 trampoline's
+
+
+def ks4_veneer(target):
+    return struct.pack('<5I', 0x0F80002A | (target & 0xFFFF) << 7, 0x0F80006A | (target >> 16) << 7, B_B31, NOP5, 0)
+
+
+def ks4_branch(word, at, target):
+    """the 21-bit displacement of a `b .S` / callp word (in words, from the fetch packet of the instruction)"""
+    off = (target - (at & ~0x1F)) // 4
+    assert (target - (at & ~0x1F)) % 4 == 0 and -(1 << 20) <= off < (1 << 20)
+    return (word & ~(0x1FFFFF << 7)) | (off & 0x1FFFFF) << 7
+
+
+def ks4_patch(secs, hook):
+    for at, stock in KS4_SITES.items():
+        assert ks4_branch(stock, at, KS4_MGR) == stock       # the encoder reproduces the stock word
+        for addr, data in secs:
+            if addr <= at and at + 4 <= addr + len(data):
+                if struct.unpack_from('<I', data, at - addr)[0] != stock:
+                    raise SystemExit('ownks: %#x is not the stock branch' % at)
+                struct.pack_into('<I', data, at - addr, ks4_branch(stock, at, KS4_VENEER))
+                break
+        else:
+            raise SystemExit('ownks: no section holds %#x' % at)
+    v = ks4_veneer(hook)
+    for addr, data in secs:
+        if addr < KS4_VENEER + len(v) and KS4_VENEER < addr + len(data):
+            raise SystemExit('ownks: the veneer gap %#x is not free (section %#x)' % (KS4_VENEER, addr))
+    secs.append([KS4_VENEER, bytearray(v)])
 
 
 def loader_patch(out, length):
@@ -206,7 +253,7 @@ def apply_engine(out, stock_main):
                          % (len(dsp_img), end and hex(end), fill, DSP_LIMIT))
     if struct.unpack_from('<I', dsp_img, 44)[0] != KS_VER + ab():
         raise SystemExit('ownks: the DSP image is not ks3%s' % (' A/B' if ab() else ''))
-    table = dsp_table(bytes(stock_main), dsp_img, fill)
+    table = dsp_table(bytes(stock_main), dsp_img, fill, syms.get('ks_rate'))
     if TABLE_NEW + len(table) > TABLE_CAP:
         raise SystemExit('ownks: the table (%d B) passes %#x' % (len(table), TABLE_CAP))
     if any(b != 0xFF for b in out[o(TABLE_NEW):o(TABLE_NEW) + len(table)]):
@@ -236,8 +283,10 @@ def check(img):
     ok_t, fill, img_ks = False, None, b''
     try:
         entry, secs = parse_table(t)
-        ok_t = len(secs) == 17 and secs[-1][0] == DSP_BASE and secs[-1][1][:4] == b'OWKS'
-        img_ks = bytes(secs[-1][1]) if ok_t else b''
+        ks4 = len(secs) == 18 and secs[-1][0] == KS4_VENEER      # ks4mt: + the veneer section
+        own = secs[-2] if ks4 else secs[-1]
+        ok_t = len(secs) in (17, 18) and own[0] == DSP_BASE and own[1][:4] == b'OWKS'
+        img_ks = bytes(own[1]) if ok_t else b''
         for addr, data in secs:
             if addr <= DSP_TRAMP < addr + len(data):
                 w0, w1 = struct.unpack_from('<II', data, DSP_TRAMP - addr)

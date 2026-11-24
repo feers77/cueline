@@ -133,8 +133,11 @@ LANG8 = {
     'lang8main': ('main', 'UTILITY > LANGUAGE: 8 options; other values clamped to English'),
     'lang2gui': ('gui', 'UI languages: only English + Spanish kept, 16 dropped -> English'),
     'lang2main': ('main', 'UTILITY > LANGUAGE: ENGLISH / ESPANOL; other values clamped to English'),
+    'lang7gui': ('gui', 'UI languages: EN FR DE IT NL ES PT kept, 11 dropped -> English'),
+    'lang7main': ('main', 'UTILITY > LANGUAGE: 7 options (EN FR DE IT NL ES PT); other values clamped to English'),
 }
-EXTRA_ROWS = {'lang8': ['lang8gui', 'lang8main'], 'lang2': ['lang2gui', 'lang2main']}
+EXTRA_ROWS = {'lang8': ['lang8gui', 'lang8main'], 'lang2': ['lang2gui', 'lang2main'],
+              'lang7': ['lang7gui', 'lang7main']}
 
 
 def mod_rows(reg):
@@ -155,7 +158,7 @@ def apply(target, image, names):
         out = image
     else:
         out = mod.patch_all(image, own) if hasattr(mod, 'patch_all') else mod.patch(image, own)
-    for prof in ('lang8', 'lang2'):
+    for prof in ('lang8', 'lang2', 'lang7'):
         if prof + 'gui' in names:
             out = lang8.gui(out, prof)
         if prof + 'main' in names:     # (V4k: keyshift builds in the ks layout -- patch_main.layout_for)

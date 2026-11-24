@@ -55,10 +55,14 @@ GUI_ZERO_SHA256 = '5d8f1aaed87031d6d953810898200ca79a5c4517c8a8ff00b217291578309
 PROFILES = {
     'lang8': dict(keep_t=GUI_KEEP_T, keep1=(1, 2, 3, 4, 5, 6, 11, 12)),
     'lang2': dict(keep_t=(0, 5), keep1=(1, 6)),
+    # 2.3 (owner 2026-11-22): the Latin-1 languages back -- EN FR DE IT NL ES PT in the stock option order. Our
+    # atlas (v2ui fontgen: ASCII + Latin-1) and font3000's Latin bank cover them; JA / RU / KO / ZH would not.
+    'lang7': dict(keep_t=(0, 2, 3, 4, 5, 7, 8), keep1=(1, 2, 3, 4, 5, 6, 12)),
 }
 # sha256 over the stock bytes of each profile's zeroed ranges (stock 1.81 GUI)
 ZERO_SHA = {'lang8': GUI_ZERO_SHA256,
-            'lang2': 'a176e90f8e7c359621d575fd8a42f6f36f07e3afec107b8fce6088d075ef7073'}
+            'lang2': 'a176e90f8e7c359621d575fd8a42f6f36f07e3afec107b8fce6088d075ef7073',
+            'lang7': 'aea03e5cdd1c15af0e13c2d7ce85df209e5ffeea04fe87571ccc7e4f94c096ad'}
 
 
 def _merge(rngs):

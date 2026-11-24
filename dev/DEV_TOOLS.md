@@ -1,7 +1,7 @@
-# DEV tools -- using the DEV build (`R22R2n`) on a test rig
+# DEV tools -- using the DEV build (`R23R1n`) on a test rig
 
-Everything here needs the **DEV** profile (`PROFILE=dev ./build.sh ...`, UTILITY > BUILD `R22R2n 7c0049ef`).
-The RELEASE build (`R22R2r`) has none of the deck-side hooks: it does not listen on UDP 50098, sends nothing on
+Everything here needs the **DEV** profile (`PROFILE=dev ./build.sh ...`, UTILITY > BUILD `R23R1n 2cd1c93f`).
+The RELEASE build (`R23R1r`) has none of the deck-side hooks: it does not listen on UDP 50098, sends nothing on
 50099, has no autotest runner and no HUD. Only the BLACK BOX stick dump (MENU + BACK 3 s) and the kill switches
 exist in both.
 
@@ -30,7 +30,7 @@ The PC side is plain Python 3 (standard library; `rig.py` needs PyYAML only for 
 
 ## 2. Network commander (`cmd.py`, deck UDP 50098 -> answers on 50099)
 ```
-python3 dev/tools/commander/cmd.py ver                                  # BUILD R22R2n 20261122-0210 7c0049ef (+ UPD sha if BUILDS.tsv knows it)
+python3 dev/tools/commander/cmd.py ver                                  # BUILD R23R1n 20261123-2331 2cd1c93f (+ UPD sha if BUILDS.tsv knows it)
 python3 dev/tools/commander/cmd.py --ip 169.254.128.46 send "KEY INFO" "WAIT 2000" "TOUCH 28 235"
 python3 dev/tools/commander/cmd.py --done send "KEY PLAY" "WAIT 5000" "KEY PLAY"     # wait until the ops ran
 python3 dev/tools/commander/cmd.py mem 0x08014180 48                    # MAIN RAM read, 1..64 bytes (the build record)
@@ -109,7 +109,7 @@ Set `ipA` / `ipB` (the decks' addresses) with `--set`.
 
 ## 7. Test report (`testreport.sh`)
 ```
-BUILDS=BUILDS.tsv dev/tools/testreport.sh R22R2n out-dev dev/tools/rig/runs   # -> out-dev/TESTREPORT_R22R2n.txt
+BUILDS=BUILDS.tsv dev/tools/testreport.sh R23R1n out-dev dev/tools/rig/runs   # -> out-dev/TESTREPORT_R23R1n.txt
 ```
 Build sha + sizes (from `build.log`), the gates (`verify.txt`, `bootcheck.txt`) and the latest rig run of each plan
 (a run named with this build's prefix `v38_` / `r2_` preferred).

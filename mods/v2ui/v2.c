@@ -129,6 +129,36 @@ u32 v2_pfx[4], v2_pff[4];	/* this frame's section ms, and the max a frame within
 #define PF1(i)
 #endif
 #define SM_ALL 0x3FFFFFFFu
+#ifdef V2_HUD
+/* LOOPSTALL (deck, 2026-11-23: an active loop stops the GUI for ~148 s; not in the emulator): where the time
+ * between two of our entry points goes. crumb(n) at each hook / wait; the longest gap between two crumbs and the
+ * pair around it go out in the HUD record (txt[9] ms, txt[10] from << 8 | to | flip-sleep run << 16). The stock
+ * flip's sleep polls (v2_flip_sleep) are counted apart: a long run of them = stock waiting for a vsync. */
+static u32 cr_t, cr_s, cr_max, cr_pair, fs_run, fs_run_max;
+static u32 hk_cur, hk_first, hk_last, hk_seq;	/* LOOPSTALL: the last hook (kind | ret << 3 | z << 4 | window << 12 | mode << 20 | n << 24) */
+u32 v2_hk_z[3][8];	/* emulator: z of every window stock was let draw / clear / text (bit per z) */
+static u32 ef_base0, ef_notown;	/* paint_frame's early returns since boot: no base / a screen we do not own */
+static void crumb(u32 n)
+{
+	u32 t = now_ms();
+	if (cr_t && t - cr_t > 10000) {	/* the hook whose return led into the stalled stock code */
+		if (!hk_first)
+			hk_first = hk_cur;
+		hk_last = hk_cur;
+	}
+	if (cr_t && t - cr_t > cr_max) {
+		cr_max = t - cr_t;
+		cr_pair = (cr_s & 31) << 5 | (n & 31);
+	}
+	cr_t = t;
+	cr_s = n;
+}
+#define CRUMB(n) crumb(n)
+#define HK(k, w, r) hk_note(k, w, r)
+#else
+#define CRUMB(n)
+#define HK(k, w, r)
+#endif
 static int dm_off;	/* V3rc8r: drawing straight into a GR3 buffer (band direct): no canvas marks */
 static void dmark(int y, int h)
 {
@@ -6697,7 +6727,11 @@ static const char UT_TAB[] =
 	"\1AUTO CUE LEVEL\0-78dB|-72dB|-66dB|-60dB|-54dB|-48dB|-42dB|-36dB|MEMORY\0"
 	"\1KEY SHIFT\0OFF|ON\0"	/* V4n23: ours (mods/keyshift), was missing its radio list */
 	"\1KEY SYNC BUTTON\0OFF|ON\0"	/* V4n24: ours (mods/keyshift hc_set / hc_lamp) */
+#ifdef V2_LANG7	/* 2.3: lang7 (mods/lang8.py), the stock option order and names */
+	"\2LANGUAGE\0ENGLISH|FRAN\xC7" "AIS|DEUTSCH|ITALIANO|NEDERLANDS|ESPA\xD1OL|PORTUGU\xCAS\0"
+#else
 	"\2LANGUAGE\0ENGLISH|ESPA\xD1OL\0"
+#endif
 	"\2LCD BRIGHTNESS\0" "1|2|3|4|5\0"
 	"\2TOUCH DISPLAY CALIBRATION\0\0"
 	"\2SCREEN SAVER\0OFF|ON\0"
@@ -8006,7 +8040,9 @@ static const struct orule { u8 modes, zlo, zhi, act; } orules[] = {
 	{ M_ALL, 135, 135, O_OWN },		/* bottom window: the deck area */
 	{ M_ALL, 53, 62, O_OWN },		/* its children: overview, needle, playhead, slip ghost */
 	{ MB(M_PLAYER), 63, 63, O_HIDE },	/* stock centre-waveform canvas */
-	{ MB(M_PLAYER), 50, 50, O_HIDE },	/* loop shading over the waveform */
+	/* LOOPSTALL (decks, 2026-11-23): with a loop active every frame took ~138 s in stock's draw phase. z 50 was
+	 * O_HIDE (stock drew and cleared it every frame, nobody saw it; we draw the loop ourselves): now O_OWN */
+	{ MB(M_PLAYER), 50, 50, O_OWN },	/* loop shading over the waveform */
 	{ MB(M_PLAYER), 64, 65, O_HIDE },	/* PHASE METER TYPE 2: stock's two 216x25 meters (ours drawn) */
 #ifndef V2_OWN_TOP
 #define V2_OWN_TOP (MB(M_BROWSE) | MB(M_PLAYER) | MB(M_SHORTCUT) | MB(M_PINFO))	/* D1: + SHORTCUT, INFO (pages all ours) */
@@ -8125,6 +8161,7 @@ int v2_compose_hide(u32 win)
 	volatile u8 *w = (volatile u8 *)win;
 	int keep = own_mode, r;
 	v2_comp_n++;
+	CRUMB(10);
 	own_mode = screen_mode();
 	frame_tick_late();		/* A10: the tick that does not depend on stock drawing a window */
 	r = !w || !(w[7] & 8) || hide_win(w);	/* stock's own test first: not "composited" = not composed */
@@ -8238,10 +8275,13 @@ static void manage(void)
 	int i, j;
 	own_mode = screen_mode();
 	own_now = own_mode != M_NONE;
+	CRUMB(12);
 	if (!(own_mode != M_NONE && pop_ours())) {	/* 2.01-a: also when a stock pop-up replaces ours */
 		pop_restore();
 	}
-	stock_pop_ink();	/* 2.01-a R21D3: before stock renders this frame's pop-up */
+	CRUMB(13);
+	stock_pop_ink();
+	CRUMB(14);	/* 2.01-a R21D3: before stock renders this frame's pop-up */
 	for (i = j = 0; i < n_hidden; i++) {
 		volatile u8 *w = hidden[i];
 		int z = hidden_z[i];
@@ -8256,6 +8296,7 @@ static void manage(void)
 		w[7] |= 8;
 	}
 	n_hidden = j;
+	CRUMB(15);
 	if (!own_now)
 		return;
 	for (i = 0; i < 256; i++) {
@@ -8640,6 +8681,7 @@ static int inputs_changed(void)
 		return 0;		/* once per loop pass */
 	det_ms = t;
 	v2_det_runs++;
+	CRUMB(17);
 	for (i = 0; i < 0x1A8 / 4; i++)
 		if (i != 0x54 / 4 && i != 0x14 / 4)
 			h = hrot(h, d[i]);
@@ -8658,7 +8700,9 @@ static int inputs_changed(void)
 			h = hmix(h, 0x14 + k);	/* (not ~h: +0x54 may flip in the same pass) */
 		}
 	}
+	CRUMB(18);
 	h = spots(h, (const volatile u32 *)MODEL, 0x2E3C / 4, 1);	/* the GUI's whole model copy */
+	CRUMB(19);
 	for (k = 0; k < 9; k++) {	/* row cells (112 x 20): rows 4, 10, 15, every 8th pixel pair */
 		h = spots(h, (const volatile u32 *)((u32)SMALL_ART(k) + 4 * 224), 14, 4);
 		h = spots(h, (const volatile u32 *)((u32)SMALL_ART(k) + 10 * 224), 14, 4);
@@ -8669,12 +8713,17 @@ static int inputs_changed(void)
 	h = spots(h, (const volatile u32 *)OV_REC, 32, 28);
 	h = spots(h, (const volatile u32 *)MONO_HDR, 4, 1);
 	h = spots(h, (const volatile u32 *)OV_MONO, 25, 8);
+	CRUMB(20);
 	h = spots(h, (const volatile u32 *)MARKS, N_MARKS * 4, 1);
 	h = hmix(hmix(hmix(hmix(h, OV_COLOUR), DET_LEN), grid_ck()), UPD_STATE);
+	CRUMB(21);
 	cue_poll();
+	CRUMB(22);
 	h = hmix(h, cue_ver);			/* V4b1 (cue_poll: the block can arrive while nothing else changes) */
 	h = hmix(hmix(h, buf_ck(WENT)), buf_ck(WBLUE));
+	CRUMB(23);
 	h = spots(h, (const volatile u32 *)ERR_TXT, 8, 1);
+	CRUMB(24);
 	if (h != det_h) {
 		det_h = h;
 		v2_det_hits++;
@@ -8690,8 +8739,28 @@ static int inputs_changed(void)
 }
 
 static void frame_inputs(void);
+#ifdef V2_HUD
+static void hk_note(u32 kind, volatile u8 *w, int ret)	/* kind: 1 draw, 2 clear, 3 wave, 4 blit, 5 text */
+{
+	u32 z = w ? u32be(w + 12) & 255 : 255, i = w ? udiv((u32)(w - WPOOL), 160) & 255 : 255;
+	hk_cur = kind | (u32)(ret != 0) << 3 | z << 4 | i << 12 | ((u32)own_mode & 15) << 20 | (hk_seq++ & 127) << 24;
+	if (!ret && w && (kind == 1 || kind == 2 || kind == 5))
+		v2_hk_z[kind == 1 ? 0 : kind == 2 ? 1 : 2][z >> 5] |= 1u << (z & 31);
+}
+static volatile u8 *desc_win(u32 desc)
+{
+	int i;
+	for (i = 0; i < 256; i++) {
+		volatile u8 *w = WPOOL + 160 * i;
+		if (u32be(w + 152) == desc && (u32be(w) & 0x40000000))
+			return w;
+	}
+	return 0;
+}
+#endif
 static void frame_check(void)
 {
+	CRUMB(8);
 #ifdef V2_HWBAND
 	if (UPD_STATE)
 		hb_off(HB_OFF_UPD);
@@ -8707,11 +8776,14 @@ static void frame_check(void)
 	 * the buffer -- kept, or it lands in the one still on the panel (emu stress: a black frame at INFO) */
 	if (own_mode == M_SHORTCUT || own_mode == M_PINFO)
 		wait_latch();
+	CRUMB(11);
 	if (seen_epoch != v2_epoch) {
 		seen_epoch = v2_epoch;
 		manage();
 	}
+	CRUMB(16);
 	frame_inputs();
+	CRUMB(9);
 }
 /* the screen's inputs, sampled (at most every 8 ms): a change keeps the flush flipping, so our paint runs.
  * F2 audit (A10, owner: the whole screen stuck under a playing deck, updating only now and then): this used to
@@ -8759,8 +8831,10 @@ int v2_wave_skip(void)
 	frame_check();
 	if (own_mode == M_PLAYER && u32be(DECK + 0x60)) {
 		v2_skip_wave++;
+		HK(3, 0, 1);
 		return 1;
 	}
+	HK(3, 0, 0);
 	return 0;
 }
 
@@ -8770,9 +8844,12 @@ int v2_draw_skip(u32 win)
 	volatile u8 *w = (volatile u8 *)win;
 	v2_ndraw++;
 	frame_check();
-	if (!own_now || !w || u32be(w + 28) != LAYER0 || !ours_w(w))
+	if (!own_now || !w || u32be(w + 28) != LAYER0 || !ours_w(w)) {
+		HK(1, w, 0);
 		return 0;
+	}
 	v2_skip_draw++;
+	HK(1, w, 1);
 	return 1;
 }
 
@@ -8782,9 +8859,12 @@ static int desc_ours(u32 desc);
 int v2_rect_skip(u32 desc)
 {
 	v2_nrect++;
-	if (!v2_rect_skip_q(desc))
+	if (!v2_rect_skip_q(desc)) {
+		HK(2, desc_win(desc), 0);
 		return 0;
+	}
 	v2_skip_fill++;
+	HK(2, desc_win(desc), 1);
 	return 1;
 }
 static int v2_rect_skip_q(u32 desc)
@@ -8815,17 +8895,25 @@ u32 v2_nblit, v2_skip_blit, v2_ntext, v2_skip_text;
 int v2_blit_skip(u32 desc)
 {
 	v2_nblit++;
-	if (!desc_ours(desc))
+	CRUMB(25);
+	if (!desc_ours(desc)) {
+		HK(4, desc_win(desc), 0);
 		return 0;
+	}
 	v2_skip_blit++;
+	HK(4, desc_win(desc), 1);
 	return 1;
 }
 int v2_text_skip(u32 win)
 {
 	volatile u8 *w = (volatile u8 *)win;
 	v2_ntext++;
-	if (!own_now || !w || u32be(w + 28) != LAYER0 || !ours_w(w))
+	CRUMB(26);
+	if (!own_now || !w || u32be(w + 28) != LAYER0 || !ours_w(w)) {
+		HK(5, w, 0);
 		return 0;
+	}
+	HK(5, w, 1);
 	*(volatile u32 *)(w + 116) = 0;
 	*(volatile u32 *)(w + 120) = 0;
 	v2_skip_text++;
@@ -8847,6 +8935,10 @@ void v2_flip_sleep(u32 ms, u32 desc)
 {
 	u32 base;
 	v2_fs_calls++;
+#ifdef V2_HUD
+	if (++fs_run > fs_run_max)
+		fs_run_max = fs_run;
+#endif
 	v2_fs_lastms = ms;
 	if (ms == 1)
 		v2_fs_ms1++;
@@ -8881,6 +8973,10 @@ int v2_paint(u32 plane, u32 base)
 {
 	if (plane != 2)
 		return 0;
+	CRUMB(6);
+#ifdef V2_HUD
+	fs_run = 0;
+#endif
 #ifdef V2_HWBAND
 	hb_watch();
 #endif
@@ -8944,6 +9040,7 @@ int v2_paint(u32 plane, u32 base)
 			v2_pace_ms++;
 		}
 	}
+	CRUMB(7);
 	if (base)
 		note_write();		/* the entry writes this base right after we return */
 	return 0;
@@ -9178,7 +9275,11 @@ static void kit_push(u32 t)
 
 static int paint_frame(u32 base)
 {
+	CRUMB(1);
 	if (!base || !owned()) {
+#ifdef V2_HUD
+		if (!base) ef_base0++; else ef_notown++;
+#endif
 #ifdef V2_HWBAND
 		if (!owned())
 			hb_off(HB_OFF_NOTOWNED);	/* never on base == 0 (no flip: nothing to commit with) */
@@ -9217,10 +9318,13 @@ static int paint_frame(u32 base)
 	fb = phys;
 	v2_chg = pend = 0;
 	dmask = 0;
+	CRUMB(2);
 	wait_latch();	/* phys may still be scanned (the last base not taken yet); also guards the whole-copy below */
+	CRUMB(3);
 #ifdef V2_G3PURGE
 	g3_purge();	/* CACHECOH: no stock dirty line of the GR3 buffers may land after our writes */
 #endif
+	CRUMB(4);
 	u32 ld_t0 = now_ms();
 	pf_t0 = ld_t0;
 #ifdef V2_HWS2
@@ -9508,6 +9612,12 @@ static int paint_frame(u32 base)
 				pf0[i] = v2_pf[i];
 			}
 			txt[8] = v2_heal;		/* X: heals since boot (replaces O) */
+			/* LOOPSTALL, all since boot (sticky: any later record carries them): txt[9] = the longest gap between
+			 * two crumbs (ms, 22 b) | from << 22 | to << 26; txt[10] = paints refused for no base (15 b) | for a
+			 * screen we do not own (15 b) << 15 */
+			txt[9] = (cr_max > 0xFFFFF ? 0xFFFFF : cr_max) | cr_pair << 20;	/* ms (20 b) | from (5 b) << 25 | to (5 b) << 20 */
+			txt[10] = hk_first;	/* the hook before the first gap > 10 s, and (txt[8], replaces X) before the last */
+			txt[8] = hk_last;
 			txt[11] = v2_heal_y;		/* Y: the last healed row */
 			txt[12] = v2_latch_stuck;	/* S: latch waits that timed out, since boot */
 			txt[13] = v2_pstall; v2_pstall = 0;	/* P: the longest position stall this second (ms) */
@@ -9834,6 +9944,7 @@ static int paint_frame(u32 base)
 		}
 	}
 #endif
+	CRUMB(5);
 	v2_frames++;
 	/* V3f: flip on change only -- the next two frames (both buffers) after a change, an overlay or a
 	 * pending timer; a static screen stops flipping (frame_check restarts it on new input). D1's rule

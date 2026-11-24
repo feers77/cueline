@@ -20,3 +20,4 @@ mods/player56/p56ui_entries.S
 mods/player56/sites*.json
 mods/player56/ui_entries.json
 !mods/ownks/dsp/ownks_dsp.bin
+!mods/ownks/dsp/ks4mt_dsp.bin

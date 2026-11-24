@@ -881,6 +881,10 @@ def build_modsmenu(base, layout='stock'):
             f = line.split()
             if len(f) == 3:
                 syms[f[2]] = int(f[0], 16)
+        if os.environ.get('CDJ_SYMS_OUT'):      # the deck kit's config (work/r23/kit23): modsmenu's symbols of this build
+            import json
+            with open(os.environ['CDJ_SYMS_OUT'], 'w') as f:
+                json.dump({k: '%#x' % v for k, v in sorted(syms.items())}, f, indent=1)
         with open(out, 'rb') as f:
             return f.read(), syms
 

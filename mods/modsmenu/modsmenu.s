@@ -3537,8 +3537,8 @@ va_ks:	mov.l	vt_ksb,r1
 	bt	3f
 	cmp/eq	#3,r0
 	bf	8f
-	mov	#12,r0
-	cmp/ge	r0,r3			! +1 up to +12
+	mov	#11,r0
+	cmp/ge	r0,r3			! +1 up to +11 (owner 2026-11-22: at +12 the ks4mt FIFO has no margin; down stays -12)
 	bt	8f
 	bra	7f
 	add	#1,r3

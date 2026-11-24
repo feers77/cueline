@@ -29,17 +29,17 @@ disassembly and no keys.
 
 | item | RELEASE | DEV |
 |---|---|---|
-| Tag / build ID | `Cueline-2.2 20261122-0208 7c0049ef` | `R22R2n 20261122-0210 7c0049ef` |
-| UPD sha256 | `3a295ac2552b1d83edb55c0bd58db311c5adba496c7d3f4d2505786ff0bad548` | `d4a58b482e13ed8c8ca54b441b6b206959b72e484f11923585d9f112bbeae2e9` |
-| Labels | `MAINVer2.12` / `GUI Ver2.06` (bump 25) | `MAINVer2.12` / `GUI Ver2.06` (bump 25) |
-| MAIN | section 9,347,916 B; packed 3552185 of 3846144 B 92.4%; layout `ks` | packed 3557714 of 3846144 B 92.5% |
+| Tag / build ID | `Cueline-2.3 20261123-2329 2cd1c93f` | `R23R1n 20261123-2331 2cd1c93f` |
+| UPD sha256 | `85905736d2f042e3be62c363180c60a5107d97032fa854369c28315074ca0b6e` | `31aabb3ce3124f2516094cbcd35b17428225be4fa5de1a4fbf42e4deb56dd6fd` |
+| Labels | `MAINVer2.20` / `GUI Ver2.14` (bump 33) | `MAINVer2.20` / `GUI Ver2.14` (bump 33) |
+| MAIN | section 9,347,916 B; packed 3547815 of 3846144 B 92.2%; layout `ks` | packed 3553355 of 3846144 B 92.4% |
 | GUI | section -> B (stock 6,931,940 B) | -> B |
 | GUI flags | `-DV2_DMACPY -DV2_VSPACE -DV2_BDIRECT -DV2_AUTO60 -DV2_HWBAND -DV2_KEYSHIFT -DV2_MSUB -DV2_G3PURGE -DV2_GR1METER -DV2_SC0BYP` | `-DV2_HUD -DV2_DMACPY -DV2_VSPACE -DV2_BDIRECT -DV2_AUTO60 -DV2_HWBAND -DV2_KEYSHIFT -DV2_MSUB -DV2_G3PURGE -DV2_GR1METER -DV2_SC0BYP -DV2_USBLOG` |
 | MAIN mods | touchaudio touchaudioip touchaudiotouch tadec modsmenu wav32 rowwave three_band ui3000x bootname font3000 v2ui v2needle lang2 usbkey keyshift reclaim guitrim_cjk w8send w8cap w8recv ks3k ownks jogcue link0brx link0btx + player56 (`proven`) | + autotest usblog |
 | UTILITY items | 42 | 43 (+ TEST LOG) |
 | Gates | verify PASS, `gui_bootcheck --strict` PASS, racegate R1 + OFF: 0 MACHINE RESET | same |
 
-Both are built by `build.sh` (`PROFILE=release|dev`) from the same sources (source hash `7c0049ef` = sha256 of
+Both are built by `build.sh` (`PROFILE=release|dev`) from the same sources (source hash `2cd1c93f` = sha256 of
 every `mods/` source, `patch_main.source_hash()`); `CDJ_PROFILE=release` makes `build_final` / `patch_main`
 refuse the dev flags and mods.
 
@@ -141,7 +141,7 @@ zeroes its own block on first use (for example, w8send stamps `W8F1`).
 **Flash budget** (`re/MAIN_BUDGET_AUDIT.md`, memory notes):
 
 - The real limit is the *packed* MAIN size, about 3,846,656 B packed;
-  `patch_update` uses 3,846,144. R22R2r packs 3552185 of 3846144 B 92.4%, R22R2n 3557714 of 3846144 B 92.5%.
+  `patch_update` uses 3,846,144. R23R1r packs 3547815 of 3846144 B 92.2%, R23R1n 3553355 of 3846144 B 92.4%.
 - An earlier "MAIN section limit" of 0x902A00 was a misdiagnosis. Its real cause was the update race in §1.3.
 - The T1 deck test proved a 9.48 MB section installs. RC1 is built with
   `--no-main-size-check`.
@@ -270,7 +270,7 @@ their `.s`, and `patch_update.check_committed_bins` now guards against that.
   between 7 B and 600 B left. `guitrim_cjk` (zeroes the CJK glyph banks, a cosmetic effect only) gives about
   2.9 MB of room, and RC1 is about 2.94 MB under stock.
 - **Build flags (V4).** RELEASE `-DV2_DMACPY -DV2_VSPACE -DV2_BDIRECT -DV2_AUTO60 -DV2_HWBAND -DV2_KEYSHIFT`; DEV adds
-  `-DV2_HUD -DV2_USBLOG`; both with `CDJ_V2_FONTTRIM=1`. GUI room: R22R2r is ? MB under stock.
+  `-DV2_HUD -DV2_USBLOG`; both with `CDJ_V2_FONTTRIM=1`. GUI room: R23R1r is ? MB under stock.
 - **Icons.** Our own icon set in the 3000 style (shipped as sources) plus stock NXS2 icons taken from the
   builder's official 1.87 `.UPD` at build time; the generated atlas is not shipped. No other firmware is needed.
 
@@ -893,7 +893,7 @@ KEY SHIFT uses our own Key Shift engine (`keyshift`, built from the sources in t
 12. **Not built in V4:** jogcue (cue-marker blink on the jog centre), jogtest, M4A decoding, players 5/6 on the GUI
     side (`V2_P56`).
 13. **Deck coverage:** the real-rig plans passed on V4n35; V4n37 ran on the decks on 2026-11-16 and the V4n38
-    change (WAVEFORM now sets overview / browse, detail always FULL) comes from that session. R22R2n / R22R2r have passed the
+    change (WAVEFORM now sets overview / browse, detail always FULL) comes from that session. R23R1n / R23R1r have passed the
     emulator gates; their deck runs: see `TESTREPORTS.md`.
 
 ---

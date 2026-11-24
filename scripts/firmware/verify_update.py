@@ -258,7 +258,7 @@ def main():
     if p56 is not None:
         for ok, what in player56.verify(c_main, p56_names):
             check(ok, what)
-    for prof in ('lang8', 'lang2'):
+    for prof in ('lang8', 'lang2', 'lang7'):
         if prof + 'gui' not in names and prof + 'main' not in names:
             continue
         import lang8

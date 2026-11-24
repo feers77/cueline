@@ -31,7 +31,7 @@ The PC tools are plain Python 3 (standard library; `rig.py` needs PyYAML only fo
 You need your own official `C2KNXS2.UPD` 1.87, as for the RELEASE build.
 
 ```
-PROFILE=dev ./build.sh /path/to/C2KNXS2.UPD          # -> out-dev/C2KNXS2.UPD  (= R22R2n)
+PROFILE=dev ./build.sh /path/to/C2KNXS2.UPD          # -> out-dev/C2KNXS2.UPD  (= R23R1n)
 ```
 
 - `build.sh` copies the repository's `mods/` and `scripts/` into a work copy, then copies `dev/mods/` over it.
@@ -73,10 +73,10 @@ the op syntax, the address table the tools use and every rig plan are in `dev/DE
 
 ## Getting and installing DEV
 - Build it from source: `PROFILE=dev ./build.sh /path/to/C2KNXS2.UPD` → `out-dev/C2KNXS2.UPD`. For this version the
-  expected sha256 is `d4a58b482e13ed8c8ca54b441b6b206959b72e484f11923585d9f112bbeae2e9` (reference toolchain, unchanged sources). **Cueline Builder cannot make DEV builds**
+  expected sha256 is `31aabb3ce3124f2516094cbcd35b17428225be4fa5de1a4fbf42e4deb56dd6fd` (reference toolchain, unchanged sources). **Cueline Builder cannot make DEV builds**
   (its patch data is the RELEASE build only).
 - Install exactly like RELEASE (small FAT32 stick, only `C2KNXS2.UPD`, official update procedure; never power off).
-- **DEV ↔ RELEASE:** both builds of a version carry the same label (MAIN 2.12 / GUI 2.06), so switching
+- **DEV ↔ RELEASE:** both builds of a version carry the same label (MAIN 2.20 / GUI 2.14), so switching
   between them in either direction is skipped by the deck unless you do UTILITY → DUPLICATION → DEFAULT first (it
   resets the deck settings). Disconnect the Pro DJ Link (LAN) cable first: while LINK is active the player does not allow DUPLICATION → DEFAULT.
   Going back to the official 1.87 works the same way (README → Going back to stock).

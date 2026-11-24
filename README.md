@@ -8,18 +8,18 @@
 ![Cueline on the CDJ-2000NXS2: player, browse, KEY SHIFT, LINK sources, UTILITY, phase waveform](docs/images/cueline_grid.png)
 
 Cueline is a custom firmware UI for the Pioneer CDJ-2000NXS2, inspired by the CDJ-3000. It brings 3000-style
-screens and waveforms, Link Cue previews and more to the NXS2 (KEY SHIFT and KEY SYNC return in 2.3). You build it yourself from
+screens and waveforms, KEY SHIFT, KEY SYNC, Link Cue previews and more to the NXS2. You build it yourself from
 the official 1.87 update, in a few minutes, and you can go back to stock at any time.
 
 > [!NOTE]
-> **Cueline 2.2 is the current stable release:** a stability release, confirmed on two real CDJ-2000NXS2 decks on
-> Pro DJ Link with an unattended test run. It fixes the display problems of 2.1.1 (blank INFO panel, corrupted
-> bands, a screen that stopped updating). **KEY SHIFT and KEY SYNC are switched off in 2.2** and return in 2.3 with a
-> new engine. **If you run 2.1 or 2.1.1, update to 2.2** (it installs straight over them); 2.3 is the next release. As with any firmware, keep the official 1.87 update to [go back to stock](#going-back-to-stock) and
+> **Cueline 2.3 is the current stable release.** KEY SHIFT and KEY SYNC are back with a new engine that works inside
+> the deck's own MASTER TEMPO engine, as the CDJ-3000 does, and a display freeze of 2.2 is fixed (the screen stopped
+> for about 2½ minutes when a loop became active). Confirmed on two real CDJ-2000NXS2 decks on Pro DJ Link with an
+> unattended test run. **If you run 2.2 or older, update to 2.3** (it installs straight over them). As with any firmware, keep the official 1.87 update to [go back to stock](#going-back-to-stock) and
 > test at home before a gig.
 
-**This version: Cueline 2.2.** Build `Cueline-2.2 7c0049ef` (RELEASE), device version MAIN 2.12 / GUI 2.06;
-developer build `R22R2n` (DEV). Cueline uses the deck's own version numbers (2.2 → MAIN 2.12).
+**This version: Cueline 2.3.** Build `Cueline-2.3 2cd1c93f` (RELEASE), device version MAIN 2.20 / GUI 2.14;
+developer build `R23R1n` (DEV). Cueline uses the deck's own version numbers (2.3 → MAIN 2.20).
 It may contain bugs: screens that draw wrong, features that misbehave, in rare cases a deck that needs a restart.
 Please [report bugs](#reporting-bugs-and-contributing). Cueline is unofficial and **not affiliated with or endorsed
 by Pioneer DJ or AlphaTheta**.
@@ -29,18 +29,30 @@ by Pioneer DJ or AlphaTheta**.
   hardware (a hardware scroll layer, not CPU redraws). The stock NXS2 UI never moved like this.
 - 🎨 **CDJ-3000-style UI** — player, browse with mini waveforms, SOURCE/LINK list, INFO, SHORT CUT and UTILITY
   screens; RGB, 3BAND and BLUE waveforms; 6 zoom levels; own Cueline Sans font and icons.
-- 🎹 **KEY SHIFT and KEY SYNC** *(switched off in 2.2, back in 2.3 with a new engine)* — our own pitch-shifting engine on the deck's DSP (±12 semitones, tempo unchanged),
-  KEY SYNC to the master's sounding key including cents — also with a **CDJ-3000 on the LINK**, both directions.
+- 🎹 **KEY SHIFT and KEY SYNC** — pitch shifting inside the deck's own MASTER TEMPO engine, as the CDJ-3000 does it (−12 … +11 semitones, tempo unchanged, with MASTER TEMPO on or off),
+  KEY SYNC to the master's sounding key — also with a **CDJ-3000 on the LINK**, both directions *(3000: emulator only)*.
 - 👂 **Link Cue** — preview any track in your list (local or over Pro DJ Link) before loading it.
 - 👆 **Full touch** — tap and drag in lists, pop-ups, UTILITY, KEY SHIFT and GRID ADJUST panels, like the CDJ-3000.
 - 🌊 **LINK phase meter with the master's waveform** — 4 BARS, PHASE or WAVEFORM; the WAVEFORM view runs on its
   own display hardware layer at full width, and the meter follows the main waveform's zoom scale, like the CDJ-3000.
 - 🔁 **Pro DJ Link compatible** — still a CDJ-2000NXS2 on the network; DJMs, rekordbox and unknown devices get
-  exactly the stock status packet, stock NXS2s accept ours unchanged (tested). In 2.2 every device gets the stock status
-  packet (KEY SYNC over LINK is off), so a CDJ-3000 does not show a Cueline master's waveform in this release; that
-  returns with KEY SYNC in 2.3 *(tested against a CDJ-3000 emulator only)*.
+  exactly the stock status packet, stock NXS2s accept ours unchanged (tested).
 - 🛟 **Safe to try** — built from the official 1.87 on your own computer, reproducible byte for byte, and the official
   update brings you back to stock.
+
+### New in 2.3
+- **KEY SHIFT is back, with a new engine** that works inside the deck's own MASTER TEMPO engine, the way the
+  CDJ-3000 does it: about 0.4 ms of added delay, exact tempo and position, −12 … +11 semitones, with MASTER TEMPO
+  on or off.
+- **KEY SYNC and the KEY SYNC BUTTON are back** and use the same engine.
+- **Screen frozen for about 2½ minutes when a loop became active (fixed; 2.2 has this bug):** on real decks LOOP OUT
+  or the 4-beat loop key on the player screen stopped the display while audio and keys kept working.
+- **Seven menu languages again** for the deck's own texts (English, French, German, Italian, Dutch, Spanish,
+  Portuguese); Cueline's own screens stay in English.
+- **Known:** KEY SHIFT has no effect on 48 / 88.2 / 96 kHz tracks yet.
+- **Versioning:** MAIN 2.20 / GUI 2.14; UTILITY → INFO → BUILD shows `Cueline-2.3 2cd1c93f`. 2.3 installs
+  straight over 2.2, 2.1.1 and 2.1, no factory reset needed.
+- Details: [CHANGELOG.md](CHANGELOG.md) and [RELEASE_NOTES_v2.3.md](RELEASE_NOTES_v2.3.md).
 
 ### New in 2.2
 A stability and performance release: no new features.
@@ -59,13 +71,10 @@ A stability and performance release: no new features.
   loaded *and* played), previewed = no mark.
 - **Phase meter WAVEFORM view in LIGHT MODE:** the first part of the master's mini waveform now has the same
   background as the rest.
-- **KEY SHIFT and KEY SYNC are not in 2.2.** They are hidden and held off; the grey KEY SHIFT tile in the header
-  stays. The 2.1 engine did not sound right on its own; they return in 2.3 with a new one.
+- KEY SHIFT and KEY SYNC were switched off in 2.2 (the 2.1 engine did not sound right on its own).
 - **Known:** the first preview over LINK from another deck's USB can take a moment (the index is built once);
   after that it is immediate.
-- **Versioning:** MAIN 2.12 / GUI 2.06; UTILITY → INFO → BUILD shows `Cueline-2.2 7c0049ef`. 2.2 installs
-  straight over 2.1.1 and 2.1, no factory reset needed.
-- Details: [CHANGELOG.md](CHANGELOG.md) and [RELEASE_NOTES_v2.2.md](RELEASE_NOTES_v2.2.md).
+- Details: [CHANGELOG.md](CHANGELOG.md).
 
 ### New in 2.1.1
 - **Link Cue with two Cueline decks (bug fix):** the mixer has a single Link Monitor slot and plays one source at a
@@ -130,7 +139,7 @@ You need: the deck, a computer, and a small USB stick (FAT32).
    then **UTILITY → DUPLICATION → DEFAULT** ([why](#install)). Coming from the official firmware or from Cueline
    2.1 / 2.1.1 you can skip this.
 5. **Install** it like an official update ([details](#install)). Never switch the deck off during the update.
-6. **Check** UTILITY → INFO → BUILD: it shows `Cueline-2.2 7c0049ef`.
+6. **Check** UTILITY → INFO → BUILD: it shows `Cueline-2.3 2cd1c93f`.
 
 To go back to the official firmware, see [Going back to stock](#going-back-to-stock).
 
@@ -146,7 +155,7 @@ To go back to the official firmware, see [Going back to stock](#going-back-to-st
 ### Install
 1. If you use MY SETTINGS, save them with rekordbox first, and write down your deck settings: the factory reset in
    the next step erases them (it is only needed in the case described there).
-2. **Coming from the official firmware (1.87) or from Cueline 2.1 / 2.1.1? Skip this step** — 2.2's version is
+2. **Coming from the official firmware (1.87) or from Cueline 2.2 / 2.1 / 2.1.1? Skip this step** — 2.3's version is
    newer, so the deck installs it and your deck settings are kept.
    **If the deck runs a build with the same or a higher version number** (a DEV or test build, another custom
    firmware), the factory reset is **required**: the deck only installs an update whose version is newer than the
@@ -156,14 +165,13 @@ To go back to the official firmware, see [Going back to stock](#going-back-to-st
 3. Put only the new `C2KNXS2.UPD` in the root of a small FAT32 USB stick.
 4. With the deck off, insert the stick and start the update exactly as Pioneer DJ's CDJ-2000NXS2 update guide
    describes. Wait until it shows 100 % / complete, then switch the deck off and on.
-5. UTILITY → INFO → BUILD shows `Cueline-2.2 7c0049ef`. If the deck still shows the old build, the update was skipped:
+5. UTILITY → INFO → BUILD shows `Cueline-2.3 2cd1c93f`. If the deck still shows the old build, the update was skipped:
    repeat step 2 and install again.
 6. Test it at home (load, play, browse, your LINK setup) before using it at a gig.
 
 ## Features
 Tags: **[LINK]** needs Pro DJ Link (decks connected by network) · **[A9]** needs a DJM-A9 mixer ·
 **[3000]** needs a CDJ-3000 on the LINK · *(not yet on a real deck)* = checked in our test environment only.
-**2.2:** the items marked *(2.3)* are switched off in this release.
 How to use each feature: [docs/USER_GUIDE.md](docs/USER_GUIDE.md).
 
 **Screens (CDJ-3000 style)**
@@ -186,11 +194,11 @@ How to use each feature: [docs/USER_GUIDE.md](docs/USER_GUIDE.md).
 - Cue, loop and memory markers in rekordbox colors, with comments; HOT CUE COLOR.
 - Overview strip with badges, ruler and tap-to-search.
 
-**Key** *(KEY SHIFT, KEY SYNC and the KEY SYNC BUTTON are switched off in 2.2; they return in 2.3)*
+**Key**
 - KEY FORMAT: ALPHANUMERIC (8A) or CLASSIC (Am), everywhere.
-- KEY SHIFT −12 … +12 semitones *(2.3)*.
-- KEY SYNC to NXS2 masters **[LINK]** and to CDJ-3000 masters **[LINK] [3000]** *(2.3; 3000: emulator only)*.
-- KEY SYNC BUTTON: use the HOT CUE D/H pad as a KEY SYNC key, with a status lamp **[LINK]** *(2.3)*.
+- KEY SHIFT −12 … +11 semitones, with MASTER TEMPO on or off (44.1 kHz tracks).
+- KEY SYNC to NXS2 masters **[LINK]** and to CDJ-3000 masters **[LINK] [3000]** *(3000: emulator only)*.
+- KEY SYNC BUTTON: use the HOT CUE D/H pad as a KEY SYNC key, with a status lamp **[LINK]**.
 - Harmonic key colors: green when your key fits the master's **[LINK]**.
 
 **Tempo and sync**
@@ -198,7 +206,7 @@ How to use each feature: [docs/USER_GUIDE.md](docs/USER_GUIDE.md).
 - Phase meter: PHASE / WAVEFORM / 4 BARS on the main waveform's scale; the WAVEFORM view shows the tempo master's
   waveform on its own display hardware layer (GR1) **[LINK]**.
 - LINK OFFSET (UTILITY → PRO DJ LINK): shifts the meter's master line by −10 … +55 ms; default OFF **[LINK]**.
-- With a CDJ-3000 *(2.3 for the waveform: off in 2.2 with KEY SYNC)*: precise-position (0x0b) packets both ways, and the 3000 can show a Cueline master's waveform
+- With a CDJ-3000: precise-position (0x0b) packets both ways, and the 3000 can show a Cueline master's waveform
   **[LINK] [3000]** *(emulator only)*.
 - Cue countdowns for your deck and the master **[LINK]**.
 - BEAT JUMP 1–64 beats; BEAT LOOP and BEAT JUMP pads.
@@ -253,14 +261,14 @@ How to use each feature: [docs/USER_GUIDE.md](docs/USER_GUIDE.md).
 - Loading a track on a lone deck makes it the master.
 
 **Not yet verified on real hardware:** everything with a real CDJ-3000 / CDJ-3000X (0x0b packets, the 3000
-showing our waveform: tested in an emulator only) and Touch Cue with a mixer. What 2.2 was tested with on real
-decks: two CDJ-2000NXS2 on Pro DJ Link, no DJM-A9 — an unattended 33-minute script on each deck (seven file formats,
-every pop-up, preview gestures, settings, SYNC / MASTER, a 22-minute load / play / seek soak), a power cycle, and
-browsing, previewing and loading from the other deck's USB by hand.
+showing our waveform: tested in an emulator only) and Touch Cue with a mixer. What 2.3 was tested with on real
+decks: two CDJ-2000NXS2 on Pro DJ Link — an unattended 35-minute script on each deck, on a developer build of the
+same sources (eight long tracks in five formats, three passes each with KEY SHIFT +4 and −5, MASTER TEMPO toggled, a
+loop, a search and CUE / PLAY in every pass, then a long loop with SYNC, MASTER, BROWSE and SHORT CUT inside it).
+KEY SYNC with the new engine and the menu languages: emulator only so far.
 
 **Limits**
-- KEY SHIFT and KEY SYNC are switched off in 2.2 (the 2.1 engine added latency and did not sound right); a new
-  engine comes in 2.3.
+- KEY SHIFT has no effect on 48 / 88.2 / 96 kHz tracks yet (they play unshifted).
 - The meter's PHASE and 4 BARS views are drawn by the CPU (unchanged).
 - The WAVEFORM meter may sit 1 pixel row off vertically.
 - A CDJ-3000 does not show the key of tracks loaded from a Cueline deck's media.
@@ -302,7 +310,7 @@ recorder (`BLACKBOX.BIN` on the stick), a test log over USB or the network, a ne
 switches, performance counters and automated tests. **Not for gigs**, and use it only on your own network: a
 computer on the same LINK network can query and operate a DEV deck.
 - Build it from source: `PROFILE=dev ./build.sh /path/to/C2KNXS2.UPD` (expected sha256 for this version:
-  `d4a58b482e13ed8c8ca54b441b6b206959b72e484f11923585d9f112bbeae2e9`). Cueline Builder makes RELEASE builds only.
+  `31aabb3ce3124f2516094cbcd35b17428225be4fa5de1a4fbf42e4deb56dd6fd`). Cueline Builder makes RELEASE builds only.
 - Install it like RELEASE. DEV and RELEASE carry the same version number, so switching between them needs
   UTILITY → DUPLICATION → DEFAULT first (LAN cable disconnected).
 - Everything else, including how to capture logs for a bug report and a privacy note:
@@ -321,7 +329,7 @@ Builds every component yourself; the result is byte-identical to what Cueline Bu
    ./build.sh /path/to/C2KNXS2.UPD
    ```
 4. The result is `out-release/C2KNXS2.UPD`. The script prints `verify ... all checks passed` and `bootcheck PASS`,
-   and compares the result with the reference sha256 `3a295ac2552b1d83edb55c0bd58db311c5adba496c7d3f4d2505786ff0bad548`.
+   and compares the result with the reference sha256 `85905736d2f042e3be62c363180c60a5107d97032fa854369c28315074ca0b6e`.
    Exit code 0 = identical, 2 = built but different (other tool versions; still checked), 1 = error.
    **Never install a build whose verify or boot check failed.**
 
@@ -353,15 +361,15 @@ The emulator we use for development is not part of this repository.
 | File | sha256 |
 |---|---|
 | Official `C2KNXS2.UPD` 1.87 (your input) | `f211191a573b7a5c0e694936871f76011a58d5861dd061301cdb0d8b83a8b3e5` |
-| `CuelineBuilder.exe` (Release asset) | `cc110f45afbf3a4d1c54b5b2786f51473da708f962e5b29601def797c3b7b1c5` |
-| `CuelineBuilder-macOS.zip` (Release asset) | `9e0e813c4a045255a08c9f6b65ac59217522e183ec6084a65bd4eb13a1189a8f` |
-| `builder/cueline.delta` (our patch data) | `b9d05e7aa686b39be7ed033ef968446b98e230ad43cb4b3eee2bc88879f5799b` |
-| Your built `C2KNXS2.UPD` (Builder or `build.sh`) | `3a295ac2552b1d83edb55c0bd58db311c5adba496c7d3f4d2505786ff0bad548` |
+| `CuelineBuilder.exe` (Release asset) | `b1d99409c6adca1176dae1cf03c138e74691a9b5f719b3749d40ec251f0dc641` |
+| `CuelineBuilder-macOS.zip` (Release asset) | `322a57ebf1c3bc3a75225a3e5ce19d49cfe37a6b1328da2ab198d0d179b86894` |
+| `builder/cueline.delta` (our patch data) | `cbbabcba2eb62714aa0ff2232ee374be46857d1698f789071d8fd82cbcf08632` |
+| Your built `C2KNXS2.UPD` (Builder or `build.sh`) | `85905736d2f042e3be62c363180c60a5107d97032fa854369c28315074ca0b6e` |
 
 - Windows may warn about an unsigned program (SmartScreen or antivirus). If you prefer not to run it, use the
   Python script or build from source: all three give the same result.
 - Extra check: build from source, then run
-  `python3 builder/mkdelta.py /path/to/C2KNXS2.UPD out-release/C2KNXS2.UPD my.delta --release R22R2r --build-id "Cueline-2.2 20261122-0208 7c0049ef"`
+  `python3 builder/mkdelta.py /path/to/C2KNXS2.UPD out-release/C2KNXS2.UPD my.delta --release R23R1r --build-id "Cueline-2.3 20261123-2329 2cd1c93f"`
   and compare `my.delta` with `builder/cueline.delta`. To rebuild the exe yourself, see `builder/build_exe.bat`.
 
 ## License and trademarks

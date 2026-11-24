@@ -5,8 +5,7 @@ normal RELEASE build.
 
 ## Planned improvements
 
-- **KEY SHIFT and KEY SYNC** are switched off in 2.2 and return in 2.3 with a new engine (the 2.1 one did not
-  sound right on its own).
+- **KEY SHIFT on 48 / 88.2 / 96 kHz tracks:** not yet; those tracks play unshifted.
 - **First preview over LINK:** from another deck's USB it can take a moment the first time (the index is built
   once); serving rows before the index is complete is planned.
 
@@ -20,13 +19,12 @@ Not yet confirmed on real hardware:
 - **Artwork of the loaded track:** on the deck it depends on a backup method that is not yet confirmed.
 
 ## KEY SHIFT and KEY SYNC
-**Switched off in Cueline 2.2.** KEY SHIFT, KEY SYNC and the KEY SYNC BUTTON are hidden and held off in 2.2; they
-return in 2.3 with a new engine. The notes below describe 2.1 / 2.1.1.
+Since 2.3 KEY SHIFT works inside the deck's own MASTER TEMPO engine (as the CDJ-3000 does).
 
-
-- About **23 ms of extra latency** while a key shift is active.
-- Large shifts can sound **"phasey"**.
-- The shift **keeps running while you scratch**.
+- Range **-12 … +11** semitones.
+- **44.1 kHz tracks only:** on 48 / 88.2 / 96 kHz tracks KEY SHIFT has no effect yet.
+- About **0.4 ms** of extra delay while a shift is active.
+- KEY SYNC with this engine has been checked in the emulator, not yet measured on real decks.
 - Very **fast double taps** on -1 / +1 can be missed.
 - KEY SYNC needs **Pro DJ Link**, a tempo master with a known key, and **KEY SHIFT ON**.
 - KEY SYNC moves the key by at most 2 semitones (the same key, or one Camelot step either way).
@@ -78,9 +76,9 @@ return in 2.3 with a new engine. The notes below describe 2.1 / 2.1.1.
 
 ## Languages and font
 
-- Menus in **English and Spanish only**. The other menu languages, and the Chinese and Korean fonts, were removed to
-  free space. If you need another language, stay on the official firmware.
-- With ESPAÑOL, **UTILITY item names stay in English**.
+- The deck's own menus come in **seven languages** (English, French, German, Italian, Dutch, Spanish, Portuguese).
+  The other menu languages, and the Chinese and Korean fonts, were removed to free space.
+- Cueline's own screens and the **UTILITY item names stay in English** in every language.
 - The list text from the official firmware is drawn **without kerning** (letter-pair spacing) in Cueline Sans.
 
 ## Going back to stock
