@@ -340,14 +340,22 @@ static int ph_left;		/* V3c: WAVEFORM CURRENT POSITION = LEFT (published by MAIN
 static void read_flags(void)
 {
 	static int valid, f_light, f_dec, f_full, f_wave, f_left;
-	u32 f = (u32)DECK[0x54] << 24 | (u32)DECK[0x55] << 16 | (u32)DECK[0x56] << 8 | DECK[0x57];
+	/* REVIEW 1124 m.B: one 32-bit load (the SH is big-endian, +0x54 is aligned). Four byte loads could straddle
+	 * MAIN's next heartbeat: the word alternates two slots, so a torn read put countdown bits into the style for one
+	 * frame = one frame of another meter view. The style also has to be seen twice before it is taken. */
+	u32 f = *(const volatile u32 *)(DECK + 0x54);
 	if ((f >> 24) == 0x4C) {	/* V3d: magic 0x4C; bits 6-23 the LINK master's status slots */
 		if (f & 0x40) {
+			static int st_cand = -1;
+			int st;
 			ms_flags = (f >> 7) & 0x1FF;
 			ms_bhi = (f >> 16) & 0xFF;
-			pm_style = (ms_flags >> 3) & 3;
-			if (pm_style > 2)
-				pm_style = 0;
+			st = (int)((ms_flags >> 3) & 3);
+			if (st > 2)
+				st = 0;
+			if (st == st_cand || !valid)
+				pm_style = st;
+			st_cand = st;
 		} else {
 			ms_cd = (f >> 7) & 0x1FF;
 			ms_blo = (f >> 16) & 0xFF;
@@ -1037,7 +1045,7 @@ static void cue_parse(void)
 			u32 el = u32be(CUEBUF + q + 8), lc = u32be(CUEBUF + q + 0x28), j, n;
 			struct cue_e *e = &cue_t[cue_n];
 			if (CUEBUF[q] != 'P' || CUEBUF[q + 1] != 'C' || CUEBUF[q + 2] != 'P' || CUEBUF[q + 3] != '2'
-			    || el < 0x2C + 4 || lc > 0x400)
+			    || el < 0x2C + 4 || lc > 0x400 || el > tend - q)	/* REVIEW 1124 b.10: entry length stays within the block */
 				break;
 			if (CUEBUF[q + 0x10] == 1 || CUEBUF[q + 0x10] == 2) {	/* cue point / loop */
 				u32 hotn = u32be(CUEBUF + q + 12);
@@ -2098,11 +2106,16 @@ static u32 band_pos_pub(u32 pos, u32 t, s32 rate)
 	bp_rate = rate;
 	return pos;
 }
+static u32 pf_t0;	/* (tentative; defined further down) this paint's start, just after wait_latch */
 static u32 band_pos(u32 pos)
 {
 	static s32 d, rate, last_pred;
 	static u32 last_t, last_s, last_st, last_chg, last_raw;
-	u32 t = now_ms(), dt = t - last_t;
+	/* REVIEW 1124 4.6 (owner: the centre band and the master row must move in lockstep): the band took now_ms()
+	 * wherever it was drawn in the frame -- after the meter, and after deck_area on alternate frames -- while the
+	 * meter steps from pf_t0: the band's sample time wandered by the frame's drawing time (up to +-1 px at the deep
+	 * zooms). Both now sample at the paint's start. */
+	u32 t = pf_t0 ? pf_t0 : now_ms(), dt = t - last_t;
 	s32 err, pred;
 	last_t = t;
 	if (dt > 100)
@@ -6030,11 +6043,13 @@ static u32 row_no(int k)
 	 * scrolling, paging, BACK, sort and re-entry; +0 holds dirty flags, not the cursor */
 	return cnt && f < cnt ? f + (u32)k + 1 : 0;
 }
-static void __attribute__((unused)) fmt_u(char *p, u32 v)	/* up to 4 digits */
+static void __attribute__((unused)) fmt_u(char *p, u32 v)	/* up to 5 digits (REVIEW 1124 3.9: row 12345 showed "2345"; callers hold 6 bytes) */
 {
 	char t[6];
 	int n = 0;
-	do { t[n++] = '0' + v % 10; v = udiv(v, 10); } while (v && n < 4);
+	if (v > 99999)
+		v = 99999;
+	do { t[n++] = '0' + v % 10; v = udiv(v, 10); } while (v && n < 5);
 	while (n)
 		*p++ = t[--n];
 	*p = 0;
@@ -6240,7 +6255,7 @@ static void track_row(int sid, int k, int y, int h, int x1, u32 sid1, int unfocu
 				cell_img(SMALL_ART(k + 1), RAIL_W + 8, cy);
 			if (V3E_PV_ROW == k + 1) {	/* V4n10 (3000 emu): the preview's playing point = a GREEN line,
 							 * nothing dimmed */
-				int px = (int)udiv(V3E_PV_COL * 86, 600);	/* V4n28 (audit): the wave is 86 columns, not 112 */
+				int px = (int)udiv((V3E_PV_COL > 599 ? 599 : V3E_PV_COL) * 86, 600);	/* REVIEW 1124 b.9: stay in the cell */	/* V4n28 (audit): the wave is 86 columns, not 112 */
 				fill(RAIL_W + 8 + px, cy - 2, 2, 24, 0x07E0);
 			}
 		}
@@ -7787,6 +7802,7 @@ static void mytag_page(int cur)
 }
 
 static u32 wait_e0;	/* V3rc2: when the list went empty (the spinner's delay) */
+static int wait_shown;	/* REVIEW 1124 b.1: frames (one per buffer) that still hold the spinner */
 static void browse(void)
 {
 	int sid = MODEL[7], k, cursor_k = -1, rows = 0, search = is_search(), pop = pop_on();
@@ -7957,8 +7973,10 @@ static void browse(void)
 			}
 		}
 	}
-	if (rows || search || root)
+	if (rows || search || root) {
 		wait_e0 = 0;
+		wait_shown = 0;
+	}
 	if (need(24, hmix(base, rows)))
 		fill(RAIL_W, y0 + 8 * rh, x1 - RAIL_W, ymax - y0 - 8 * rh, C_BLACK);
 	if (!rows && !search && !root) {
@@ -7969,12 +7987,24 @@ static void browse(void)
 			u32 nw = now_ms();
 			if (!wait_e0)
 				wait_e0 = nw | 1;
-			if (nw - wait_e0 >= 300)
+			if (nw - wait_e0 >= 300) {
+				/* REVIEW 1124 b.1: icon() writes only the mask's set pixels: the eight frames piled up, and the last
+				 * one stayed under "EMPTY". Its own box is cleared first (the spinner's background is black). */
+				const struct v2a_rect *wr = &v2a_rects[V2A_WAIT0];
+				fill(412, 224, wr->w, wr->h, C_BLACK);
 				icon(V2A_WAIT0 + (udiv(v2_epoch, 3) & 7), 412, 224, C_WHITE, C_BLACK);
+				wait_shown = 2;
+			}
 			pend = 1;	/* V3f: the spinner turns with the frames */
 		}
-		else if (!two)
+		else if (!two) {
+			if (wait_shown) {
+				const struct v2a_rect *wr = &v2a_rects[V2A_WAIT0];
+				fill(412, 224, wr->w, wr->h, C_BLACK);
+				wait_shown--;
+			}
 			text_c(&f_m, 428, 220, "EMPTY", C_LBL, C_BLACK);
+		}
 	}
 	if (info && !pop) {	/* V3rc5: under SORT side 1 is the pop-up's: the pane keeps what it showed */
 		u32 h = hmix(hmix(sid, cursor_k), day | day_full << 1);

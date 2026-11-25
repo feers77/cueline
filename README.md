@@ -12,14 +12,14 @@ screens and waveforms, KEY SHIFT, KEY SYNC, Link Cue previews and more to the NX
 the official 1.87 update, in a few minutes, and you can go back to stock at any time.
 
 > [!NOTE]
-> **Cueline 2.3.1 is the current stable release.** It fixes a loss of treble that 2.3 has after KEY SHIFT has been
-> used, and several display bugs; the LINK phase meter and the player screen follow the CDJ-3000's proportions more
-> closely. Run on two real CDJ-2000NXS2 decks on Pro DJ Link with unattended test scripts. **If you run 2.3 or
-> older, update to 2.3.1** (it installs straight over them). As with any firmware, keep the official 1.87 update to [go back to stock](#going-back-to-stock) and
+> **Cueline 2.4 is the current stable release.** A small maintenance release on top of 2.3.1: a fast second tap on
+> a touch control no longer reaches the original firmware's touch map, and the phase meter and the preview decoder
+> are hardened. Run on two real CDJ-2000NXS2 decks on Pro DJ Link with unattended test scripts. **If you run 2.3.1
+> or older, update to 2.4** (it installs straight over them). As with any firmware, keep the official 1.87 update to [go back to stock](#going-back-to-stock) and
 > test at home before a gig.
 
-**This version: Cueline 2.3.1.** Build `Cueline-2.3.1 49e8943c` (RELEASE), device version MAIN 2.30 / GUI 2.24;
-developer build `R23U1n` (DEV). Cueline uses the deck's own version numbers (2.3.1 → MAIN 2.30).
+**This version: Cueline 2.4.** Build `Cueline-2.4 40366745` (RELEASE), device version MAIN 2.32 / GUI 2.26;
+developer build `R24R3n` (DEV). Cueline uses the deck's own version numbers (2.4 → MAIN 2.32).
 It may contain bugs: screens that draw wrong, features that misbehave, in rare cases a deck that needs a restart.
 Please [report bugs](#reporting-bugs-and-contributing). Cueline is unofficial and **not affiliated with or endorsed
 by Pioneer DJ or AlphaTheta**.
@@ -40,6 +40,18 @@ by Pioneer DJ or AlphaTheta**.
 - 🛟 **Safe to try** — built from the official 1.87 on your own computer, reproducible byte for byte, and the official
   update brings you back to stock.
 
+### New in 2.4
+A small maintenance release: no new features.
+- **Fast second tap on a touch control (fixed):** it was handed to the original firmware; over open BEAT LOOP /
+  BEAT JUMP pads a quick double tap on KEY SHIFT +1 / −1 could set a loop or jump beats. It is now ignored.
+- **Phase meter and scrolling waveform (hardening):** the meter's view change needs two frames that agree; the
+  hardware-scrolled waveform uses the frame's own time stamp.
+- **Preview decoder (hardening):** malformed FLAC / WAV files are refused instead of being read past a buffer.
+- **Small display fixes:** PREVIEW playhead at the end of a track, five-digit numbers, the spinner under EMPTY.
+- **Versioning:** MAIN 2.32 / GUI 2.26; UTILITY → INFO → BUILD shows `Cueline-2.4 40366745`. 2.4 installs
+  straight over 2.3.1, 2.3, 2.2, 2.1.1 and 2.1, no factory reset needed.
+- Details: [CHANGELOG.md](CHANGELOG.md) and [RELEASE_NOTES_v2.4.0.md](RELEASE_NOTES_v2.4.0.md).
+
 ### New in 2.3.1
 - **Treble lost after using KEY SHIFT (fixed; 2.3 has this bug):** after a shift, going back to 0 left a gentle
   low-pass on the audio until the deck was switched off.
@@ -49,9 +61,7 @@ by Pioneer DJ or AlphaTheta**.
   (BEAT LOOP, BEAT JUMP, KEY SHIFT, GRID ADJUST) with the waveform at half height while it is open.
 - **Display fixes:** hot cue / memory marks in the last 7 % of the overview, the K.SYNC tile, small labels that ran
   together, and more (see the release notes).
-- **Versioning:** MAIN 2.30 / GUI 2.24; UTILITY → INFO → BUILD shows `Cueline-2.3.1 49e8943c`. 2.3.1 installs
-  straight over 2.3, 2.2, 2.1.1 and 2.1, no factory reset needed.
-- Details: [CHANGELOG.md](CHANGELOG.md) and [RELEASE_NOTES_v2.3.1.md](RELEASE_NOTES_v2.3.1.md).
+- Details: [CHANGELOG.md](CHANGELOG.md).
 
 ### New in 2.3
 - **KEY SHIFT is back, with a new engine** that works inside the deck's own MASTER TEMPO engine, the way the
@@ -150,7 +160,7 @@ You need: the deck, a computer, and a small USB stick (FAT32).
    then **UTILITY → DUPLICATION → DEFAULT** ([why](#install)). Coming from the official firmware or from Cueline
    2.1 / 2.1.1 you can skip this.
 5. **Install** it like an official update ([details](#install)). Never switch the deck off during the update.
-6. **Check** UTILITY → INFO → BUILD: it shows `Cueline-2.3.1 49e8943c`.
+6. **Check** UTILITY → INFO → BUILD: it shows `Cueline-2.4 40366745`.
 
 To go back to the official firmware, see [Going back to stock](#going-back-to-stock).
 
@@ -166,7 +176,7 @@ To go back to the official firmware, see [Going back to stock](#going-back-to-st
 ### Install
 1. If you use MY SETTINGS, save them with rekordbox first, and write down your deck settings: the factory reset in
    the next step erases them (it is only needed in the case described there).
-2. **Coming from the official firmware (1.87) or from Cueline 2.3 / 2.2 / 2.1 / 2.1.1? Skip this step** — 2.3.1's version is
+2. **Coming from the official firmware (1.87) or from Cueline 2.3.1 / 2.3 / 2.2 / 2.1 / 2.1.1? Skip this step** — 2.4's version is
    newer, so the deck installs it and your deck settings are kept.
    **If the deck runs a build with the same or a higher version number** (a DEV or test build, another custom
    firmware), the factory reset is **required**: the deck only installs an update whose version is newer than the
@@ -176,7 +186,7 @@ To go back to the official firmware, see [Going back to stock](#going-back-to-st
 3. Put only the new `C2KNXS2.UPD` in the root of a small FAT32 USB stick.
 4. With the deck off, insert the stick and start the update exactly as Pioneer DJ's CDJ-2000NXS2 update guide
    describes. Wait until it shows 100 % / complete, then switch the deck off and on.
-5. UTILITY → INFO → BUILD shows `Cueline-2.3.1 49e8943c`. If the deck still shows the old build, the update was skipped:
+5. UTILITY → INFO → BUILD shows `Cueline-2.4 40366745`. If the deck still shows the old build, the update was skipped:
    repeat step 2 and install again.
 6. Test it at home (load, play, browse, your LINK setup) before using it at a gig.
 
@@ -272,11 +282,11 @@ How to use each feature: [docs/USER_GUIDE.md](docs/USER_GUIDE.md).
 - Loading a track on a lone deck makes it the master.
 
 **Not yet verified on real hardware:** everything with a real CDJ-3000 / CDJ-3000X (0x0b packets, the 3000
-showing our waveform: tested in an emulator only) and Touch Cue with a mixer. What 2.3.1 was tested with on real
-decks: two CDJ-2000NXS2 on Pro DJ Link — two unattended scripts (9 and 33 minutes), each on both decks, on a
-developer build of the same sources (four file formats, pop-ups, preview gestures, a touch tour of the pad row and
-header tiles, settings, LINK, KEY SHIFT on eight long tracks with loops and searches, taps on the phase meter under
-SYNC).
+showing our waveform: tested in an emulator only) and Touch Cue with a mixer. What 2.4 was tested with on real
+decks: two CDJ-2000NXS2 on Pro DJ Link — unattended scripts on a developer build of the same sources, one per deck
+(file formats, pop-ups, preview gestures, a touch tour of the pad row and header tiles; settings, LINK, a long loop,
+KEY SHIFT on eight long tracks with loops and searches). The taps on the phase meter under SYNC were last run with
+2.3.1.
 KEY SYNC with the new engine and the menu languages: emulator only so far.
 
 **Limits**
@@ -322,7 +332,7 @@ recorder (`BLACKBOX.BIN` on the stick), a test log over USB or the network, a ne
 switches, performance counters and automated tests. **Not for gigs**, and use it only on your own network: a
 computer on the same LINK network can query and operate a DEV deck.
 - Build it from source: `PROFILE=dev ./build.sh /path/to/C2KNXS2.UPD` (expected sha256 for this version:
-  `a63b7cbe8daeaa8a18dac970ec4cf7a6ae058ccc7c7a40d009f0d75d7310ab4f`). Cueline Builder makes RELEASE builds only.
+  `9980fb52e7a01c166ae2f568d8d6af7b15051df993c5861893e47f1f0d3cf6a0`). Cueline Builder makes RELEASE builds only.
 - Install it like RELEASE. DEV and RELEASE carry the same version number, so switching between them needs
   UTILITY → DUPLICATION → DEFAULT first (LAN cable disconnected).
 - Everything else, including how to capture logs for a bug report and a privacy note:
@@ -341,7 +351,7 @@ Builds every component yourself; the result is byte-identical to what Cueline Bu
    ./build.sh /path/to/C2KNXS2.UPD
    ```
 4. The result is `out-release/C2KNXS2.UPD`. The script prints `verify ... all checks passed` and `bootcheck PASS`,
-   and compares the result with the reference sha256 `65c30bdef959704e86460b996b5c2ec3f1add7b10fb677e5bcbbedbe6f6e0914`.
+   and compares the result with the reference sha256 `85727034d6c8e73578b966bf5473823242fb1821959e886b0c5690565688d40c`.
    Exit code 0 = identical, 2 = built but different (other tool versions; still checked), 1 = error.
    **Never install a build whose verify or boot check failed.**
 
@@ -373,15 +383,15 @@ The emulator we use for development is not part of this repository.
 | File | sha256 |
 |---|---|
 | Official `C2KNXS2.UPD` 1.87 (your input) | `f211191a573b7a5c0e694936871f76011a58d5861dd061301cdb0d8b83a8b3e5` |
-| `CuelineBuilder.exe` (Release asset) | `ac4d56841abd9c9815832a89c725d72b4f45f7d050f42f1dc357192cb4a58e26` |
-| `CuelineBuilder-macOS.zip` (Release asset) | `0cc6b136d5b67fae16415f242ec142b95c19dfcd802374146f86c7bbb3c9b8bb` |
-| `builder/cueline.delta` (our patch data) | `981750cba8e2681d00bf8eb213a0424c9c68bf92144232a38304912af48801c7` |
-| Your built `C2KNXS2.UPD` (Builder or `build.sh`) | `65c30bdef959704e86460b996b5c2ec3f1add7b10fb677e5bcbbedbe6f6e0914` |
+| `CuelineBuilder.exe` (Release asset) | `453bd0bdd82fabb14c78af3748424165c931213003f442422d164793848d825d` |
+| `CuelineBuilder-macOS.zip` (Release asset) | `7a59dc96a80a5357a50b53e315458a67911bfa8bee7f0f5c419e81af78d6e582` |
+| `builder/cueline.delta` (our patch data) | `c9c1b73a65405ade4f70a8b61cb1ad0729f7c04ad90c836f703476e2154c0f4c` |
+| Your built `C2KNXS2.UPD` (Builder or `build.sh`) | `85727034d6c8e73578b966bf5473823242fb1821959e886b0c5690565688d40c` |
 
 - Windows may warn about an unsigned program (SmartScreen or antivirus). If you prefer not to run it, use the
   Python script or build from source: all three give the same result.
 - Extra check: build from source, then run
-  `python3 builder/mkdelta.py /path/to/C2KNXS2.UPD out-release/C2KNXS2.UPD my.delta --release R23U1r --build-id "Cueline-2.3.1 20261124-1809 49e8943c"`
+  `python3 builder/mkdelta.py /path/to/C2KNXS2.UPD out-release/C2KNXS2.UPD my.delta --release R24R3r --build-id "Cueline-2.4 20261125-0143 40366745"`
   and compare `my.delta` with `builder/cueline.delta`. To rebuild the exe yourself, see `builder/build_exe.bat`.
 
 ## License and trademarks

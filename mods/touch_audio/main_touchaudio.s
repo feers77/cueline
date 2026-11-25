@@ -1829,6 +1829,11 @@ ow_walk:
 	add	#20,r7
 	mov.w	@r7,r0
 	extu.w	r0,r0
+	mov	#8,r4			! REVIEW 1124 2.8: block align 1..8 (16 / 24 / 32 bit, mono / stereo): a larger one
+	cmp/hi	r4,r0			! made the n * align read overrun B_RAW
+	bt	badwav
+	tst	r0,r0
+	bt	badwav
 	mov.l	r0,@(ST_ALIGN,r9)	! block align
 	mov	r3,r7
 	add	#12,r7

@@ -3,8 +3,8 @@
 What `./build.sh` does, step by step. One script builds both profiles from the same sources:
 
 ```
-./build.sh C2KNXS2.UPD                  # RELEASE (R23U1r)
-PROFILE=dev ./build.sh C2KNXS2.UPD      # DEV (R23U1n)
+./build.sh C2KNXS2.UPD                  # RELEASE (R24R3r)
+PROFILE=dev ./build.sh C2KNXS2.UPD      # DEV (R24R3n)
 ./build.sh C2KNXS2.UPD --out DIR        # other output directory (default ./out-<profile>)
 ./build.sh C2KNXS2.UPD --no-keyshift    # a variant without KEY SHIFT / KEY SYNC (no reference sha)
 ```

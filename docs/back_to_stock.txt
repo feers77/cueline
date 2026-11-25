@@ -8,8 +8,8 @@ Why a plain official update is not enough
 -----------------------------------------
 The deck's updater writes a firmware section only when the version LABEL in the .UPD is newer than the
 label recorded as installed, and that installed label is kept in the deck's SETTINGS. Our builds carry
-higher labels so they install over stock: R23U1n (DEV) = MAIN 2.30 / GUI 2.24, R23U1r (RELEASE) = MAIN 2.30 /
-GUI 2.24 (UTILITY > VERSION No.). As a result the official 1.87
+higher labels so they install over stock: R24R3n (DEV) = MAIN 2.32 / GUI 2.26, R24R3r (RELEASE) = MAIN 2.32 /
+GUI 2.26 (UTILITY > VERSION No.). As a result the official 1.87
 update is SKIPPED (nothing is written) until the settings have been reset. A factory reset clears the
 stored label; after it, the official 1.87 update installs normally.
 (Verified on real hardware, and in the emulator.)
@@ -44,6 +44,6 @@ Notes
   and recovers from the official .UPD on the stick: leave the stick in and let it finish.
 - In update mode our mods do nothing: every MAIN mod that allocates, spawns or hooks checks the normal-boot
   state first and otherwise falls through to stock, so the update is performed by the stock updater.
-- The same DEFAULT step is needed to go from one of our builds to any OLDER label (e.g. RELEASE R23U1r back to
-  DEV R23U1n, or back to an earlier build); a NEWER label installs directly.
+- The same DEFAULT step is needed to go from one of our builds to any OLDER label (e.g. RELEASE R24R3r back to
+  DEV R24R3n, or back to an earlier build); a NEWER label installs directly.
 - Questions / bug reports: see README.md > Reporting bugs.

@@ -134,6 +134,8 @@ static drflac *flac;
 static u32 rate, chans;
 static uint64_t frames_total; /* FLAC; 0 when unknown */
 static s16 tmp[2 * 1152 * 2];
+/* REVIEW 1124 5.9: tmp holds 4608 samples; a FLAC of 5..8 channels at 1152 frames overran it by up to 9 KB */
+#define TMP_FR(ch) ((int)(sizeof tmp / sizeof tmp[0] / ((ch) ? (ch) : 1)))
 
 /* The firmware's fread returns short over NFS (a LINKed player's media: one
  * NFS READ, 8 KB, per call) while dr_mp3 / dr_flac ask for 64 KB chunks and
@@ -393,7 +395,8 @@ int tadec_seek(u32 col)
 			uint64_t back = (uint64_t)rate * k, t = tg > back ? tg - back : 0, left;
 			if (!drflac_seek_to_pcm_frame(flac, t)) continue;
 			for (left = tg - t; left; ) {
-				drflac_uint64 n = drflac_read_pcm_frames_s16(flac, left > 1152 ? 1152 : left, tmp);
+				uint64_t lim = TMP_FR(chans) < 1152 ? (uint64_t)TMP_FR(chans) : 1152;
+				drflac_uint64 n = drflac_read_pcm_frames_s16(flac, left > lim ? lim : left, tmp);
 				if (!n) return -1;
 				left -= n;
 			}
@@ -429,7 +432,9 @@ int tadec_read(s16 *out, int frames)
 	if (kind == K_FLAC) {
 		while (got < frames) {
 			int want = frames - got > 1152 ? 1152 : frames - got;
-			drflac_uint64 n = drflac_read_pcm_frames_s16(flac, want, tmp);
+			drflac_uint64 n;
+			if (want > TMP_FR(chans)) want = TMP_FR(chans);
+			n = drflac_read_pcm_frames_s16(flac, want, tmp);
 			if (!n) break;
 			for (drflac_uint64 i = 0; i < n; i++) {
 				s16 l = tmp[i * chans], r = chans > 1 ? tmp[i * chans + 1] : l;
@@ -540,7 +545,9 @@ void tadec_task(void)
 				q_stat[5] = io_seeks;
 				q_stat[6] = io_reads;
 				if (q_stat[4] > q_stat[7]) q_stat[7] = q_stat[4];
-				else while (q_head - cut < PREROLL && q_gen == g && q_allow) {
+				/* REVIEW 1124 5.10: this loop hung on the `if` above as its else: no preroll after the slowest seek
+				 * so far (the first one after boot), and a preroll after a FAILED seek */
+				if (!q_eof) while (q_head - cut < PREROLL && q_gen == g && q_allow) {
 					u32 h = q_head & (RING_N - 1), n = RING_N - h, fr = RING_N - (q_head - q_tail);
 					int got;
 					if (n > 1152) n = 1152;

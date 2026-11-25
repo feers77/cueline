@@ -1,5 +1,39 @@
 # CHANGELOG
 
+## 2.4 -- 2026-11-25: RELEASE `R24R3r` / DEV `R24R3n` (labels MAIN 2.32 / GUI 2.26, source hash `40366745`)
+Small maintenance release: touch, phase meter and preview-decoder hardening from the code review. No new features.
+Changes since 2.3.1:
+- **Fast second tap on a Cueline touch control (bug fix):** a second tap that arrived within about 0.4 s of the
+  first one was handed to the original firmware's touch map instead of being ignored. With the KEY SHIFT panel or the
+  ZOOM – GRID row open over the BEAT LOOP / BEAT JUMP pads, a fast double tap on +1 / −1 could therefore set a loop
+  or jump beats; on the browse strip it could move a paused deck. Such a tap is now ignored. Found by code review; in
+  the unattended deck script two quick taps on +1 over open pads set no loop. Not yet tried by finger on the decks.
+- **LINK phase meter, view change (hardening):** the deck's flags and the meter view are now read in one piece, and
+  a new view is accepted only when two frames in a row agree, so a half-updated value cannot switch the view for
+  one frame.
+- **Scrolling waveform and its marks on one clock (hardening):** the position of the hardware-scrolled waveform is
+  now computed from the same time stamp as the rest of the frame.
+- **Preview decoder bounds (hardening):** a FLAC file with more channels than the preview supports, or a WAV file
+  with an invalid block size, is refused instead of being read past the end of a buffer; an end-of-file case in the
+  preview pre-roll is handled explicitly.
+- **Small display fixes:** the PREVIEW playhead stays inside the strip at the very end of a track; five-digit numbers
+  are printed in full; the wait spinner is cleared before EMPTY is shown; a damaged cue list can no longer be read
+  past its end.
+- **Tested on real decks:** two CDJ-2000NXS2 on Pro DJ Link ran a developer build of the same sources, one unattended
+  script per deck. Script 1 (10 minutes, complete): three file formats, pop-ups, preview gestures, the touch tour
+  of the pad row, header tiles and ZOOM – GRID with memory read-backs, 45 checks passed. Script 2 was stopped by
+  hand after about 27 minutes: settings, LINK / MASTER / SYNC, a long loop with BROWSE and SHORT CUT inside it, and
+  KEY SHIFT on eight long tracks with loops and searches had run (screen painted every second, no EMERGENCY LOOP,
+  position 983–1014 ms of track per second); its last block, the taps on the phase meter under SYNC, did **not**
+  run with this build. Nothing was checked by ear.
+- **Versioning:** MAIN 2.32 / GUI 2.26 (DEV and RELEASE alike); UTILITY > INFO > BUILD shows
+  `Cueline-2.4 <hash>`. 2.4 installs over 2.3.1, 2.3, 2.2, 2.1.1 and 2.1 without a factory reset.
+
+Known issues: KEY SHIFT has no effect on tracks of 48 / 88.2 / 96 kHz (they play unshifted). KEY SYNC with the 2.3
+engine and the menu languages were checked in the emulator, not yet measured on real decks. The first preview over
+LINK from another deck's USB can take a moment (the index is built once). The WAVEFORM meter may sit 1 pixel row off
+vertically.
+
 ## 2.3.1 -- 2026-11-24: RELEASE `R23U1r` / DEV `R23U1n` (labels MAIN 2.30 / GUI 2.24, source hash `49e8943c`)
 Fix release for 2.3 (treble after KEY SHIFT, display bugs from a full code review) and CDJ-3000 proportions for the
 phase meter and the player screen. Changes since 2.3:

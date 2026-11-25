@@ -239,7 +239,7 @@ when your **HISTORY NAME is 29 characters or fewer** (see `KNOWN_LIMITS.md`).
 
 | Item | Options | Default | Saved |
 |---|---|---|---|
-| BUILD | read-only | shows `Cueline-2.3.1 49e8943c` | - |
+| BUILD | read-only | shows `Cueline-2.4 40366745` | - |
 | LINK KEY STATUS | OFF / ON | ON | no (ON at every boot) |
 | KEY SYNC | OFF / ON | ON | no (ON at every boot) |
 | LINK CUE | OFF / PREVIEW / CUE / BOTH | BOTH | no (BOTH at every boot) |
@@ -592,7 +592,7 @@ always on.
 UTILITY > INFO > **BUILD** shows the installed build's tag and source hash, for example:
 
 ```
-Cueline-2.3.1 49e8943c
+Cueline-2.4 40366745
 ```
 
 Check it after every install. Quote it in every bug report.

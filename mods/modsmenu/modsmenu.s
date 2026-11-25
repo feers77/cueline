@@ -1423,7 +1423,14 @@ v3e_touch:
 	sub	r1,r0
 	mov	#VT_GAP,r1
 	cmp/hs	r1,r0
-	bf	vt_stock
+	bt	9f
+	! REVIEW 1124 1.1: inside the gap the press used to go to STOCK: over an open pad row a fast second tap on
+	! KEY SHIFT +1 / -1 set a loop or jumped beats (stock zone 4 lies under our panel). Now it is swallowed.
+	mov	#2,r0
+	mov.l	r0,@r7
+	bra	vt_done
+	nop
+9:
 	mov.l	vt_kbhp2,r1		! V3rc3: SEARCH, keyboard hidden: a tap on the query box (y < 60)
 	mov.l	@r1,r0			! shows it again
 	tst	r0,r0
